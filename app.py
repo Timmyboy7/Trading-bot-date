@@ -1,3 +1,4 @@
+import json
 import os
 import datetime
 import requests
@@ -74,7 +75,7 @@ def market_data():
         r.raise_for_status()
         bars_data = r.json().get("bars", {})
         for sym in symbols:
-            result["bars"][sym] = bars_data.get(sym, [])
+            result["bars"][sym] = json.dumps(bars_data.get(sym, []))
     except Exception as e:
         result["errors"].append(f"bars: {e}")
         for sym in symbols:
@@ -91,11 +92,11 @@ def market_data():
         r.raise_for_status()
         articles = r.json().get("news", [])
         for sym in symbols:
-            result["news"][sym] = [
-                {"headline": a.get("headline"), "summary": a.get("summary"), "created_at": a.get("created_at")}
-                for a in articles
-                if sym in (a.get("symbols") or [])
-            ][:news_limit]
+            result["news"][sym] = json.dumps([
+    {"headline": a.get("headline"), "summary": a.get("summary"), "created_at": a.get("created_at")}
+    for a in articles
+    if sym in (a.get("symbols") or [])
+][:news_limit])
     except Exception as e:
         result["errors"].append(f"news: {e}")
         for sym in symbols:
