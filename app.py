@@ -86,7 +86,7 @@ def market_data():
         r = requests.get(
             f"{DATA_BASE}/v1beta1/news",
             headers=HEADERS,
-            params={"symbols": symbols_csv, "limit": news_limit * len(symbols)},
+            params={"symbols": symbols_csv, "limit": min(news_limit * len(symbols), 50)},
             timeout=20,
         )
         r.raise_for_status()
