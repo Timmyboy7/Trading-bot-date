@@ -90,19 +90,19 @@ def market_data():
             timeout=20,
         )
         r.raise_for_status()
-                articles = r.json().get("news", [])
+        articles = r.json().get("news", [])
         for sym in symbols:
             result["news"][sym] = [
-    {"headline": a.get("headline"), "summary": a.get("summary"), "created_at": a.get("created_at")}
-    for a in articles
-    if sym in (a.get("symbols") or [])
-][:news_limit]
+                {"headline": a.get("headline"), "summary": a.get("summary"), "created_at": a.get("created_at")}
+                for a in articles
+                if sym in (a.get("symbols") or [])
+            ][:news_limit]
     except Exception as e:
         result["errors"].append(f"news: {e}")
         for sym in symbols:
             result["news"][sym] = []
 
-        result["bars"] = json.dumps(result["bars"])
+    result["bars"] = json.dumps(result["bars"])
     result["news"] = json.dumps(result["news"])
 
     return jsonify(result)
