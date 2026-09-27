@@ -102,6 +102,9 @@ def market_data():
         for sym in symbols:
             result["news"][sym] = []
 
+        result["bars"] = json.dumps(result["bars"])
+    result["news"] = json.dumps(result["news"])
+
     return jsonify(result)
 
 
