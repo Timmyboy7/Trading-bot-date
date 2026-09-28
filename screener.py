@@ -39,6 +39,7 @@ Response:
 """
 import os
 import csv
+import json
 import math
 import time
 import datetime
@@ -322,7 +323,11 @@ def screen():
             "as_of": datetime.date.today().isoformat(),
             "universe_size": len(symbols),
             "scored": len(rows),
-            "candidates": candidates,
-            "sector_summary": sector_summary_list,
+            # Pre-stringified (matching app.py's existing convention for
+            # result["bars"] / result["news"]): Make's escapeJSON() expects a
+            # string, not a parsed array/collection — feeding it a raw JSON
+            # array makes it fall back to "[object Object]" stringification.
+            "candidates": json.dumps(candidates),
+            "sector_summary": json.dumps(sector_summary_list),
         }
     )
