@@ -6,6 +6,9 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
+from screener import screener_bp
+app.register_blueprint(screener_bp)
+
 ALPACA_KEY = os.environ.get("ALPACA_API_KEY")
 ALPACA_SECRET = os.environ.get("ALPACA_API_SECRET")
 
