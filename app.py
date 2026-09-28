@@ -107,6 +107,7 @@ def market_data():
 
     result["bars"] = json.dumps(result["bars"])
     result["news"] = json.dumps(result["news"])
+    result["positions"] = json.dumps(result["positions"])
 
     return jsonify(result)
 
