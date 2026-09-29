@@ -29,14 +29,13 @@ def health():
 @app.route("/market-data")
 def market_data():
     symbols_param = request.args.get("symbols", "")
-    symbols = [s.strip().upper() for s in symbols_param.split(",") if s.strip()]
-    if not symbols:
+    requested_symbols = [s.strip().upper() for s in symbols_param.split(",") if s.strip()]
+    if not requested_symbols:
         return jsonify({"error": "Missing required 'symbols' query parameter, e.g. ?symbols=AAPL,MSFT"}), 400
 
     days_back = int(request.args.get("days", 45))
     news_limit = int(request.args.get("news_limit", 10))
     start_date = (datetime.date.today() - datetime.timedelta(days=days_back)).isoformat()
-    symbols_csv = ",".join(symbols)
 
     result = {"account": None, "positions": {}, "bars": {}, "news": {}, "errors": []}
 
@@ -49,7 +48,12 @@ def market_data():
     except Exception as e:
         result["errors"].append(f"account: {e}")
 
-    # Current positions (all of them, then filter down to our symbols)
+    # Current positions (all of them) — fetched first so any held-but-not-
+    # requested symbol can be folded into the analysis list below. This is
+    # what keeps a stock from disappearing from monitoring the moment it
+    # drops out of the Watchlist while you still hold it: it stays in the
+    # analyzed set (and gets a sell/hold decision from the daily chain)
+    # until you're actually out of the position.
     try:
         r = requests.get(f"{TRADING_BASE}/v2/positions", headers=HEADERS, timeout=20)
         r.raise_for_status()
@@ -58,6 +62,11 @@ def market_data():
     except Exception as e:
         held = {}
         result["errors"].append(f"positions: {e}")
+
+    held_extra = [sym for sym, qty in held.items() if qty != 0 and sym not in requested_symbols]
+    symbols = requested_symbols + held_extra
+    symbols_csv = ",".join(symbols)
+
     for sym in symbols:
         result["positions"][sym] = held.get(sym, 0)
 
@@ -105,6 +114,11 @@ def market_data():
         for sym in symbols:
             result["news"][sym] = []
 
+    # effective_symbols is the real list that got analyzed (requested ∪ held) —
+    # this is what the Make prompts should read the "stocks" list from, not
+    # the raw Watchlist text, so every prompt and this data agree on exactly
+    # which symbols are in play.
+    result["effective_symbols"] = ",".join(symbols)
     result["bars"] = json.dumps(result["bars"])
     result["news"] = json.dumps(result["news"])
     result["positions"] = json.dumps(result["positions"])
