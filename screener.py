@@ -329,5 +329,14 @@ def screen():
             # array makes it fall back to "[object Object]" stringification.
             "candidates": json.dumps(candidates),
             "sector_summary": json.dumps(sector_summary_list),
+            # 2026-10-04: plain, NOT stringified — this is deliberately a
+            # native JSON array of just the symbols (e.g. ["AAPL","MSFT",...]),
+            # so Make can do join(2.data.candidate_symbols; ",") directly to
+            # build the Valuation call's ?symbols= list, with no Parse JSON
+            # module and no map()/parseJSON() needed. Keep this un-stringified
+            # even though `candidates` above is stringified — they serve
+            # different consumers (this one needs a real array to iterate,
+            # `candidates` needs a string to embed in a prompt).
+            "candidate_symbols": [c["symbol"] for c in candidates],
         }
     )
