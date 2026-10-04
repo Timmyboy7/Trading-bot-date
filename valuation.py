@@ -89,16 +89,29 @@ import datetime
 import json
 import math
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import yfinance as yf
 from flask import Blueprint, jsonify, request
 
 valuation_bp = Blueprint("valuation", __name__)
 
-REQUEST_PAUSE_SEC = 0.5  # be polite between per-symbol lookups
 TREND_QUARTERS = 4  # how many reported quarters to summarize, oldest -> newest
 SNAPSHOT_RETRIES = 2  # extra attempts for the .info call, which Yahoo rate-limits
 # harder than the quarterly-statement endpoints — see 2026-10-04 note below.
+
+# 2026-10-04: Render's platform proxy enforces its own ~40s request timeout
+# in front of this app — separate from and shorter than gunicorn's own
+# --timeout flag, and not something the Start Command can change. Fetching
+# 30+ symbols one at a time (each symbol = 1 .info call with retries + 2
+# quarterly-statement calls) easily takes minutes, so it was getting killed
+# mid-request. Each symbol's fetch is I/O-bound (waiting on Yahoo), so a
+# small thread pool runs several symbols concurrently instead of serially —
+# wall time becomes roughly "slowest symbol" instead of "sum of all
+# symbols." Kept modest (5 workers, not 35 at once) because Yahoo's
+# rate-limiting/crumb-block (see fetch_fundamentals docstring) gets more
+# aggressive the more request-like-a-bot the traffic looks.
+MAX_CONCURRENT_SYMBOLS = 5
 
 FIELDS = (
     "pe_ratio",
@@ -310,6 +323,38 @@ def fetch_trend(symbol, quarters=TREND_QUARTERS):
     return trend, None
 
 
+def _fetch_one(sym):
+    """Fetch snapshot + trend for a single symbol. Never raises — always
+    returns (sym, data_dict, error_list) so one bad symbol can't take down
+    the whole batch, same principle as screener.py's fetch_bars 'skip this
+    batch on error rather than failing the whole screen,' just applied per
+    symbol instead of per request batch to Alpaca.
+    """
+    sym_errors = []
+    try:
+        data, err = fetch_fundamentals(sym)
+        if data:
+            result = data
+        else:
+            result = {k: None for k in FIELDS}
+            sym_errors.append(f"{sym}: {err}")
+
+        trend, trend_err = fetch_trend(sym)
+        if trend:
+            result.update(trend)
+        else:
+            result.update({k: "n/a" for k in TREND_FIELDS})
+            result["trend_error"] = trend_err
+            sym_errors.append(f"{sym} (trend): {trend_err}")
+    except Exception as e:
+        result = {k: None for k in FIELDS}
+        result.update({k: "n/a" for k in TREND_FIELDS})
+        result["trend_error"] = f"unexpected error: {e}"
+        sym_errors.append(f"{sym}: unexpected error — {e}")
+
+    return sym, result, sym_errors
+
+
 @valuation_bp.route("/valuation", methods=["GET"])
 def valuation():
     symbols_param = request.args.get("symbols", "")
@@ -320,36 +365,15 @@ def valuation():
     fundamentals = {}
     errors = []
 
-    for sym in symbols:
-        # Per-symbol error boundary: a real S&P 500 batch (vs. the handful of
-        # clean names this was first tested with) will eventually include a
-        # symbol whose Yahoo data has some unanticipated shape. One bad
-        # symbol should degrade to a null/error entry for that symbol only,
-        # never take down the whole request — same principle as screener.py's
-        # fetch_bars "skip this batch on error rather than failing the whole
-        # screen."
-        try:
-            data, err = fetch_fundamentals(sym)
-            if data:
-                fundamentals[sym] = data
-            else:
-                fundamentals[sym] = {k: None for k in FIELDS}
-                errors.append(f"{sym}: {err}")
-
-            trend, trend_err = fetch_trend(sym)
-            if trend:
-                fundamentals[sym].update(trend)
-            else:
-                fundamentals[sym].update({k: "n/a" for k in TREND_FIELDS})
-                fundamentals[sym]["trend_error"] = trend_err
-                errors.append(f"{sym} (trend): {trend_err}")
-        except Exception as e:
-            fundamentals[sym] = {k: None for k in FIELDS}
-            fundamentals[sym].update({k: "n/a" for k in TREND_FIELDS})
-            fundamentals[sym]["trend_error"] = f"unexpected error: {e}"
-            errors.append(f"{sym}: unexpected error — {e}")
-
-        time.sleep(REQUEST_PAUSE_SEC)
+    # Concurrent, not sequential — see MAX_CONCURRENT_SYMBOLS note above for
+    # why: Render's platform proxy times this whole request out at ~40s,
+    # which a 30+ symbol sequential loop cannot finish inside of.
+    with ThreadPoolExecutor(max_workers=MAX_CONCURRENT_SYMBOLS) as pool:
+        futures = {pool.submit(_fetch_one, sym): sym for sym in symbols}
+        for future in as_completed(futures):
+            sym, result, sym_errors = future.result()
+            fundamentals[sym] = result
+            errors.extend(sym_errors)
 
     return jsonify(
         {
