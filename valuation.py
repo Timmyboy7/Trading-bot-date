@@ -253,8 +253,17 @@ def fetch_trend(symbol, quarters=TREND_QUARTERS):
             return [None] * len(cols_chrono)
         out = []
         for c in cols_chrono:
-            v = row.get(c) if c in row.index else None
-            out.append(None if _is_nan(v) else float(v))
+            try:
+                v = row.get(c) if c in row.index else None
+                # A duplicate-dated column (amended/restated quarter — not
+                # rare for real companies) makes row.get() return a Series
+                # instead of a scalar; take the first value rather than
+                # letting float() throw and crash the whole batch.
+                if hasattr(v, "iloc"):
+                    v = v.iloc[0] if len(v) else None
+                out.append(None if _is_nan(v) else float(v))
+            except (TypeError, ValueError):
+                out.append(None)
         return out
 
     revenue = series_for(fin, "Total Revenue", "TotalRevenue")
@@ -312,20 +321,33 @@ def valuation():
     errors = []
 
     for sym in symbols:
-        data, err = fetch_fundamentals(sym)
-        if data:
-            fundamentals[sym] = data
-        else:
-            fundamentals[sym] = {k: None for k in FIELDS}
-            errors.append(f"{sym}: {err}")
+        # Per-symbol error boundary: a real S&P 500 batch (vs. the handful of
+        # clean names this was first tested with) will eventually include a
+        # symbol whose Yahoo data has some unanticipated shape. One bad
+        # symbol should degrade to a null/error entry for that symbol only,
+        # never take down the whole request — same principle as screener.py's
+        # fetch_bars "skip this batch on error rather than failing the whole
+        # screen."
+        try:
+            data, err = fetch_fundamentals(sym)
+            if data:
+                fundamentals[sym] = data
+            else:
+                fundamentals[sym] = {k: None for k in FIELDS}
+                errors.append(f"{sym}: {err}")
 
-        trend, trend_err = fetch_trend(sym)
-        if trend:
-            fundamentals[sym].update(trend)
-        else:
+            trend, trend_err = fetch_trend(sym)
+            if trend:
+                fundamentals[sym].update(trend)
+            else:
+                fundamentals[sym].update({k: "n/a" for k in TREND_FIELDS})
+                fundamentals[sym]["trend_error"] = trend_err
+                errors.append(f"{sym} (trend): {trend_err}")
+        except Exception as e:
+            fundamentals[sym] = {k: None for k in FIELDS}
             fundamentals[sym].update({k: "n/a" for k in TREND_FIELDS})
-            fundamentals[sym]["trend_error"] = trend_err
-            errors.append(f"{sym} (trend): {trend_err}")
+            fundamentals[sym]["trend_error"] = f"unexpected error: {e}"
+            errors.append(f"{sym}: unexpected error — {e}")
 
         time.sleep(REQUEST_PAUSE_SEC)
 
