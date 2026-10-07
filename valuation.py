@@ -113,6 +113,17 @@ SNAPSHOT_RETRIES = 2  # extra attempts for the .info call, which Yahoo rate-limi
 # aggressive the more request-like-a-bot the traffic looks.
 MAX_CONCURRENT_SYMBOLS = 5
 
+# 2026-10-07: Yahoo now blocks the `.info` (quoteSummary) endpoint outright
+# from Render's IP ("Invalid Crumb" / "User is unable to access this
+# feature", HTTP 401) while the quarterly-statement and price-history
+# endpoints still work. Retrying a hard block just burns the ~40s budget, so
+# after the first 401-style failure `.info` is skipped for a cool-down window
+# and the snapshot is DERIVED from the statements + latest price instead
+# (see fetch_derived). Derived P/E is trailing-12-month; forward_pe and
+# peg_ratio are not derivable and stay null.
+INFO_BLOCK_COOLDOWN_SEC = 600
+_info_blocked_until = 0.0
+
 FIELDS = (
     "pe_ratio",
     "forward_pe",
@@ -158,6 +169,10 @@ def fetch_fundamentals(symbol, retries=SNAPSHOT_RETRIES):
     mid-block, every attempt will fail and this correctly falls through to
     an error entry rather than crashing the whole request.
     """
+    global _info_blocked_until
+    if time.time() < _info_blocked_until:
+        return None, "snapshot endpoint blocked by Yahoo (cool-down) — using derived values"
+
     info = None
     last_err = None
     for attempt in range(retries + 1):
@@ -166,6 +181,10 @@ def fetch_fundamentals(symbol, retries=SNAPSHOT_RETRIES):
         except Exception as e:
             last_err = str(e)
             info = None
+            low = last_err.lower()
+            if "401" in low or "unauthorized" in low or "crumb" in low or "unable to access" in low:
+                _info_blocked_until = time.time() + INFO_BLOCK_COOLDOWN_SEC
+                return None, last_err
         else:
             if info and (info.get("regularMarketPrice") is not None or info.get("currentPrice") is not None):
                 break
@@ -236,7 +255,7 @@ def _fmt_pct(v, signed=False):
     return f"{pct:.0f}%"
 
 
-def fetch_trend(symbol, quarters=TREND_QUARTERS):
+def fetch_trend(symbol, quarters=TREND_QUARTERS, ctx=None):
     """Returns (trend_dict, error_string). Exactly one of the two is set.
 
     Pulls the last `quarters` reported quarters via yfinance's quarterly
@@ -249,6 +268,8 @@ def fetch_trend(symbol, quarters=TREND_QUARTERS):
         cf = t.quarterly_cashflow
     except Exception as e:
         return None, str(e)
+    if ctx is not None:  # share the already-fetched statements with fetch_derived
+        ctx.update({"ticker": t, "fin": fin, "cf": cf})
 
     if fin is None or fin.empty:
         return None, "no quarterly financials available (recent IPO, foreign issuer, or no coverage)"
@@ -323,6 +344,121 @@ def fetch_trend(symbol, quarters=TREND_QUARTERS):
     return trend, None
 
 
+def _quarter_series(df, *row_names):
+    """Newest-first list of floats for a statement row (None where missing)."""
+    row = _row(df, *row_names)
+    if row is None:
+        return []
+    out = []
+    for c in df.columns:
+        try:
+            v = row.get(c) if c in row.index else None
+            if hasattr(v, "iloc"):
+                v = v.iloc[0] if len(v) else None
+            out.append(None if _is_nan(v) else float(v))
+        except (TypeError, ValueError):
+            out.append(None)
+    return out
+
+
+def _ttm(vals):
+    """Sum of the newest 4 values, or None if any of them is missing."""
+    v = vals[:4]
+    if len(v) < 4 or any(x is None for x in v):
+        return None
+    return sum(v)
+
+
+def _last_price(t):
+    try:
+        h = t.history(period="5d")
+        if h is not None and not h.empty:
+            return float(h["Close"].dropna().iloc[-1])
+    except Exception:
+        pass
+    try:
+        p = t.fast_info.get("last_price")
+        if p:
+            return float(p)
+    except Exception:
+        pass
+    return None
+
+
+def fetch_derived(ctx):
+    """Builds the snapshot fields from quarterly statements + latest price,
+    for when Yahoo's `.info` endpoint is blocked. Returns (data, error).
+
+    pe_ratio is trailing-12-month (price / sum of last 4 quarters' diluted
+    EPS). Margins are TTM. forward_pe and peg_ratio can't be derived and are
+    left null. Values are tagged snapshot_source="derived" so the LLM knows.
+    """
+    t = ctx.get("ticker")
+    fin = ctx.get("fin")
+    cf = ctx.get("cf")
+    if t is None or fin is None or fin.empty:
+        return None, "no statements available to derive a snapshot"
+
+    revenue = _quarter_series(fin, "Total Revenue", "TotalRevenue")
+    gross = _quarter_series(fin, "Gross Profit", "GrossProfit")
+    op_inc = _quarter_series(fin, "Operating Income", "OperatingIncome")
+    net_inc = _quarter_series(fin, "Net Income", "NetIncome", "Net Income Common Stockholders")
+    eps = _quarter_series(fin, "Diluted EPS", "DilutedEPS", "Basic EPS", "BasicEPS")
+    ocf = _quarter_series(cf, "Operating Cash Flow", "Cash Flow From Continuing Operating Activities", "Total Cash From Operating Activities")
+    capex = _quarter_series(cf, "Capital Expenditure", "Capital Expenditures")
+
+    price = _last_price(t)
+
+    rev_ttm, gross_ttm, op_ttm, net_ttm = _ttm(revenue), _ttm(gross), _ttm(op_inc), _ttm(net_inc)
+    eps_ttm = _ttm(eps)
+    ocf_ttm, capex_ttm = _ttm(ocf), _ttm(capex)
+
+    def ratio(a, b):
+        return None if a is None or not b else a / b
+
+    def yoy(vals):
+        if len(vals) >= 5 and vals[0] is not None and vals[4] not in (None, 0):
+            return (vals[0] - vals[4]) / abs(vals[4])
+        return None
+
+    # balance-sheet items: debt/equity (Yahoo reports it in percent) + shares
+    debt_to_equity = None
+    shares = None
+    try:
+        bs = t.quarterly_balance_sheet
+        debt = _quarter_series(bs, "Total Debt", "TotalDebt")
+        equity = _quarter_series(bs, "Stockholders Equity", "Common Stock Equity", "Total Equity Gross Minority Interest")
+        shr = _quarter_series(bs, "Ordinary Shares Number", "Share Issued")
+        if debt and equity and debt[0] is not None and equity[0]:
+            debt_to_equity = debt[0] / equity[0] * 100
+        if shr and shr[0]:
+            shares = shr[0]
+    except Exception:
+        pass
+    if shares is None:
+        sh = _quarter_series(fin, "Diluted Average Shares", "Basic Average Shares")
+        shares = sh[0] if sh and sh[0] else None
+
+    data = {
+        "pe_ratio": (price / eps_ttm) if (price and eps_ttm and eps_ttm > 0) else None,
+        "forward_pe": None,
+        "peg_ratio": None,
+        "revenue_growth_yoy": yoy(revenue),
+        "earnings_growth_yoy": yoy(net_inc),
+        "gross_margin": ratio(gross_ttm, rev_ttm),
+        "operating_margin": ratio(op_ttm, rev_ttm),
+        "profit_margin": ratio(net_ttm, rev_ttm),
+        "debt_to_equity": debt_to_equity,
+        "free_cash_flow": (ocf_ttm + capex_ttm) if (ocf_ttm is not None and capex_ttm is not None) else None,
+        "market_cap": (price * shares) if (price and shares) else None,
+        "last_price": price,
+        "snapshot_source": "derived from quarterly filings + latest price (TTM; no forward P/E or PEG)",
+    }
+    if all(data[k] is None for k in FIELDS):
+        return None, "derived snapshot empty"
+    return data, None
+
+
 def _fetch_one(sym):
     """Fetch snapshot + trend for a single symbol. Never raises — always
     returns (sym, data_dict, error_list) so one bad symbol can't take down
@@ -333,13 +469,20 @@ def _fetch_one(sym):
     sym_errors = []
     try:
         data, err = fetch_fundamentals(sym)
+        ctx = {}
+        trend, trend_err = fetch_trend(sym, ctx=ctx)
+
         if data:
             result = data
+            result["snapshot_source"] = "yahoo"
         else:
-            result = {k: None for k in FIELDS}
-            sym_errors.append(f"{sym}: {err}")
+            derived, derr = fetch_derived(ctx) if ctx else (None, "no statements")
+            if derived:
+                result = derived
+            else:
+                result = {k: None for k in FIELDS}
+                sym_errors.append(f"{sym}: {err}; derived: {derr}")
 
-        trend, trend_err = fetch_trend(sym)
         if trend:
             result.update(trend)
         else:
