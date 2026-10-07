@@ -6,14 +6,26 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-from screener import screener_bp
-app.register_blueprint(screener_bp)
+import traceback
 
-from valuation import valuation_bp
-app.register_blueprint(valuation_bp)
+# 2026-10-07: blueprint imports are wrapped so that ONE broken module (e.g. a
+# bad paste or a missing package) can't stop the whole service from booting.
+# The error text is exposed at GET / under "import_errors", so a failed
+# import is visible in the browser instead of only as a crashed deploy.
+IMPORT_ERRORS = {}
 
-from reconcile_basket import reconcile_bp
-app.register_blueprint(reconcile_bp)
+
+def _register(module_name, bp_name):
+    try:
+        module = __import__(module_name)
+        app.register_blueprint(getattr(module, bp_name))
+    except Exception:
+        IMPORT_ERRORS[module_name] = traceback.format_exc()[-1500:]
+
+
+_register("screener", "screener_bp")
+_register("valuation", "valuation_bp")
+_register("reconcile_basket", "reconcile_bp")
 
 ALPACA_KEY = os.environ.get("ALPACA_API_KEY")
 ALPACA_SECRET = os.environ.get("ALPACA_API_SECRET")
@@ -29,7 +41,10 @@ HEADERS = {
 
 @app.route("/")
 def health():
-    return jsonify({"status": "ok"})
+    out = {"status": "ok"}
+    if IMPORT_ERRORS:
+        out["import_errors"] = IMPORT_ERRORS
+    return jsonify(out)
 
 
 @app.route("/market-data")
