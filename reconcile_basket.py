@@ -51,6 +51,9 @@ Rules (all overridable via env vars; defaults confirmed 2026-10-07):
     only after PERSISTENCE_WEEKS (2) consecutive weeks.
   - Minimum hold: no regular drop before MIN_HOLD_DAYS (28) days.
   - Turnover cap: at most MAX_SWAPS (4) regular swaps per run.
+  - Re-run guard: weeks_below_cutoff only advances if the row's last_reviewed
+    is at least MIN_REVIEW_GAP_DAYS (5) days old, so test runs and retries
+    can't fast-forward the persistence clock.
   - Rank bar (thirds of this week's candidates): an incumbent Micro left out
     is only dropped if it sits in the bottom third by combined_score AND the
     replacement is in the top third.
@@ -83,6 +86,7 @@ MAX_PER_SECTOR = int(os.environ.get("RECON_MAX_PER_SECTOR", 5))
 PERSISTENCE_WEEKS = int(os.environ.get("RECON_PERSISTENCE_WEEKS", 2))
 MIN_HOLD_DAYS = int(os.environ.get("RECON_MIN_HOLD_DAYS", 28))
 MAX_SWAPS = int(os.environ.get("RECON_MAX_SWAPS", 4))
+MIN_REVIEW_GAP_DAYS = int(os.environ.get("RECON_MIN_REVIEW_GAP_DAYS", 5))
 # A sector counts as "stressed" when the median stock in it (across the whole
 # scored S&P 500 universe, from /screen's sector_returns) is down at least
 # this much over 1 month or over 1 week. Absolute thresholds, deliberately simple.
@@ -189,6 +193,7 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             "thesis_summary": _get(r, "thesis_summary", "reasoning", default=""),
             "target_price": _to_float(_get(r, "target_price")),
             "conviction": str(_get(r, "conviction", default="")).lower(),
+            "score": _to_float(_get(r, "score")),
         }
 
     # --- normalise current Watchlist
@@ -205,6 +210,8 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             "conviction": str(_get(r, "conviction", default="")).lower(),
             "added_on": _parse_date(_get(r, "added_on", "date_added", "addedon")),
             "prev_weeks": int(_to_float(_get(r, "weeks_below_cutoff", default=0)) or 0),
+            "last_reviewed": _parse_date(_get(r, "last_reviewed", "lastreviewed")),
+            "score": _to_float(_get(r, "score")),
         }
 
     final = {}      # symbol -> output row (without 'status' yet decided)
@@ -220,6 +227,7 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             "conviction": base["conviction"],
             "weeks_below_cutoff": weeks,
             "last_reviewed": today.isoformat(),
+            "score": base.get("score"),
             "status": st,
         }
 
@@ -227,7 +235,18 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
     info = {}
     for s, c in cur.items():
         in_cands = s in rank
-        weeks = 0 if in_cands else c["prev_weeks"] + 1
+        # The counter counts WEEKS, not runs: if this row was already reviewed
+        # within the last MIN_REVIEW_GAP_DAYS (a test run, a manual re-run, a
+        # retry after an error), don't advance it a second time.
+        reviewed_recently = (
+            c["last_reviewed"] is not None and (today - c["last_reviewed"]).days < MIN_REVIEW_GAP_DAYS
+        )
+        if in_cands:
+            weeks = 0
+        elif reviewed_recently:
+            weeks = c["prev_weeks"]
+        else:
+            weeks = c["prev_weeks"] + 1
         age = (today - c["added_on"]).days if c["added_on"] else None
         in_prop = s in prop
         base = dict(c)
@@ -236,6 +255,8 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             base["thesis_summary"] = p["thesis_summary"] or c["thesis_summary"]
             base["target_price"] = p["target_price"] if p["target_price"] is not None else c["target_price"]
             base["conviction"] = p["conviction"] or c["conviction"]
+            if p.get("score") is not None:
+                base["score"] = p["score"]
         info[s] = {"in_cands": in_cands, "weeks": weeks, "age": age, "in_prop": in_prop,
                    "conv": prop[s]["conviction"] if in_prop else c["conviction"]}
         final[s] = mk_row(base, c["added_on"], weeks, "kept" if in_prop else "kept_by_stability_rule")
