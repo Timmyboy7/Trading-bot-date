@@ -12,6 +12,9 @@ app.register_blueprint(screener_bp)
 from valuation import valuation_bp
 app.register_blueprint(valuation_bp)
 
+from reconcile_basket import reconcile_bp
+app.register_blueprint(reconcile_bp)
+
 ALPACA_KEY = os.environ.get("ALPACA_API_KEY")
 ALPACA_SECRET = os.environ.get("ALPACA_API_SECRET")
 
