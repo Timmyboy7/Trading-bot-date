@@ -175,6 +175,7 @@ def compute_raw_factors(closes):
         base = closes[idx]
         return (last / base - 1.0) if base else None
 
+    ret_1w = ret(5)
     ret_1m = ret(21)
     ret_3m = ret(63)
     ret_6m = ret(126)
@@ -197,6 +198,7 @@ def compute_raw_factors(closes):
 
     return {
         "ret_1m": ret_1m,
+        "ret_1w": ret_1w,
         "ret_3m": ret_3m,
         "ret_6m": ret_6m,
         "drawdown_from_52w_high": drawdown,
@@ -318,8 +320,32 @@ def screen():
         reverse=True,
     )
 
+    # Price-based sector health over ALL scored names (not just the shortlist):
+    # median 1-month and 1-week return per sector. /reconcile-basket uses this
+    # to detect a sector crisis (e.g. Energy median 1m <= -10%).
+    def _median(vals):
+        vals = sorted(v for v in vals if v is not None)
+        if not vals:
+            return None
+        m = len(vals) // 2
+        return vals[m] if len(vals) % 2 else (vals[m - 1] + vals[m]) / 2
+
+    by_sector_all = {}
+    for r in rows:
+        by_sector_all.setdefault(r["sector"], []).append(r)
+    sector_returns = [
+        {
+            "sector": sec,
+            "n": len(g),
+            "median_ret_1m": None if _median([x["ret_1m"] for x in g]) is None else round(_median([x["ret_1m"] for x in g]), 4),
+            "median_ret_1w": None if _median([x["ret_1w"] for x in g]) is None else round(_median([x["ret_1w"] for x in g]), 4),
+        }
+        for sec, g in by_sector_all.items()
+    ]
+
     return jsonify(
         {
+            "sector_returns": json.dumps(sector_returns),
             "as_of": datetime.date.today().isoformat(),
             "universe_size": len(symbols),
             "scored": len(rows),
