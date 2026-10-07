@@ -24,6 +24,7 @@ Endpoint:
                                                                // or a list of lists
       "previous":   [ Watchlist rows incl. a "score" column ],  // [] on first run
       "candidates": [ /screen candidates (symbol, sector, combined_score) ],
+      "signals":    [ /signals output (symbol, adjustment, reason) ],   // optional; insider-buying bonus, +0..0.20
       "blend":      0.5                                         // optional, weight of THIS week's score
     }
 
@@ -89,7 +90,7 @@ def _load(v):
                 s = s[4:].strip()
         v = json.loads(s)
     if isinstance(v, dict):
-        for key in ("scores", "basket", "candidates", "rows", "items"):
+        for key in ("scores", "basket", "candidates", "rows", "items", "signals"):
             if key in v:
                 return _load(v[key])
         return []
@@ -127,8 +128,16 @@ def total_score(row):
     return sum(WEIGHTS[k] * parts[k] for k in WEIGHTS)
 
 
-def select(scores, previous, candidates, blend=DEFAULT_BLEND):
+def select(scores, previous, candidates, blend=DEFAULT_BLEND, signals=None):
     blend = min(max(blend, 0.0), 1.0)
+
+    # optional insider-buying bonus from /signals: deterministic, capped at +0.20
+    sig = {}
+    for r in signals or []:
+        s_ = _sym(r)
+        adj = _to_float(_get(r, "adjustment"))
+        if s_ and adj:
+            sig[s_] = (min(max(adj, 0.0), 0.20), str(_get(r, "reason", default="") or ""))
 
     # sector + screener rank from /screen (sector falls back to the scored row, then the sheet)
     cand_sector, cand_rank = {}, {}
@@ -172,16 +181,20 @@ def select(scores, previous, candidates, blend=DEFAULT_BLEND):
 
     ranking = []
     for s, a in agg.items():
-        new = sum(a["scores"]) / len(a["scores"])
+        raw = sum(a["scores"]) / len(a["scores"])
+        adj, adj_reason = sig.get(s, (0.0, ""))
+        new = min(max(raw + adj, 1.0), 5.0)
         old = prev.get(s, {}).get("score")
         blended = new if old is None else blend * new + (1 - blend) * old
         ranking.append({
             "symbol": s,
             "sector": cand_sector.get(s) or a["sector"] or prev.get(s, {}).get("sector") or "Unknown",
-            "thesis_summary": a["thesis"],
+            "thesis_summary": (a["thesis"] + (f" [Signal: {adj_reason}]" if adj_reason else "")).strip(),
             "target_price": round(sum(a["targets"]) / len(a["targets"]), 2) if a["targets"] else None,
             "score": round(blended, 3),
             "new_score": round(new, 3),
+            "raw_score": round(raw, 3),
+            "signal_adj": adj,
             "prev_score": None if old is None else round(old, 3),
             "runs": len(a["scores"]),
             "conviction": conviction_for(blended),
@@ -228,8 +241,12 @@ def select_basket():
 
     if not scores:
         return jsonify({"error": "scores are empty — refusing to select (Micro step failed?)"}), 400
+    try:
+        signals = _load(body.get("signals"))
+    except (ValueError, TypeError):
+        signals = []  # signals are optional: a bad/empty value must never block the basket
     blend = _to_float(body.get("blend"))
-    result = select(scores, previous, candidates, DEFAULT_BLEND if blend is None else blend)
+    result = select(scores, previous, candidates, DEFAULT_BLEND if blend is None else blend, signals)
     if len(result["proposed"]) < BASKET_SIZE // 2:
         return jsonify({"error": "too few usable scores — refusing to propose a basket", "summary": result["summary"]}), 400
     return jsonify(result)
