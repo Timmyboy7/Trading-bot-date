@@ -403,21 +403,24 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
         log(worst, "dropped", f"basket above {BASKET_SIZE} names — trimmed weakest rank", kind="trim")
 
     basket = sorted(final.values(), key=lambda r: (r["sector"], rank_of(r["symbol"])))
+    summary = {
+        "basket_size": len(basket),
+        "shortfall": shortfall,
+        "regular_swaps": swaps,
+        "stressed_sectors": sorted(stressed),
+        "candidates": n,
+        "drop_rank_above": drop_rank_min,
+        "entry_rank_at_most": entry_rank_max,
+        "sector_counts": sector_counts(),
+    }
     return {
         "as_of": today.isoformat(),
         "basket": basket,
+        "basket_symbols": ",".join(r["symbol"] for r in basket),   # for the Runs log sheet
         "actions": actions,
         "actions_json": json.dumps(actions),
-        "summary": {
-            "basket_size": len(basket),
-            "shortfall": shortfall,
-            "regular_swaps": swaps,
-            "stressed_sectors": sorted(stressed),
-            "candidates": n,
-            "drop_rank_above": drop_rank_min,
-            "entry_rank_at_most": entry_rank_max,
-            "sector_counts": sector_counts(),
-        },
+        "summary": summary,
+        "summary_json": json.dumps(summary),
     }
 
 
@@ -443,6 +446,9 @@ def reconcile_basket():
             stressed_extra = [s.strip() for s in stressed_extra.split(",") if s.strip()]
     except (ValueError, TypeError) as e:
         return jsonify({"error": f"could not parse input: {e}"}), 400
+
+    today = _parse_date(body.get("today")) or datetime.date.today()
+    return jsonify(reconcile(proposed, current, candidates, today, sector_returns, stressed_extra))
 
     today = _parse_date(body.get("today")) or datetime.date.today()
     return jsonify(reconcile(proposed, current, candidates, today, sector_returns, stressed_extra))
