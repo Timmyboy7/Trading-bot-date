@@ -212,20 +212,23 @@ def select(scores, previous, candidates, blend=DEFAULT_BLEND, signals=None):
         counts[r["sector"]] = counts.get(r["sector"], 0) + 1
         proposed.append(r)
 
+    summary = {
+        "scored_symbols": len(ranking),
+        "proposed": len(proposed),
+        "blend": blend,
+        "runs_seen": max((r["runs"] for r in ranking), default=0),
+        "skipped_incomplete": sorted(set(skipped)),
+        "sector_counts": counts,
+    }
     return {
         "proposed": proposed,
         # same list pre-stringified: Make can't put an array of objects into a JSON body
         # directly, but escapeJSON(select.data.proposed_json) works (project convention).
         "proposed_json": json.dumps(proposed),
         "ranking": ranking,
-        "summary": {
-            "scored_symbols": len(ranking),
-            "proposed": len(proposed),
-            "blend": blend,
-            "runs_seen": max((r["runs"] for r in ranking), default=0),
-            "skipped_incomplete": sorted(set(skipped)),
-            "sector_counts": counts,
-        },
+        "ranking_json": json.dumps(ranking),   # for the Runs log sheet
+        "summary": summary,
+        "summary_json": json.dumps(summary),
     }
 
 
