@@ -69,12 +69,24 @@ BATCH_SIZE = 100      # symbols per Alpaca bars request
 REQUEST_PAUSE_SEC = 0.3  # be polite to the free-tier rate limit
 
 
+# Second share classes of the same company. Keeping both would let the basket
+# hold one company twice and double-count it in the sector z-scores, so only
+# the primary (more liquid) class is screened.
+DUPLICATE_SHARE_CLASSES = {
+    "GOOG",  # keep GOOGL (Alphabet)
+    "FOX",   # keep FOXA (Fox Corp)
+    "NWS",   # keep NWSA (News Corp)
+}
+
+
 def load_constituents():
     rows = []
     with open(CONSTITUENTS_PATH, newline="") as f:
         for r in csv.DictReader(f):
             sym = r["symbol"].strip().upper()
             sector = r["sector"].strip()
+            if sym in DUPLICATE_SHARE_CLASSES:
+                continue
             if sym and sector:
                 rows.append((sym, sector))
     return rows
