@@ -68,6 +68,19 @@ Rules (all overridable via env vars; defaults confirmed 2026-10-07):
     sector gets no new entries this run. Exits speed up; entries don't. Names
     Micro still likes stay — hard price stops are Risk Guardrails' job.
 
+Score mode (added 2026-10-09). If the body also carries "ranking" (select-basket's
+ranking_json: every name Micro scored this run, with its blended score), the
+rank-third rules are replaced by a score buffer band:
+  - Weak drop: a scored incumbent below STAY_MIN (2.8) is replaced by the best
+    challenger scoring >= ENTER_MIN (3.0) and >= its own score + WEAK_MARGIN (0.3).
+  - Upgrade: a healthy incumbent is replaced only if a challenger beats it by
+    UPGRADE_MARGIN (0.6) — wider than run-to-run LLM noise. Weakest first.
+  - Entrants are picked by score (not screener rank) and must clear ENTER_MIN.
+  - Kept incumbents take this run's score/conviction/thesis, so no stale scores.
+  - Incumbents Micro did not score (not in candidates) follow persistence only.
+  Minimum hold, swap cap, sector cap and sector stress still apply.
+  Env: RECON_ENTER_MIN, RECON_STAY_MIN, RECON_WEAK_MARGIN, RECON_UPGRADE_MARGIN.
+
 Extra optional body fields: "sector_returns" (array or JSON string of
 {sector, median_ret_1m, median_ret_1w}) and "stressed_sectors" (array or
 comma-separated string).
@@ -92,6 +105,16 @@ MIN_REVIEW_GAP_DAYS = int(os.environ.get("RECON_MIN_REVIEW_GAP_DAYS", 5))
 # this much over 1 month or over 1 week. Absolute thresholds, deliberately simple.
 SECTOR_CRASH_1M = float(os.environ.get("RECON_SECTOR_CRASH_1M", -0.10))
 SECTOR_CRASH_1W = float(os.environ.get("RECON_SECTOR_CRASH_1W", -0.06))
+
+# Score buffer band (used when select-basket's full `ranking` is passed in).
+# Two different bars on purpose, so a name wobbling around one line doesn't
+# flip in and out: a new name needs ENTER_MIN to come in, an incumbent is only
+# "weak" (droppable) below STAY_MIN. A healthy incumbent is only replaced by a
+# challenger that beats it by UPGRADE_MARGIN — wider than run-to-run noise.
+ENTER_MIN = float(os.environ.get("RECON_ENTER_MIN", 3.0))
+STAY_MIN = float(os.environ.get("RECON_STAY_MIN", 2.8))
+WEAK_MARGIN = float(os.environ.get("RECON_WEAK_MARGIN", 0.3))
+UPGRADE_MARGIN = float(os.environ.get("RECON_UPGRADE_MARGIN", 0.6))
 
 UNRANKED = 10**6
 
@@ -159,7 +182,8 @@ def _sym(row):
 
 # ---------- core logic ----------
 
-def reconcile(proposed, current, candidates, today=None, sector_returns=None, stressed_extra=None):
+def reconcile(proposed, current, candidates, today=None, sector_returns=None, stressed_extra=None,
+              ranking=None):
     today = today or datetime.date.today()
     actions = []
 
@@ -195,6 +219,29 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             "conviction": str(_get(r, "conviction", default="")).lower(),
             "score": _to_float(_get(r, "score")),
         }
+
+    # --- select-basket's full ranking (every name Micro scored this run).
+    # When present the reconcile runs in SCORE MODE: drops, entries and upgrades
+    # are decided on the blended score with a buffer band instead of screener
+    # rank thirds. Without it the older rank-based rules below apply unchanged.
+    scored = {}
+    for r in ranking or []:
+        s = _sym(r)
+        sc = _to_float(_get(r, "score"))
+        if not s or sc is None:
+            continue
+        scored[s] = {
+            "symbol": s,
+            "sector": str(_get(r, "sector", default=cand_sector.get(s, "Unknown"))),
+            "thesis_summary": _get(r, "thesis_summary", "reasoning", default=""),
+            "target_price": _to_float(_get(r, "target_price")),
+            "conviction": str(_get(r, "conviction", default="")).lower(),
+            "score": sc,
+        }
+    score_mode = bool(scored)
+
+    def score_of(s):
+        return scored[s]["score"] if s in scored else None
 
     # --- normalise current Watchlist
     cur = {}
@@ -250,15 +297,21 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
         age = (today - c["added_on"]).days if c["added_on"] else None
         in_prop = s in prop
         base = dict(c)
-        if in_prop:
-            p = prop[s]
+        src = prop.get(s) or (scored.get(s) if score_mode else None)
+        if src is not None:
+            # Refresh from this run (Micro's pick, or — in score mode — any name it
+            # scored), so kept names never carry last week's score forward.
+            p = dict(src)
+            if s in scored:
+                p["score"] = scored[s]["score"]
+                p["conviction"] = scored[s]["conviction"] or p["conviction"]
             base["thesis_summary"] = p["thesis_summary"] or c["thesis_summary"]
             base["target_price"] = p["target_price"] if p["target_price"] is not None else c["target_price"]
             base["conviction"] = p["conviction"] or c["conviction"]
             if p.get("score") is not None:
                 base["score"] = p["score"]
         info[s] = {"in_cands": in_cands, "weeks": weeks, "age": age, "in_prop": in_prop,
-                   "conv": prop[s]["conviction"] if in_prop else c["conviction"]}
+                   "conv": base["conviction"] if src is not None else c["conviction"]}
         final[s] = mk_row(base, c["added_on"], weeks, "kept" if in_prop else "kept_by_stability_rule")
 
     # --- step B: sector-stress detection (price-based, from /screen's sector_returns,
@@ -278,6 +331,11 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
 
     # --- candidate pool for new entries: Micro's proposals first (by rank), then raw screener ranking
     def pool_rows():
+        if score_mode:
+            # Best score first; only names Micro actually scored this run.
+            for s in sorted((s for s in scored if s not in cur), key=lambda s: (-scored[s]["score"], rank_of(s))):
+                yield dict(scored[s]), s in prop
+            return
         proposed_new = sorted((s for s in prop if s not in cur), key=rank_of)
         for s in proposed_new:
             yield dict(prop[s]), True
@@ -293,7 +351,7 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             out[r["sector"]] = out.get(r["sector"], 0) + 1
         return out
 
-    def find_challenger(entry_bar):
+    def find_challenger(entry_bar, min_score=None, freed_sector=None):
         counts = sector_counts()
         for base, from_micro in pool_rows():
             s = base["symbol"]
@@ -301,17 +359,33 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
                 continue
             if base["sector"] in stressed:
                 continue
-            if counts.get(base["sector"], 0) >= MAX_PER_SECTOR:
+            # freed_sector: the slot being vacated still sits in `final` when an
+            # upgrade is evaluated, so don't count it against its own sector.
+            used = counts.get(base["sector"], 0) - (1 if base["sector"] == freed_sector else 0)
+            if used >= MAX_PER_SECTOR:
                 continue
-            if entry_bar and rank_of(s) > entry_rank_max:
+            if score_mode:
+                sc = score_of(s)
+                if entry_bar and (sc is None or sc < ENTER_MIN):
+                    continue
+                if min_score is not None and (sc is None or sc < min_score):
+                    continue
+            elif entry_bar and rank_of(s) > entry_rank_max:
                 continue
             return base, from_micro
         return None
 
+    def describe(base, from_micro):
+        s = base["symbol"]
+        if score_mode:
+            return (f"score {score_of(s):.2f} (entry bar {ENTER_MIN:.1f})" +
+                    ("" if from_micro else ", outside Micro's top 20") + f", screener rank {rank.get(s)}/{n}")
+        return ("Micro pick" if from_micro else "from screener ranking") + f", rank {rank.get(s)}/{n}"
+
     def add_entry(base, why):
         s = base["symbol"]
         final[s] = mk_row(base, today, 0, "added")
-        log(s, "added", why, rank=rank.get(s))
+        log(s, "added", why, rank=rank.get(s), score=score_of(s))
 
     # --- step C: regular (non-stress) drop candidates
     regular = []
@@ -329,13 +403,21 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             # persistence, minimum hold and the swap cap are all waived.
             stress_exits.append(s)
             continue
-        if not i["in_prop"]:
+        if score_mode and s in scored:
+            sc = scored[s]["score"]
+            if sc < STAY_MIN:
+                kind = "weak_score"
+            else:
+                continue   # healthy incumbent; may still face an upgrade swap below
+        elif not i["in_prop"]:
             if not i["in_cands"]:
                 if i["weeks"] >= PERSISTENCE_WEEKS:
                     kind = "clean"
                 else:
                     log(s, "kept", f"missing from candidates {i['weeks']} of {PERSISTENCE_WEEKS} weeks — persistence not met")
                     continue
+            elif score_mode:
+                continue   # in candidates but unscored (Micro skipped it): no evidence to drop
             elif rank_of(s) > drop_rank_min:
                 kind = "rank_bar"
             else:
@@ -361,10 +443,13 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
         ch = find_challenger(entry_bar=False)
         if ch is not None:
             base, from_micro = ch
-            add_entry(base, f"replaces {s}; " + ("Micro pick" if from_micro else "from screener ranking") +
-                      f", rank {rank.get(base['symbol'])}/{n}")
+            add_entry(base, f"replaces {s}; " + describe(base, from_micro))
 
-    regular.sort(key=lambda t: (0 if t[1] == "clean" else 1, -rank_of(t[0])))
+    if score_mode:
+        # weakest score first, then clean (persistence) drops
+        regular.sort(key=lambda t: (0 if t[1] == "weak_score" else 1, score_of(t[0]) or 0, -rank_of(t[0])))
+    else:
+        regular.sort(key=lambda t: (0 if t[1] == "clean" else 1, -rank_of(t[0])))
 
     swaps = 0
     for s, kind in regular:
@@ -372,10 +457,14 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             log(s, "kept", f"eligible to drop ({kind}) but turnover cap of {MAX_SWAPS} swaps reached this run")
             continue
         row = final.pop(s)
-        ch = find_challenger(entry_bar=kind in ("rank_bar", "low_conviction"))
+        if score_mode:
+            inc = score_of(s)
+            ch = find_challenger(entry_bar=True, min_score=(inc + WEAK_MARGIN) if inc is not None else None)
+        else:
+            ch = find_challenger(entry_bar=kind in ("rank_bar", "low_conviction"))
         if ch is None:
             final[s] = row
-            log(s, "kept", f"eligible to drop ({kind}) but no replacement cleared the entry bar / sector cap")
+            log(s, "kept", f"eligible to drop ({kind}) but no replacement cleared the entry bar / sector cap", kind=kind)
             continue
         base, from_micro = ch
         swaps += 1
@@ -383,9 +472,37 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             "clean": f"missing from candidates {info[s]['weeks']} consecutive weeks",
             "rank_bar": f"Micro omitted it and it sits in the bottom third (rank {rank_of(s)}/{n})",
             "low_conviction": f"Micro conviction low and rank {rank_of(s) if s in rank else 'n/a'}/{n} deteriorated",
-        }[kind], kind=kind)
-        add_entry(base, f"replaces {s}; " + ("Micro pick" if from_micro else "from screener ranking") +
-                  f", rank {rank.get(base['symbol'])}/{n}")
+            "weak_score": f"score {score_of(s) if score_of(s) is None else round(score_of(s), 2)} below stay bar {STAY_MIN:.1f}",
+        }[kind], kind=kind, score=score_of(s))
+        add_entry(base, f"replaces {s}; " + describe(base, from_micro))
+
+    # Upgrade swaps (score mode only): a healthy incumbent is replaced only when a
+    # challenger beats it by UPGRADE_MARGIN, weakest incumbent first, within the swap cap.
+    if score_mode:
+        while swaps < MAX_SWAPS:
+            pool = [x for x in final if x in cur and x in scored
+                    and (info[x]["age"] is None or info[x]["age"] >= MIN_HOLD_DAYS)]
+            if not pool:
+                break
+            done = False
+            for s in sorted(pool, key=lambda x: scored[x]["score"]):
+                inc = scored[s]["score"]
+                ch = find_challenger(entry_bar=True, min_score=inc + UPGRADE_MARGIN,
+                                     freed_sector=final[s]["sector"])
+                if ch is None:
+                    continue
+                base, from_micro = ch
+                final.pop(s)
+                swaps += 1
+                log(s, "dropped", f"upgrade: score {inc:.2f} vs challenger {base['symbol']} "
+                    f"{score_of(base['symbol']):.2f} (gap >= {UPGRADE_MARGIN:.1f})", kind="upgrade", score=inc)
+                add_entry(base, f"replaces {s}; " + describe(base, from_micro))
+                done = True
+                break
+            if not done:
+                break
+        if swaps >= MAX_SWAPS:
+            log("*", "note", f"turnover cap of {MAX_SWAPS} swaps reached — further upgrades deferred")
 
     # --- step D: refill to BASKET_SIZE (cold start, stress exits, or earlier shortfalls)
     while len(final) < BASKET_SIZE:
@@ -393,7 +510,7 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
         if ch is None:
             break
         base, from_micro = ch
-        add_entry(base, ("Micro pick" if from_micro else "from screener ranking") + f", rank {rank.get(base['symbol'])}/{n} (refill)")
+        add_entry(base, describe(base, from_micro) + " (refill)")
     shortfall = max(BASKET_SIZE - len(final), 0)
 
     # --- trim if somehow oversize (e.g. current sheet had extra rows): drop weakest rank, not a swap
@@ -412,7 +529,11 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
         "drop_rank_above": drop_rank_min,
         "entry_rank_at_most": entry_rank_max,
         "sector_counts": sector_counts(),
+        "mode": "score" if score_mode else "rank",
     }
+    if score_mode:
+        summary.update({"enter_min": ENTER_MIN, "stay_min": STAY_MIN,
+                        "weak_margin": WEAK_MARGIN, "upgrade_margin": UPGRADE_MARGIN})
     return {
         "as_of": today.isoformat(),
         "basket": basket,
@@ -441,6 +562,7 @@ def reconcile_basket():
 
     try:
         sector_returns = _as_list(body.get("sector_returns"))
+        ranking = _as_list(body.get("ranking"))
         stressed_extra = body.get("stressed_sectors") or []
         if isinstance(stressed_extra, str):
             stressed_extra = [s.strip() for s in stressed_extra.split(",") if s.strip()]
@@ -448,7 +570,4 @@ def reconcile_basket():
         return jsonify({"error": f"could not parse input: {e}"}), 400
 
     today = _parse_date(body.get("today")) or datetime.date.today()
-    return jsonify(reconcile(proposed, current, candidates, today, sector_returns, stressed_extra))
-
-    today = _parse_date(body.get("today")) or datetime.date.today()
-    return jsonify(reconcile(proposed, current, candidates, today, sector_returns, stressed_extra))
+    return jsonify(reconcile(proposed, current, candidates, today, sector_returns, stressed_extra, ranking))
