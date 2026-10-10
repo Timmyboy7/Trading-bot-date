@@ -340,8 +340,19 @@ def fetch_trend(symbol, quarters=TREND_QUARTERS, ctx=None):
         "trend_operating_margin": " -> ".join(_fmt_pct(v) for v in operating_margin_seq),
         "trend_net_margin": " -> ".join(_fmt_pct(v) for v in net_margin_seq),
         "trend_fcf": " -> ".join(_fmt_money(v) for v in fcf_seq),
+        # 2026-10-09: the same series as plain numbers (oldest -> newest, null =
+        # unknown) so /base-score can compute deterministic scores without
+        # parsing the display strings above.
+        "q_revenue": [_round_or_none(v, 0) for v in revenue],
+        "q_operating_margin": [_round_or_none(v, 4) for v in operating_margin_seq],
+        "q_net_margin": [_round_or_none(v, 4) for v in net_margin_seq],
+        "q_fcf": [_round_or_none(v, 0) for v in fcf_seq],
     }
     return trend, None
+
+
+def _round_or_none(v, nd):
+    return None if v is None or _is_nan(v) else round(float(v), nd)
 
 
 def _quarter_series(df, *row_names):
