@@ -115,6 +115,10 @@ ENTER_MIN = float(os.environ.get("RECON_ENTER_MIN", 3.0))
 STAY_MIN = float(os.environ.get("RECON_STAY_MIN", 2.8))
 WEAK_MARGIN = float(os.environ.get("RECON_WEAK_MARGIN", 0.3))
 UPGRADE_MARGIN = float(os.environ.get("RECON_UPGRADE_MARGIN", 0.6))
+# Cluster cap: at most this many names that are "the same bet" (same business,
+# e.g. three oil refiners), as labelled by Micro's `cluster` field. Sectors are
+# broad boxes; clusters catch concentration inside them. 0 disables.
+MAX_PER_CLUSTER = int(os.environ.get("RECON_MAX_PER_CLUSTER", 2))
 
 UNRANKED = 10**6
 
@@ -241,6 +245,7 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             # a majority reported a thesis-breaking event
             "uncertain": _get(r, "uncertain", default=False) is True,
             "red_flag": _get(r, "red_flag", default=False) is True,
+            "cluster": str(_get(r, "cluster", default="") or "").strip().lower(),
         }
     score_mode = bool(scored)
 
@@ -355,8 +360,20 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             out[r["sector"]] = out.get(r["sector"], 0) + 1
         return out
 
-    def find_challenger(entry_bar, min_score=None, freed_sector=None):
+    def cluster_of(s):
+        return scored[s]["cluster"] if s in scored else ""
+
+    def cluster_counts():
+        out = {}
+        for x in final:
+            c = cluster_of(x)
+            if c:
+                out[c] = out.get(c, 0) + 1
+        return out
+
+    def find_challenger(entry_bar, min_score=None, freed_sector=None, freed_cluster=None):
         counts = sector_counts()
+        ccounts = cluster_counts()
         for base, from_micro in pool_rows():
             s = base["symbol"]
             if s in final:
@@ -368,6 +385,9 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             used = counts.get(base["sector"], 0) - (1 if base["sector"] == freed_sector else 0)
             if used >= MAX_PER_SECTOR:
                 continue
+            c = cluster_of(s)
+            if MAX_PER_CLUSTER and c and ccounts.get(c, 0) - (1 if c == freed_cluster else 0) >= MAX_PER_CLUSTER:
+                continue   # would make one business bet too big
             if score_mode:
                 sc = score_of(s)
                 if s in scored and (scored[s]["red_flag"] or scored[s]["uncertain"]):
@@ -393,6 +413,19 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
         final[s] = mk_row(base, today, 0, "added")
         log(s, "added", why, rank=rank.get(s), score=score_of(s))
 
+    # --- step C0: cluster cap — if the basket holds more than MAX_PER_CLUSTER names
+    # of the same business, the weakest ones beyond the cap become drop candidates.
+    over_cluster = set()
+    if score_mode and MAX_PER_CLUSTER:
+        groups = {}
+        for x in final:
+            if x in cur and cluster_of(x):
+                groups.setdefault(cluster_of(x), []).append(x)
+        for c, xs in groups.items():
+            if len(xs) > MAX_PER_CLUSTER:
+                xs.sort(key=lambda x: -(score_of(x) or 0))
+                over_cluster.update(xs[MAX_PER_CLUSTER:])
+
     # --- step C: regular (non-stress) drop candidates
     regular = []
     stress_exits = []
@@ -413,6 +446,8 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             sc = scored[s]["score"]
             if scored[s]["red_flag"]:
                 kind = "red_flag"
+            elif s in over_cluster:
+                kind = "cluster_cap"
             elif scored[s]["uncertain"]:
                 log(s, "kept", f"score {sc:.2f} but the Micro runs disagree on it — no score-based action this week",
                     kind="uncertain")
@@ -459,7 +494,7 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
 
     if score_mode:
         # weakest score first, then clean (persistence) drops
-        order = {"red_flag": 0, "weak_score": 1}
+        order = {"red_flag": 0, "cluster_cap": 1, "weak_score": 2}
         regular.sort(key=lambda t: (order.get(t[1], 2), score_of(t[0]) or 0, -rank_of(t[0])))
     else:
         regular.sort(key=lambda t: (0 if t[1] == "clean" else 1, -rank_of(t[0])))
@@ -472,7 +507,8 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
         row = final.pop(s)
         if score_mode:
             inc = score_of(s)
-            need = None if kind == "red_flag" or inc is None else inc + WEAK_MARGIN
+            need = None if kind in ("red_flag", "cluster_cap") or inc is None else inc + WEAK_MARGIN
+            # (s is already out of `final` here, so its sector/cluster slot is free)
             ch = find_challenger(entry_bar=True, min_score=need)
         else:
             ch = find_challenger(entry_bar=kind in ("rank_bar", "low_conviction"))
@@ -488,6 +524,7 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             "low_conviction": f"Micro conviction low and rank {rank_of(s) if s in rank else 'n/a'}/{n} deteriorated",
             "weak_score": f"score {score_of(s) if score_of(s) is None else round(score_of(s), 2)} below stay bar {STAY_MIN:.1f}",
             "red_flag": "a majority of Micro runs reported a thesis-breaking event (see its thesis/evidence)",
+            "cluster_cap": f"more than {MAX_PER_CLUSTER} names in cluster '{cluster_of(s)}' — weakest one makes room",
         }[kind], kind=kind, score=score_of(s))
         add_entry(base, f"replaces {s}; " + describe(base, from_micro))
 
@@ -503,7 +540,7 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             for s in sorted(pool, key=lambda x: scored[x]["score"]):
                 inc = scored[s]["score"]
                 ch = find_challenger(entry_bar=True, min_score=inc + UPGRADE_MARGIN,
-                                     freed_sector=final[s]["sector"])
+                                     freed_sector=final[s]["sector"], freed_cluster=cluster_of(s))
                 if ch is None:
                     continue
                 base, from_micro = ch
@@ -547,7 +584,9 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
         "mode": "score" if score_mode else "rank",
     }
     if score_mode:
-        summary.update({"enter_min": ENTER_MIN, "stay_min": STAY_MIN,
+        summary.update({"max_per_cluster": MAX_PER_CLUSTER,
+                        "cluster_counts": {c: n for c, n in cluster_counts().items() if n > 1},
+                        "enter_min": ENTER_MIN, "stay_min": STAY_MIN,
                         "weak_margin": WEAK_MARGIN, "upgrade_margin": UPGRADE_MARGIN})
     return {
         "as_of": today.isoformat(),
