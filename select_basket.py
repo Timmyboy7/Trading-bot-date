@@ -117,6 +117,19 @@ def _parse_text(text):
                 return json.loads(s[i:j + 1])
             except ValueError:
                 continue
+    # last resort: salvage every well-formed flat {...} object (one broken bracket
+    # in a long model answer should cost one stock, not the whole vote)
+    import re
+    items = []
+    for m in re.finditer(r"\{[^{}]*\}", s):
+        try:
+            obj = json.loads(m.group(0))
+        except ValueError:
+            continue
+        if isinstance(obj, dict) and obj.get("symbol"):
+            items.append(obj)
+    if items:
+        return items
     raise ValueError("no JSON array/object found in text")
 
 
@@ -333,6 +346,47 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
                                                    "data_anomaly": False, "cluster": "", "evidence": "",
                                                    "thesis": "", "target": None})
 
+    # Clusters ("same bet") by agreement on GROUPING, not on wording: two stocks
+    # are linked if at least two runs put them in the same group (whatever each
+    # model calls it — "oil refining" vs "us_refining"). With only one run that
+    # labelled clusters, its groups are used as they are.
+    def _norm_label(c):
+        return " ".join(str(c).lower().replace("_", " ").replace("-", " ").split())
+    run_groups = {}
+    for s_, rds in readings.items():
+        for x in rds:
+            if x["cluster"]:
+                run_groups.setdefault(x["run"], {}).setdefault(_norm_label(x["cluster"]), set()).add(s_)
+    need_runs = 2 if len(run_groups) >= 2 else 1
+    pair_votes = {}
+    for groups in run_groups.values():
+        for members in groups.values():
+            ms = sorted(members)
+            for i in range(len(ms)):
+                for j in range(i + 1, len(ms)):
+                    pair_votes[(ms[i], ms[j])] = pair_votes.get((ms[i], ms[j]), 0) + 1
+    parent = {}
+    def _find(a):
+        parent.setdefault(a, a)
+        while parent[a] != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+    for (a, b2), n in pair_votes.items():
+        if n >= need_runs:
+            parent[_find(a)] = _find(b2)
+    comps = {}
+    for a in list(parent):
+        comps.setdefault(_find(a), set()).add(a)
+    cluster_of = {}
+    for members in comps.values():
+        if len(members) < 2:
+            continue
+        labels = [_norm_label(x["cluster"]) for m in members for x in readings.get(m, []) if x["cluster"]]
+        name = max(sorted(set(labels)), key=labels.count) if labels else "cluster"
+        for m in members:
+            cluster_of[m] = name
+
     ranking = []
     for b in base:
         s = _sym(b)
@@ -343,18 +397,23 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
             continue
         rd = readings.get(s, [])
         vals = sorted(x["overlay"] for x in rd)
-        overlay = statistics.median(vals) if vals else 0.0
+        # Median of the votes. With an even number of votes (e.g. one model failed),
+        # take the middle vote closest to 0 instead of averaging, so that no single
+        # model can move a score on its own.
+        if not vals:
+            overlay = 0.0
+        elif len(vals) % 2:
+            overlay = statistics.median(vals)
+        else:
+            mid = vals[len(vals) // 2 - 1: len(vals) // 2 + 1]
+            overlay = min(mid, key=abs)
         spread = (vals[-1] - vals[0]) if len(vals) >= 2 else 0.0
         uncertain = len(vals) >= 2 and spread >= UNCERTAIN_SPREAD
         breaks = sum(1 for x in rd if x["thesis_break"])
         red_flag = bool(rd) and breaks * 2 > len(rd)
         anomaly = bool(rd) and sum(1 for x in rd if x["data_anomaly"]) * 2 > len(rd)
-        clusters = [x["cluster"].lower() for x in rd if x["cluster"]]
-        # a cluster label only counts if at least two readings agree on it (one reading
-        # is enough only when there is a single run) — labels differ between models
-        need = 2 if len(rd) >= 2 else 1
-        top = max(set(clusters), key=lambda c: (clusters.count(c), c)) if clusters else ""
-        cluster = top if top and clusters.count(top) >= need else ""
+        # normalise labels so "oil_refining", "Oil-Refining" and "oil refining" agree
+        cluster = cluster_of.get(s, "")
         # thesis/evidence from the reading closest to the median
         pick = min(rd, key=lambda x: abs(x["overlay"] - overlay)) if rd else None
         adj, adj_reason = sig.get(s, (0.0, ""))
