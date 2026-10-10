@@ -28,6 +28,7 @@ _register("valuation", "valuation_bp")
 _register("reconcile_basket", "reconcile_bp")
 _register("select_basket", "select_bp")
 _register("signals", "signals_bp")
+_register("base_score", "base_bp")
 
 ALPACA_KEY = os.environ.get("ALPACA_API_KEY")
 ALPACA_SECRET = os.environ.get("ALPACA_API_SECRET")
