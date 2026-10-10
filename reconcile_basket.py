@@ -237,6 +237,10 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             "target_price": _to_float(_get(r, "target_price")),
             "conviction": str(_get(r, "conviction", default="")).lower(),
             "score": sc,
+            # from select-basket's overlay mode (Micro rebuild): LLM runs disagreed /
+            # a majority reported a thesis-breaking event
+            "uncertain": _get(r, "uncertain", default=False) is True,
+            "red_flag": _get(r, "red_flag", default=False) is True,
         }
     score_mode = bool(scored)
 
@@ -366,6 +370,8 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
                 continue
             if score_mode:
                 sc = score_of(s)
+                if s in scored and (scored[s]["red_flag"] or scored[s]["uncertain"]):
+                    continue   # never add a name with a red flag or disagreeing LLM readings
                 if entry_bar and (sc is None or sc < ENTER_MIN):
                     continue
                 if min_score is not None and (sc is None or sc < min_score):
@@ -405,7 +411,13 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             continue
         if score_mode and s in scored:
             sc = scored[s]["score"]
-            if sc < STAY_MIN:
+            if scored[s]["red_flag"]:
+                kind = "red_flag"
+            elif scored[s]["uncertain"]:
+                log(s, "kept", f"score {sc:.2f} but the Micro runs disagree on it — no score-based action this week",
+                    kind="uncertain")
+                continue
+            elif sc < STAY_MIN:
                 kind = "weak_score"
             else:
                 continue   # healthy incumbent; may still face an upgrade swap below
@@ -447,7 +459,8 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
 
     if score_mode:
         # weakest score first, then clean (persistence) drops
-        regular.sort(key=lambda t: (0 if t[1] == "weak_score" else 1, score_of(t[0]) or 0, -rank_of(t[0])))
+        order = {"red_flag": 0, "weak_score": 1}
+        regular.sort(key=lambda t: (order.get(t[1], 2), score_of(t[0]) or 0, -rank_of(t[0])))
     else:
         regular.sort(key=lambda t: (0 if t[1] == "clean" else 1, -rank_of(t[0])))
 
@@ -459,7 +472,8 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
         row = final.pop(s)
         if score_mode:
             inc = score_of(s)
-            ch = find_challenger(entry_bar=True, min_score=(inc + WEAK_MARGIN) if inc is not None else None)
+            need = None if kind == "red_flag" or inc is None else inc + WEAK_MARGIN
+            ch = find_challenger(entry_bar=True, min_score=need)
         else:
             ch = find_challenger(entry_bar=kind in ("rank_bar", "low_conviction"))
         if ch is None:
@@ -473,6 +487,7 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             "rank_bar": f"Micro omitted it and it sits in the bottom third (rank {rank_of(s)}/{n})",
             "low_conviction": f"Micro conviction low and rank {rank_of(s) if s in rank else 'n/a'}/{n} deteriorated",
             "weak_score": f"score {score_of(s) if score_of(s) is None else round(score_of(s), 2)} below stay bar {STAY_MIN:.1f}",
+            "red_flag": "a majority of Micro runs reported a thesis-breaking event (see its thesis/evidence)",
         }[kind], kind=kind, score=score_of(s))
         add_entry(base, f"replaces {s}; " + describe(base, from_micro))
 
@@ -480,7 +495,7 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
     # challenger beats it by UPGRADE_MARGIN, weakest incumbent first, within the swap cap.
     if score_mode:
         while swaps < MAX_SWAPS:
-            pool = [x for x in final if x in cur and x in scored
+            pool = [x for x in final if x in cur and x in scored and not scored[x]["uncertain"]
                     and (info[x]["age"] is None or info[x]["age"] >= MIN_HOLD_DAYS)]
             if not pool:
                 break
