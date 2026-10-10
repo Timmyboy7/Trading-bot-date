@@ -279,7 +279,10 @@ def _truthy(v):
     return v is True or str(v).strip().lower() in ("true", "yes", "1")
 
 
-def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND, signals=None):
+def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND, signals=None, sparse=()):
+    """sparse: run ids whose model was asked to list only stocks with something to
+    report (faster for slow open models) — a stock missing from such a run counts
+    as an explicit 0 reading with no flags."""
     blend = min(max(blend, 0.0), 1.0)
     sig = {}
     for r in signals or []:
@@ -319,6 +322,16 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
                 "target": _to_float(_get(r, "target_price")),
             })
     n_runs = len(overlay_runs)
+    all_syms = [_sym(b) for b in base if _sym(b)]
+    for run_no, run in overlay_runs:
+        if run_no not in sparse:
+            continue
+        listed = {_sym(r) for r in run}
+        for s in all_syms:
+            if s not in listed and not any(x["run"] == run_no for x in readings.get(s, [])):
+                readings.setdefault(s, []).append({"run": run_no, "overlay": 0.0, "thesis_break": False,
+                                                   "data_anomaly": False, "cluster": "", "evidence": "",
+                                                   "thesis": "", "target": None})
 
     ranking = []
     for b in base:
@@ -349,7 +362,9 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
             flags.append("no_llm_review")
         if anomaly:
             flags.append("llm_data_anomaly")
-        thesis = (pick["thesis"] if pick and pick["thesis"] else "")
+        # thesis text from the closest reading that has one (sparse runs carry none)
+        with_thesis = [x for x in rd if x["thesis"]]
+        thesis = min(with_thesis, key=lambda x: abs(x["overlay"] - overlay))["thesis"] if with_thesis else ""
         if pick and pick["evidence"] and overlay != 0:
             thesis += f" [Overlay {overlay:+.2f}: {pick['evidence']}]"
         if adj_reason:
@@ -462,10 +477,12 @@ def _select_overlay_endpoint(body):
     except (ValueError, TypeError):
         signals = []
     blend = _to_float(body.get("blend"))
-    result = select_overlay(base, runs, previous, candidates, DEFAULT_BLEND if blend is None else blend, signals)
+    sparse = {x.strip() for x in str(body.get("sparse") or "").split(",") if x.strip()}
+    result = select_overlay(base, runs, previous, candidates, DEFAULT_BLEND if blend is None else blend, signals, sparse)
     result["summary"]["unparseable_runs"] = bad
     result["summary"]["unparseable_run_ids"] = bad_names
     result["summary"]["usable_run_ids"] = [n for n, _ in runs]
+    result["summary"]["sparse_run_ids"] = sorted(sparse)
     result["summary_json"] = json.dumps(result["summary"])
     if not runs:
         return jsonify({"error": "no usable Micro overlay run — refusing to select", "summary": result["summary"]}), 400
