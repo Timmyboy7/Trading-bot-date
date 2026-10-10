@@ -41,9 +41,23 @@ Response:
 Rubric (1-5 each, 5 = best; for risk 5 = lowest risk):
     quality 35%, valuation 20%, trend_confirmation 25%, risk 20%
 Conviction is derived here, not by the LLM:  score >= 4.0 high, >= 3.2 medium, else low.
+
+OVERLAY MODE (added 2026-10-09, the Micro rebuild). If the body carries "base"
+(/base-score's base_json) the rubric is no longer scored by the LLM at all:
+    new score = deterministic base score (code)
+              + median of the LLM overlay readings (each -0.5..+0.5, one per Micro run)
+              + insider-buying bonus (code)
+then blended with last week's score as before. Extra body fields:
+    "base":      [...]                          // /base-score base_json
+    "overlay_1", "overlay_2", "overlay_3": "..."  // raw text of each Micro run (or "overlays": [..])
+Per name the ranking also reports: base_score, overlay, overlay_readings,
+uncertain (readings disagree by >= UNCERTAIN_SPREAD -> reconcile takes no
+score-based action on it this week), red_flag (a majority of runs reported a
+thesis-breaking event -> reconcile may exit it / never adds it), flags, evidence.
 """
 import json
 import os
+import statistics
 
 from flask import Blueprint, jsonify, request
 
@@ -54,6 +68,9 @@ MAX_PER_SECTOR = int(os.environ.get("RECON_MAX_PER_SECTOR", 5))
 DEFAULT_BLEND = float(os.environ.get("SELECT_BLEND", 0.5))
 HIGH_AT = float(os.environ.get("SELECT_HIGH_AT", 4.0))
 MEDIUM_AT = float(os.environ.get("SELECT_MEDIUM_AT", 3.2))
+
+OVERLAY_MAX = 0.5
+UNCERTAIN_SPREAD = float(os.environ.get("SELECT_UNCERTAIN_SPREAD", 0.75))
 
 WEIGHTS = {"quality": 0.35, "valuation": 0.20, "trend_confirmation": 0.25, "risk": 0.20}
 
@@ -90,7 +107,7 @@ def _load(v):
                 s = s[4:].strip()
         v = json.loads(s)
     if isinstance(v, dict):
-        for key in ("scores", "basket", "candidates", "rows", "items", "signals"):
+        for key in ("scores", "basket", "candidates", "rows", "items", "signals", "overlays", "results", "base"):
             if key in v:
                 return _load(v[key])
         return []
@@ -232,9 +249,150 @@ def select(scores, previous, candidates, blend=DEFAULT_BLEND, signals=None):
     }
 
 
+def _snap(v):
+    """Clamp to +/-OVERLAY_MAX and snap to the 0.25 grid the prompt asks for."""
+    v = min(max(v, -OVERLAY_MAX), OVERLAY_MAX)
+    return round(v * 4) / 4
+
+
+def _truthy(v):
+    return v is True or str(v).strip().lower() in ("true", "yes", "1")
+
+
+def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND, signals=None):
+    blend = min(max(blend, 0.0), 1.0)
+    sig = {}
+    for r in signals or []:
+        s_ = _sym(r)
+        adj = _to_float(_get(r, "adjustment"))
+        if s_ and adj:
+            sig[s_] = (min(max(adj, 0.0), 0.20), str(_get(r, "reason", default="") or ""))
+    cand_rank = {}
+    for i, c in enumerate(candidates):
+        s = _sym(c)
+        if s:
+            cand_rank[s] = i + 1
+    prev = {}
+    for r in previous:
+        s = _sym(r)
+        if s:
+            prev[s] = _to_float(_get(r, "score"))
+
+    # collect each run's reading per symbol
+    readings = {}
+    for run in overlay_runs:
+        seen = set()
+        for r in run:
+            s = _sym(r)
+            o = _to_float(_get(r, "overlay"))
+            if not s or o is None or s in seen:
+                continue
+            seen.add(s)
+            readings.setdefault(s, []).append({
+                "overlay": _snap(o),
+                "thesis_break": _truthy(_get(r, "thesis_break", default=False)),
+                "data_anomaly": _truthy(_get(r, "data_anomaly", default=False)),
+                "cluster": str(_get(r, "cluster", default="") or "").strip(),
+                "evidence": str(_get(r, "evidence", default="") or "").strip(),
+                "thesis": str(_get(r, "thesis_summary", default="") or "").strip(),
+                "target": _to_float(_get(r, "target_price")),
+            })
+    n_runs = len(overlay_runs)
+
+    ranking = []
+    for b in base:
+        s = _sym(b)
+        if not s:
+            continue
+        base_score = _to_float(_get(b, "base_score"))
+        if base_score is None:
+            continue
+        rd = readings.get(s, [])
+        vals = sorted(x["overlay"] for x in rd)
+        overlay = statistics.median(vals) if vals else 0.0
+        spread = (vals[-1] - vals[0]) if len(vals) >= 2 else 0.0
+        uncertain = len(vals) >= 2 and spread >= UNCERTAIN_SPREAD
+        breaks = sum(1 for x in rd if x["thesis_break"])
+        red_flag = bool(rd) and breaks * 2 > len(rd)
+        anomaly = bool(rd) and sum(1 for x in rd if x["data_anomaly"]) * 2 > len(rd)
+        clusters = [x["cluster"].lower() for x in rd if x["cluster"]]
+        cluster = max(set(clusters), key=clusters.count) if clusters else ""
+        # thesis/evidence from the reading closest to the median
+        pick = min(rd, key=lambda x: abs(x["overlay"] - overlay)) if rd else None
+        adj, adj_reason = sig.get(s, (0.0, ""))
+        new = min(max(base_score + overlay + adj, 1.0), 5.0)
+        old = prev.get(s)
+        blended = new if old is None else blend * new + (1 - blend) * old
+        flags = list(_get(b, "flags", default=[]) or [])
+        if not rd:
+            flags.append("no_llm_review")
+        if anomaly:
+            flags.append("llm_data_anomaly")
+        thesis = (pick["thesis"] if pick and pick["thesis"] else "")
+        if pick and pick["evidence"] and overlay != 0:
+            thesis += f" [Overlay {overlay:+.2f}: {pick['evidence']}]"
+        if adj_reason:
+            thesis += f" [Signal: {adj_reason}]"
+        targets = [x["target"] for x in rd if x["target"]]
+        ranking.append({
+            "symbol": s,
+            "sector": str(_get(b, "sector", default="Unknown")),
+            "is_holding": bool(_get(b, "is_holding", default=False)),
+            "thesis_summary": thesis.strip(),
+            "target_price": round(statistics.median(targets), 2) if targets else None,
+            "score": round(blended, 3),
+            "new_score": round(new, 3),
+            "base_score": round(base_score, 3),
+            "overlay": overlay,
+            "overlay_readings": vals,
+            "signal_adj": adj,
+            "prev_score": None if old is None else round(old, 3),
+            "runs": len(vals),
+            "uncertain": uncertain,
+            "red_flag": red_flag,
+            "cluster": cluster,
+            "flags": sorted(set(flags)),
+            "pillars": _get(b, "pillars", default={}),
+            "conviction": conviction_for(blended),
+        })
+
+    ranking.sort(key=lambda r: (-r["score"], cand_rank.get(r["symbol"], 10**6), r["symbol"]))
+    proposed, counts = [], {}
+    for r in ranking:
+        if len(proposed) >= BASKET_SIZE:
+            break
+        if r["red_flag"] or counts.get(r["sector"], 0) >= MAX_PER_SECTOR:
+            continue
+        counts[r["sector"]] = counts.get(r["sector"], 0) + 1
+        proposed.append(r)
+
+    summary = {
+        "mode": "overlay",
+        "scored_symbols": len(ranking),
+        "proposed": len(proposed),
+        "blend": blend,
+        "overlay_runs": n_runs,
+        "reviewed_by_llm": sum(1 for r in ranking if r["runs"]),
+        "uncertain": sorted(r["symbol"] for r in ranking if r["uncertain"]),
+        "red_flags": sorted(r["symbol"] for r in ranking if r["red_flag"]),
+        "overlay_nonzero": sorted(f"{r['symbol']} {r['overlay']:+.2f}" for r in ranking if r["overlay"]),
+        "sector_counts": counts,
+    }
+    return {
+        "proposed": proposed,
+        "proposed_json": json.dumps(proposed),
+        "ranking": ranking,
+        "ranking_json": json.dumps(ranking),
+        "summary": summary,
+        "summary_json": json.dumps(summary),
+    }
+
+
 @select_bp.route("/select-basket", methods=["POST"])
 def select_basket():
     body = request.get_json(force=True, silent=True) or {}
+    if body.get("base"):
+        return _select_overlay_endpoint(body)
     try:
         scores = _load(body.get("scores"))
         previous = _load(body.get("previous"))
@@ -250,6 +408,40 @@ def select_basket():
         signals = []  # signals are optional: a bad/empty value must never block the basket
     blend = _to_float(body.get("blend"))
     result = select(scores, previous, candidates, DEFAULT_BLEND if blend is None else blend, signals)
+    if len(result["proposed"]) < BASKET_SIZE // 2:
+        return jsonify({"error": "too few usable scores — refusing to propose a basket", "summary": result["summary"]}), 400
+    return jsonify(result)
+
+
+def _select_overlay_endpoint(body):
+    try:
+        base = _load(body.get("base"))
+        previous = _load(body.get("previous"))
+        candidates = _load(body.get("candidates"))
+    except (ValueError, TypeError) as e:
+        return jsonify({"error": f"could not parse input: {e}"}), 400
+    if not base:
+        return jsonify({"error": "base scores are empty — refusing to select (/base-score failed?)"}), 400
+    raw_runs = list(body.get("overlays") or []) + [body.get(k) for k in ("overlay_1", "overlay_2", "overlay_3") if body.get(k)]
+    runs, bad = [], 0
+    for raw in raw_runs:
+        try:
+            run = _load(raw)
+        except (ValueError, TypeError):
+            bad += 1   # one unparseable Micro run must not block the basket; the others still count
+            continue
+        if run:
+            runs.append(run)
+    try:
+        signals = _load(body.get("signals"))
+    except (ValueError, TypeError):
+        signals = []
+    blend = _to_float(body.get("blend"))
+    result = select_overlay(base, runs, previous, candidates, DEFAULT_BLEND if blend is None else blend, signals)
+    result["summary"]["unparseable_runs"] = bad
+    result["summary_json"] = json.dumps(result["summary"])
+    if not runs:
+        return jsonify({"error": "no usable Micro overlay run — refusing to select", "summary": result["summary"]}), 400
     if len(result["proposed"]) < BASKET_SIZE // 2:
         return jsonify({"error": "too few usable scores — refusing to propose a basket", "summary": result["summary"]}), 400
     return jsonify(result)
