@@ -350,7 +350,11 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
         red_flag = bool(rd) and breaks * 2 > len(rd)
         anomaly = bool(rd) and sum(1 for x in rd if x["data_anomaly"]) * 2 > len(rd)
         clusters = [x["cluster"].lower() for x in rd if x["cluster"]]
-        cluster = max(set(clusters), key=clusters.count) if clusters else ""
+        # a cluster label only counts if at least two readings agree on it (one reading
+        # is enough only when there is a single run) — labels differ between models
+        need = 2 if len(rd) >= 2 else 1
+        top = max(set(clusters), key=lambda c: (clusters.count(c), c)) if clusters else ""
+        cluster = top if top and clusters.count(top) >= need else ""
         # thesis/evidence from the reading closest to the median
         pick = min(rd, key=lambda x: abs(x["overlay"] - overlay)) if rd else None
         adj, adj_reason = sig.get(s, (0.0, ""))
