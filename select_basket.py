@@ -446,6 +446,11 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
             "overlay_readings": vals,
             # per Micro module (overlay_1/2/3), to compare models over time
             "overlay_by_run": {str(x["run"]): x["overlay"] for x in rd},
+            # audit trail: what each model said when it said anything at all
+            "notes_by_run": {str(x["run"]): {k: v for k, v in (
+                ("evidence", x["evidence"]), ("thesis_break", x["thesis_break"] or None),
+                ("data_anomaly", x["data_anomaly"] or None), ("cluster", x["cluster"] or None)) if v}
+                for x in rd if x["evidence"] or x["thesis_break"] or x["data_anomaly"] or x["cluster"]},
             "signal_adj": adj,
             "prev_score": None if old is None else round(old, 3),
             "runs": len(vals),
@@ -484,9 +489,36 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
         "proposed_json": json.dumps(proposed),
         "ranking": ranking,
         "ranking_json": json.dumps(ranking),
+        "ranking_log_json": _log_json(ranking),
         "summary": summary,
         "summary_json": json.dumps(summary),
     }
+
+
+LOG_CELL_LIMIT = 45000   # Google Sheets allows 50,000 characters per cell
+
+
+def _log_json(ranking):
+    """Compact audit row for the Runs sheet: scores + every model's vote and note,
+    shortened until it fits in one Sheets cell."""
+    for cut in (200, 120, 60, 0):
+        rows = []
+        for r in ranking:
+            row = {"s": r["symbol"], "score": r["score"], "base": r["base_score"], "ov": r["overlay"],
+                   "votes": r["overlay_by_run"]}
+            for k in ("uncertain", "red_flag"):
+                if r.get(k):
+                    row[k] = True
+            if r.get("cluster"):
+                row["cluster"] = r["cluster"]
+            if cut and r.get("notes_by_run"):
+                row["notes"] = {run: {k: (v[:cut] if isinstance(v, str) else v) for k, v in n.items()}
+                                for run, n in r["notes_by_run"].items()}
+            rows.append(row)
+        out = json.dumps(rows, separators=(",", ":"))
+        if len(out) <= LOG_CELL_LIMIT:
+            return out
+    return out[:LOG_CELL_LIMIT]
 
 
 @select_bp.route("/select-basket", methods=["POST"])
@@ -546,6 +578,10 @@ def _select_overlay_endpoint(body):
     result["summary"]["unparseable_run_ids"] = bad_names
     result["summary"]["usable_run_ids"] = [n for n, _ in runs]
     result["summary"]["sparse_run_ids"] = sorted(sparse)
+    # which model sat in which run slot (e.g. "1=claude-sonnet-5-5,2=kimi-k3,3=deepseek-v4.1-flash"),
+    # so the log stays readable when a slot's model is swapped later
+    result["summary"]["run_models"] = {k.strip(): v.strip() for k, v in
+                                       (p.split("=", 1) for p in str(body.get("run_models") or "").split(",") if "=" in p)}
     result["summary_json"] = json.dumps(result["summary"])
     if not runs:
         return jsonify({"error": "no usable Micro overlay run — refusing to select", "summary": result["summary"]}), 400
