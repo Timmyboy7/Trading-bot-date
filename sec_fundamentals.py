@@ -27,7 +27,12 @@ import time
 import requests
 
 from fair_value import (CAPEX_CONCEPTS, NI_CONCEPTS, OCF_CONCEPTS, OPINC_CONCEPTS, REVENUE_CONCEPTS,
-                        _date, _rows, balance_sheet_shares, cover_shares, diluted_shares)
+                        ONE_OFF_TOLERANCE, TAX_RATE, _date, _rows, balance_sheet_shares, cover_shares,
+                        diluted_shares, extract)
+
+# banks (e.g. JPM) stopped tagging "Revenues" years ago and report net revenue instead
+REVENUE_TAGS = tuple(REVENUE_CONCEPTS) + ("RevenuesNetOfInterestExpense",)
+STALE_DAYS = 200            # newest quarter older than this -> tags not recognised, report no data
 
 TREND_QUARTERS = 4          # quarters shown in the trend strings / q_* lists (oldest -> newest)
 HISTORY_QUARTERS = 8        # quarters kept so year-on-year growth can be computed
@@ -86,6 +91,16 @@ def quarterly(facts, concepts, unit="USD", n=HISTORY_QUARTERS):
         for (e1, v1), (e2, v2) in zip(lst, lst[1:]):
             if e2 not in q and lo <= (e2 - e1).days <= hi:
                 q[e2] = v2 - v1
+    # same end, different start: 6M YTD - Q2 = Q1 (filers whose older 10-Qs are missing)
+    by_end = {}
+    for (s, e), v in per.items():
+        by_end.setdefault(e, []).append((s, v))
+    for e, lst in by_end.items():
+        lst.sort()
+        for (s1, v1), (s2, v2) in zip(lst, lst[1:]):
+            qe = s2 - datetime.timedelta(days=1)
+            if lo <= (qe - s1).days <= hi and not any(abs((d - qe).days) < 30 for d in q):
+                q[qe] = v1 - v2
     # Q4 when only 3-month quarters + the full year exist: FY - (Q1 + Q2 + Q3)
     for (s, e), v in per.items():
         if 350 <= (e - s).days <= 380 and e not in q:
@@ -153,9 +168,11 @@ def _align(series, ends):
 
 def summarize(facts):
     """Everything /valuation needs from one companyfacts document (no price yet)."""
-    rev = quarterly(facts, REVENUE_CONCEPTS)
+    rev = quarterly(facts, REVENUE_TAGS)
     if len(rev) < 2:
-        return None, "fewer than 2 quarters of revenue in SEC filings (bank/insurer layout, foreign filer or new listing)"
+        return None, "fewer than 2 quarters of revenue in SEC filings (insurer layout, foreign filer or new listing)"
+    if (datetime.date.today() - rev[-1][0]).days > STALE_DAYS:
+        return None, f"newest revenue figure in SEC filings is from {rev[-1][0].isoformat()} - revenue tag not recognised"
     ends = [e for e, _ in rev]
     gross = _align(quarterly(facts, GROSS_CONCEPTS), ends)
     if all(v is None for v in gross):
@@ -173,6 +190,13 @@ def summarize(facts):
         "debt_to_equity": latest_debt_to_equity(facts),
     }
     out["shares"] = shares_now(facts)
+    # fallback TTM (last FY + YTD - prior YTD, one-off capped) for filers with gaps in their quarters
+    try:
+        ex = extract(facts)
+        out["ttm_fallback"] = {"rev": ex.get("rev_ttm"), "ni": ex.get("ni_ttm"), "op": ex.get("op_ttm"),
+                               "fcf": ex.get("fcf_ttm")}
+    except Exception:
+        out["ttm_fallback"] = {}
     return out, None
 
 
@@ -190,21 +214,44 @@ def shares_now(facts):
     return max(latest)[1] if latest else None
 
 
-def _ttm(vals):
+def _consecutive(ends):
+    """True when the last 4 quarters are back to back (~9 months between first and last end)."""
+    return len(ends) >= 4 and 250 <= (ends[-1] - ends[-4]).days <= 300
+
+
+def _ttm(vals, ends):
     last = vals[-4:]
-    if len(last) < 4 or any(v is None for v in last):
+    if not _consecutive(ends) or any(v is None for v in last):
         return None
     return sum(last)
 
 
+def _yoy_dated(vals, ends):
+    """Latest quarter vs the quarter ending ~1 year earlier."""
+    if not vals or vals[-1] is None:
+        return None
+    for v, e in zip(vals, ends):
+        if 340 <= (ends[-1] - e).days <= 390 and v not in (None, 0):
+            return (vals[-1] - v) / abs(v)
+    return None
+
+
+def _cap_one_offs(ni, op):
+    """Net profit above after-tax operating profit (+20%) is a one-off gain (e.g. investment
+    gains at Alphabet/NVIDIA) - cap it, same rule as fair_value."""
+    out, capped = [], False
+    for n, o in zip(ni, op):
+        lim = o * (1 - TAX_RATE) * ONE_OFF_TOLERANCE if (o is not None and o > 0) else None
+        if n is not None and lim is not None and n > lim:
+            out.append(lim)
+            capped = True
+        else:
+            out.append(n)
+    return out, capped
+
+
 def _ratio(a, b):
     return None if a is None or not b else a / b
-
-
-def _yoy(vals):
-    if len(vals) >= 5 and vals[-1] is not None and vals[-5] not in (None, 0):
-        return (vals[-1] - vals[-5]) / abs(vals[-5])
-    return None
 
 
 def _money(v):
@@ -231,19 +278,33 @@ def _r(v, nd):
 
 def build(s, price):
     """Turns a summary + price into the /valuation field set (same names as the Yahoo version)."""
-    rev, gross, op, ni = s["revenue"], s["gross"], s["op_inc"], s["net_inc"]
+    ends = s["ends"]
+    rev, gross, op = s["revenue"], s["gross"], s["op_inc"]
+    ni, capped = _cap_one_offs(s["net_inc"], op)
     fcf = [(o - c) if o is not None and c is not None else None for o, c in zip(s["ocf"], s["capex"])]
-    eps_ttm = _ttm(s["eps"])
-    rev_ttm, ni_ttm, op_ttm, gross_ttm, fcf_ttm = _ttm(rev), _ttm(ni), _ttm(op), _ttm(gross), _ttm(fcf)
+    rev_ttm, ni_ttm, op_ttm = _ttm(rev, ends), _ttm(ni, ends), _ttm(op, ends)
+    gross_ttm, fcf_ttm = _ttm(gross, ends), _ttm(fcf, ends)
+    fb = s.get("ttm_fallback") or {}
+    used_fallback = False
+    if rev_ttm is None and fb.get("rev"):
+        used_fallback = True
+        rev_ttm, gross_ttm = fb["rev"], None
+        ni_ttm = ni_ttm if ni_ttm is not None else fb.get("ni")
+        op_ttm = op_ttm if op_ttm is not None else fb.get("op")
+        fcf_ttm = fcf_ttm if fcf_ttm is not None else fb.get("fcf")
     shares = s.get("shares")
-    if eps_ttm is None and ni_ttm is not None and shares:
+    if shares and ni_ttm is not None:
         eps_ttm = ni_ttm / shares
+    else:
+        eps_ttm = None if capped else _ttm(s["eps"], ends)
+    note = "; one-off gains capped" if capped else ""
+    note += "; TTM from annual + year-to-date figures (quarters incomplete)" if used_fallback else ""
     data = {
         "pe_ratio": (price / eps_ttm) if (price and eps_ttm and eps_ttm > 0) else None,
         "forward_pe": None,
         "peg_ratio": None,
-        "revenue_growth_yoy": _yoy(rev),
-        "earnings_growth_yoy": _yoy(ni),
+        "revenue_growth_yoy": _yoy_dated(rev, ends),
+        "earnings_growth_yoy": _yoy_dated(ni, ends),
         "gross_margin": _ratio(gross_ttm, rev_ttm),
         "operating_margin": _ratio(op_ttm, rev_ttm),
         "profit_margin": _ratio(ni_ttm, rev_ttm),
@@ -251,19 +312,19 @@ def build(s, price):
         "free_cash_flow": fcf_ttm,
         "market_cap": (price * shares) if (price and shares) else None,
         "last_price": price,
-        "snapshot_source": f"SEC filings (last 4 quarters to {s['ends'][-1].isoformat()}) + Alpaca price; "
-                           "no forward P/E or PEG",
+        "snapshot_source": f"SEC filings (latest quarter {ends[-1].isoformat()}) + Alpaca price; "
+                           f"no forward P/E or PEG{note}",
     }
     # trend: last TREND_QUARTERS quarters, oldest -> newest (one extra for the first q/q growth)
     k = TREND_QUARTERS
-    ends = s["ends"][-k:]
+    tends = ends[-k:]
     r, g, o, n, f = rev[-k:], gross[-k:], op[-k:], ni[-k:], fcf[-k:]
     gm = [_ratio(a, b) for a, b in zip(g, r)]
     om = [_ratio(a, b) for a, b in zip(o, r)]
     nm = [_ratio(a, b) for a, b in zip(n, r)]
     qoq = [((b - a) / abs(a)) if (a and b is not None) else None for a, b in zip(r, r[1:])]
     data.update({
-        "trend_period": " -> ".join(e.strftime("%b'%y") for e in ends),
+        "trend_period": " -> ".join(e.strftime("%b'%y") for e in tends),
         "trend_revenue": " -> ".join(_money(v) for v in r),
         "trend_revenue_growth_qoq": " -> ".join(_pct(v, signed=True) for v in qoq),
         "trend_gross_margin": " -> ".join(_pct(v) for v in gm),
