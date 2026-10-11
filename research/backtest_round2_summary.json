@@ -1,0 +1,114 @@
+{
+ "run": "2026-10-11 round 2",
+ "membership": "point-in-time (research/sp500_membership_monthly.csv)",
+ "universe": 611,
+ "no_sec_or_price_data": 64,
+ "six_month_excess_vs_spy_pct": {
+  "momentum_12_1": 4.58,
+  "momentum_guard": 2.7,
+  "momentum": 2.63,
+  "momentum_nocap": 2.62,
+  "combo": -0.86,
+  "equal_all_members": -2.43,
+  "value_rising": -2.87,
+  "value": -3.34,
+  "value_any": -3.7
+ },
+ "beat_spy_share_6m": {
+  "momentum_12_1": 0.67,
+  "momentum_guard": 0.54,
+  "momentum": 0.54,
+  "momentum_nocap": 0.52,
+  "combo": 0.46,
+  "equal_all_members": 0.27,
+  "value_rising": 0.32,
+  "value": 0.27,
+  "value_any": 0.29
+ },
+ "by_regime_6m_excess_pct": {
+  "2021-2022": {
+   "momentum": -1.23,
+   "momentum_guard": -0.91,
+   "momentum_12_1": 1.79,
+   "value": -0.76,
+   "combo": -2.13,
+   "equal_all_members": -0.16
+  },
+  "2023-2024": {
+   "momentum": 0.48,
+   "momentum_guard": 0.3,
+   "momentum_12_1": 5.22,
+   "value": -3.52,
+   "combo": -2.41,
+   "equal_all_members": -4.26
+  },
+  "2025-2026": {
+   "momentum": 12.24,
+   "momentum_guard": 12.3,
+   "momentum_12_1": 8.01,
+   "value": -7.18,
+   "combo": 3.63,
+   "equal_all_members": -3.13
+  }
+ },
+ "ic_6m": {
+  "value_mean": 0.003,
+  "momentum_mean": 0.018,
+  "momentum_12_1_mean": 0.052,
+  "momentum_12_1_positive_share": 0.7
+ },
+ "allocation_12_1_momentum": {
+  "top10_equal": 8.0,
+  "top20_equal": 4.58,
+  "top30_equal": 2.58,
+  "top50_equal": 1.1,
+  "top20_rank_weighted": 6.73,
+  "top20_inverse_vol": 3.12,
+  "top20_signal_x_inverse_vol": 5.45,
+  "top20_without_wildest_20pct": 0.3
+ },
+ "realistic_semiannual_compounded_pct_per_year": {
+  "momentum_12_1_top20_equal": 21.7,
+  "momentum_12_1_top20_inverse_vol": 18.9,
+  "momentum_12_1_top30_equal": 17.8,
+  "all_members_equal": 7.8,
+  "spy": 12.6
+ },
+ "risk_6m": {
+  "top10_equal": {
+   "worst": -18.2,
+   "best": 102.3,
+   "sd": 21.1,
+   "worst_vs_spy": -20.7
+  },
+  "top20_equal": {
+   "worst": -18.6,
+   "best": 56.6,
+   "sd": 13.9,
+   "worst_vs_spy": -16.9
+  },
+  "top20_rank_weighted": {
+   "worst": -16.6,
+   "best": 85.6,
+   "sd": 18.4,
+   "worst_vs_spy": -17.1
+  },
+  "top20_signal_x_inverse_vol": {
+   "worst": -17.7,
+   "best": 72.3,
+   "sd": 15.7,
+   "worst_vs_spy": -16.1
+  },
+  "top30_equal": {
+   "worst": -19.9,
+   "best": 39.8,
+   "sd": 11.4,
+   "worst_vs_spy": -14.8
+  },
+  "spy": {
+   "worst": -20.9,
+   "best": 23.0,
+   "sd": 9.3
+  }
+ }
+}
