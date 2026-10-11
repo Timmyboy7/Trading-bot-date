@@ -41,6 +41,7 @@ Result per symbol
   flags           e.g. cyclical_normalised, earnings_above_5y_avg, outlier_dropped
 
 Endpoint
+  GET  /fair-value?symbols=AAA,BBB   (quick check in a browser)
   POST /fair-value
   Body: {"base": "<base_json from /base-score>"}       (weekly pipeline), or
         {"symbols": "AAA,BBB", "sectors": {"AAA": "Energy"}}   (ad hoc / daily)
@@ -463,9 +464,10 @@ def _items_from_body(body):
     return [{"symbol": str(s).upper(), "sector": sectors.get(str(s).upper())} for s in syms if str(s).strip()]
 
 
-@fair_bp.route("/fair-value", methods=["POST"])
+@fair_bp.route("/fair-value", methods=["GET", "POST"])
 def fair_value():
-    body = request.get_json(force=True, silent=True) or {}
+    # GET /fair-value?symbols=AAA,BBB for quick checks in a browser; POST for the pipeline
+    body = dict(request.args) if request.method == "GET" else (request.get_json(force=True, silent=True) or {})
     try:
         items = _items_from_body(body)
     except (ValueError, TypeError) as e:
