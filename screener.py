@@ -191,6 +191,10 @@ def compute_raw_factors(closes):
     ret_1m = ret(21)
     ret_3m = ret(63)
     ret_6m = ret(126)
+    # 12-1 momentum: return from ~12 months ago to ~1 month ago (skips the last month,
+    # which tends to reverse). The academic standard - and the best signal in the
+    # point-in-time backtest of 2026-10-11 (research/ROUND2.md).
+    ret_12_1 = (closes[n - 1 - 21] / closes[n - 1 - 252] - 1.0) if n >= 253 and closes[n - 1 - 252] else None
     high_52w = max(closes[-252:]) if n >= 20 else max(closes)
     drawdown = (last / high_52w - 1.0) if high_52w else None
     rsi = rsi14(closes[-(period_needed := 100):]) if n >= 100 else rsi14(closes)
@@ -213,6 +217,7 @@ def compute_raw_factors(closes):
         "ret_1w": ret_1w,
         "ret_3m": ret_3m,
         "ret_6m": ret_6m,
+        "ret_12_1": ret_12_1,
         "drawdown_from_52w_high": drawdown,
         "rsi14": rsi,
         "momentum_raw": momentum_raw,
@@ -241,7 +246,10 @@ def screen():
         return jsonify({"error": "ALPACA_API_KEY / ALPACA_API_SECRET not configured"}), 500
 
     top_n = int(request.args.get("top", 30))
-    max_per_sector = int(request.args.get("max_per_sector", 8))
+    # mode=mom12_1 (default since 2026-10-11): rank by 12-1 momentum across the whole index.
+    # mode=classic: the original 3/6-month momentum + rebound blend, z-scored within sector.
+    mode = request.args.get("mode", "mom12_1")
+    max_per_sector = int(request.args.get("max_per_sector", 5 if mode == "mom12_1" else 8))
     mom_weight = float(request.args.get("mom_weight", 0.5))
     rebound_weight = float(request.args.get("rebound_weight", 0.5))
 
@@ -276,6 +284,18 @@ def screen():
             mom_weight * r["momentum_raw_z"] + rebound_weight * r["rebound_raw_z"], 3
         )
 
+    if mode == "mom12_1":
+        # cross-sectional (not sector-relative) z-score of 12-1 momentum becomes the ranking score;
+        # names without a full year of history cannot be ranked and are left out
+        rows = [r for r in rows if r.get("ret_12_1") is not None]
+        if not rows:
+            return jsonify({"error": "no symbol has 12 months of history - check Alpaca bars"}), 502
+        vals = [r["ret_12_1"] for r in rows]
+        mu = sum(vals) / len(vals)
+        sd = math.sqrt(sum((v - mu) ** 2 for v in vals) / len(vals)) or 1.0
+        for r in rows:
+            r["combined_score"] = round((r["ret_12_1"] - mu) / sd, 3)
+
     rows.sort(key=lambda r: r["combined_score"], reverse=True)
 
     # Diversify across sectors: cap how many names from any one sector make
@@ -300,6 +320,7 @@ def screen():
             "rebound_score": r["rebound_score"],
             "ret_3m": round(r["ret_3m"], 4),
             "ret_6m": round(r["ret_6m"], 4),
+            "ret_12_1": round(r["ret_12_1"], 4) if r.get("ret_12_1") is not None else None,
             "drawdown_from_52w_high": round(r["drawdown_from_52w_high"], 4),
             "rsi14": round(r["rsi14"], 1),
         }
@@ -359,6 +380,7 @@ def screen():
         {
             "sector_returns": json.dumps(sector_returns),
             "as_of": datetime.date.today().isoformat(),
+            "mode": mode,
             "universe_size": len(symbols),
             "scored": len(rows),
             # Pre-stringified (matching app.py's existing convention for
