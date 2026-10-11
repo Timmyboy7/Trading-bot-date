@@ -81,6 +81,26 @@ rank-third rules are replaced by a score buffer band:
   Minimum hold, swap cap, sector cap and sector stress still apply.
   Env: RECON_ENTER_MIN, RECON_STAY_MIN, RECON_WEAK_MARGIN, RECON_UPGRADE_MARGIN.
 
+Risk, macro and data flags (added 2026-10-11). Optional body fields:
+  - "scenario_moves": /stress-test's scenario_moves_json (per-stock % move in
+    each scenario for the current basket + every scored candidate, and SPY's).
+  - "risk_view": the Risk Analyst's JSON ({"risks": [{risk, level, direction}...]}).
+  - "macro_view": the Macro Analyst's JSON ({"sector_view": [{sector, stance}...]}).
+  Rules:
+  - Risk limits (needs scenario_moves). After the normal swaps, in every scenario
+    the basket (equal weight) may lose at most RISK_MULT_BASE (1.5) x what SPY
+    loses; for a scenario the Risk Analyst rates "elevated" 1.3x, "high" 1.15x.
+    Scenarios where SPY itself barely moves (momentum reversal) use absolute
+    floors instead (-5% / -3.5% / -2.5%). On a breach, the stock that loses most
+    in that scenario is swapped for the best-scoring candidate (entry bar applies)
+    that lowers the loss without breaching another limit. At most MAX_RISK_SWAPS
+    (3) per run; like stress exits they ignore minimum hold and the swap cap.
+  - Macro "avoid": new entries in that sector need MACRO_AVOID_BAR (0.3) more
+    score. Nothing is sold because of macro (its sector calls have no tested edge).
+  - Data flag (select's data_flag: most LLM runs said the code's metrics don't fit
+    the stock): new entries need DATA_FLAG_BAR (0.3) more score; flagged holdings
+    are listed in summary.review for a human look, not sold.
+
 Extra optional body fields: "sector_returns" (array or JSON string of
 {sector, median_ret_1m, median_ret_1w}) and "stressed_sectors" (array or
 comma-separated string).
@@ -119,6 +139,17 @@ UPGRADE_MARGIN = float(os.environ.get("RECON_UPGRADE_MARGIN", 0.6))
 # e.g. three oil refiners), as labelled by Micro's `cluster` field. Sectors are
 # broad boxes; clusters catch concentration inside them. 0 disables.
 MAX_PER_CLUSTER = int(os.environ.get("RECON_MAX_PER_CLUSTER", 2))
+
+# Risk limits (scenario loss vs SPY) per Risk Analyst level: 0 = low/none, 1 = elevated, 2 = high
+RISK_MULT = (float(os.environ.get("RECON_RISK_MULT_BASE", 1.5)),
+             float(os.environ.get("RECON_RISK_MULT_ELEVATED", 1.3)),
+             float(os.environ.get("RECON_RISK_MULT_HIGH", 1.15)))
+RISK_ABS_FLOOR = (-5.0, -3.5, -2.5)    # % loss floors for scenarios where SPY moves < 0.5%
+MAX_RISK_SWAPS = int(os.environ.get("RECON_MAX_RISK_SWAPS", 3))
+MACRO_AVOID_BAR = float(os.environ.get("RECON_MACRO_AVOID_BAR", 0.3))
+DATA_FLAG_BAR = float(os.environ.get("RECON_DATA_FLAG_BAR", 0.3))
+LEVELS = {"none": 0, "low": 0, "moderate": 1, "medium": 1, "elevated": 1,
+          "high": 2, "severe": 2, "acute": 2, "extreme": 2, "critical": 2}
 
 UNRANKED = 10**6
 
@@ -180,6 +211,62 @@ def _parse_date(v):
         return None
 
 
+def _as_obj(v):
+    """dict from a dict or a JSON string (code fences tolerated); {} if unusable."""
+    if isinstance(v, dict):
+        return v
+    if not v or not isinstance(v, str):
+        return {}
+    t = v.strip()
+    if t.startswith("```"):
+        t = t.strip("`").strip()
+        if t.lower().startswith("json"):
+            t = t[4:].strip()
+    try:
+        out = json.loads(t)
+    except ValueError:
+        a, b = t.find("{"), t.rfind("}")
+        if a < 0 or b <= a:
+            return {}
+        try:
+            out = json.loads(t[a:b + 1])
+        except ValueError:
+            return {}
+    return out if isinstance(out, dict) else {}
+
+
+def risk_levels(risk_view):
+    """{scenario: level 0/1/2} from the Risk Analyst's output."""
+    out = {}
+    for r in (_as_obj(risk_view).get("risks") or []):
+        if not isinstance(r, dict):
+            continue
+        name = str(r.get("risk", "")).lower()
+        lvl = LEVELS.get(str(r.get("level", "")).strip().lower(), 0)
+        d = str(r.get("direction", "")).lower()
+        if "oil" in name or "energy" in name:
+            scen = ["oil_spike"] if d == "up" else ["oil_crash"] if d == "down" else ["oil_spike", "oil_crash"]
+        elif name in ("ai", "semis", "semiconductors") or "ai" in name.split():
+            scen = ["ai_bust"]
+        elif "rate" in name or "yield" in name:
+            scen = [] if d == "down" else ["rate_shock"]
+        elif "momentum" in name:
+            scen = ["momentum_reversal"]
+        elif "market" in name or "recession" in name or "equity" in name:
+            scen = ["market_crash"]
+        else:
+            scen = []
+        for x in scen:
+            out[x] = max(out.get(x, 0), lvl)
+    return out
+
+
+def macro_avoid(macro_view):
+    rows = _as_obj(macro_view).get("sector_view") or []
+    return sorted({str(r.get("sector")) for r in rows
+                   if isinstance(r, dict) and str(r.get("stance", "")).lower() == "avoid"})
+
+
 def _sym(row):
     return str(_get(row, "symbol", default="") or "").strip().upper()
 
@@ -187,7 +274,7 @@ def _sym(row):
 # ---------- core logic ----------
 
 def reconcile(proposed, current, candidates, today=None, sector_returns=None, stressed_extra=None,
-              ranking=None):
+              ranking=None, scenario_moves=None, risk_view=None, macro_view=None):
     today = today or datetime.date.today()
     actions = []
 
@@ -246,8 +333,22 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             "uncertain": _get(r, "uncertain", default=False) is True,
             "red_flag": _get(r, "red_flag", default=False) is True,
             "cluster": str(_get(r, "cluster", default="") or "").strip().lower(),
+            "data_flag": (_get(r, "data_flag", default=False) is True
+                          or "llm_data_anomaly" in (_get(r, "flags", default=[]) or [])),
         }
     score_mode = bool(scored)
+    avoid = set(macro_avoid(macro_view))
+    levels = risk_levels(risk_view)
+    mv = _as_obj(scenario_moves)
+    moves = {str(k).upper(): v for k, v in (mv.get("symbols") or {}).items() if isinstance(v, dict)}
+    spy_moves = {k: float(v) for k, v in (mv.get("spy") or {}).items()}
+
+    def extra_bar(s, sector):
+        """extra score a NEW entry needs: macro 'avoid' sector and/or LLM data flag"""
+        x = MACRO_AVOID_BAR if sector in avoid else 0.0
+        if s in scored and scored[s]["data_flag"]:
+            x += DATA_FLAG_BAR
+        return x
 
     def score_of(s):
         return scored[s]["score"] if s in scored else None
@@ -371,7 +472,7 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
                 out[c] = out.get(c, 0) + 1
         return out
 
-    def find_challenger(entry_bar, min_score=None, freed_sector=None, freed_cluster=None):
+    def find_challenger(entry_bar, min_score=None, freed_sector=None, freed_cluster=None, risk_ok=None):
         counts = sector_counts()
         ccounts = cluster_counts()
         for base, from_micro in pool_rows():
@@ -392,11 +493,14 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
                 sc = score_of(s)
                 if s in scored and (scored[s]["red_flag"] or scored[s]["uncertain"]):
                     continue   # never add a name with a red flag or disagreeing LLM readings
-                if entry_bar and (sc is None or sc < ENTER_MIN):
-                    continue
-                if min_score is not None and (sc is None or sc < min_score):
-                    continue
+                bar = max(ENTER_MIN if entry_bar else 0.0, min_score or 0.0)
+                if entry_bar or min_score is not None:
+                    bar += extra_bar(s, base["sector"])
+                    if sc is None or sc < bar:
+                        continue
             elif entry_bar and rank_of(s) > entry_rank_max:
+                continue
+            if risk_ok is not None and not risk_ok(s):
                 continue
             return base, from_micro
         return None
@@ -565,6 +669,67 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
         add_entry(base, describe(base, from_micro) + " (refill)")
     shortfall = max(BASKET_SIZE - len(final), 0)
 
+    # --- step E: risk limits (needs /stress-test's scenario moves). Runs on the
+    # finished basket; swaps here ignore minimum hold and the regular swap cap.
+    def basket_move(scn, syms):
+        vals = [moves[x][scn] for x in syms if x in moves and scn in moves[x]]
+        return sum(vals) / len(vals) if vals else None
+
+    def limit_for(scn):
+        lvl = levels.get(scn, 0)
+        spy = spy_moves.get(scn, 0.0)
+        return spy * RISK_MULT[lvl] if spy <= -0.5 else RISK_ABS_FLOOR[lvl]
+
+    def breaches(syms):
+        out = []
+        for scn in spy_moves:
+            bm = basket_move(scn, syms)
+            if bm is not None and bm < limit_for(scn):
+                out.append((scn, bm, limit_for(scn)))
+        return out
+
+    def risk_table(syms):
+        return {scn: {"basket_pct": None if basket_move(scn, syms) is None else round(basket_move(scn, syms), 1),
+                      "spy_pct": spy_moves[scn], "limit_pct": round(limit_for(scn), 1),
+                      "level": ("low", "elevated", "high")[levels.get(scn, 0)]} for scn in spy_moves}
+
+    risk_swaps = 0
+    risk_before = risk_table(list(final)) if moves and spy_moves else None
+    if moves and spy_moves and score_mode:
+        while risk_swaps < MAX_RISK_SWAPS:
+            br = breaches(list(final))
+            if not br:
+                break
+            scn, bm, lim = min(br, key=lambda t: t[1] - t[2])     # deepest breach first
+            already = {b[0] for b in br}
+            done = False
+            for out in sorted((x for x in final if x in moves and scn in moves[x]), key=lambda x: moves[x][scn])[:5]:
+                row = final.pop(out)
+
+                def ok(sym, scn=scn, bm=bm, already=already):
+                    if sym not in moves:
+                        return False
+                    test = list(final) + [sym]
+                    return basket_move(scn, test) > bm and all(b[0] in already for b in breaches(test))
+
+                ch = find_challenger(entry_bar=True, risk_ok=ok)
+                if ch is None:
+                    final[out] = row
+                    continue
+                base, from_micro = ch
+                risk_swaps += 1
+                log(out, "dropped", f"risk limit: {scn} basket {bm:.1f}% vs limit {lim:.1f}% "
+                    f"(SPY {spy_moves[scn]:.1f}%, risk level {('low', 'elevated', 'high')[levels.get(scn, 0)]}); "
+                    f"{out} alone {moves[out][scn]:.1f}%", kind="risk_limit", score=score_of(out))
+                add_entry(base, f"replaces {out}; " + describe(base, from_micro) +
+                          f"; {scn} {moves[base['symbol']][scn]:.1f}%")
+                done = True
+                break
+            if not done:
+                log("*", "note", f"risk limit {scn} breached ({bm:.1f}% vs {lim:.1f}%) but no candidate lowers it "
+                    "without breaching another limit", kind="risk_limit")
+                break
+
     # --- trim if somehow oversize (e.g. current sheet had extra rows): drop weakest rank, not a swap
     while len(final) > BASKET_SIZE:
         worst = max(final, key=rank_of)
@@ -583,6 +748,14 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
         "sector_counts": sector_counts(),
         "mode": "score" if score_mode else "rank",
     }
+    summary["macro_avoid"] = sorted(avoid)
+    summary["review"] = sorted(x for x in final if x in scored and scored[x]["data_flag"])
+    if risk_before is not None:
+        summary["risk_swaps"] = risk_swaps
+        summary["risk_levels"] = {k: ("low", "elevated", "high")[v] for k, v in levels.items()}
+        summary["risk_before"] = risk_before
+        summary["risk_after"] = risk_table(list(final))
+        summary["risk_breaches_left"] = [b[0] for b in breaches(list(final))]
     if score_mode:
         summary.update({"max_per_cluster": MAX_PER_CLUSTER,
                         "cluster_counts": {c: n for c, n in cluster_counts().items() if n > 1},
@@ -624,4 +797,6 @@ def reconcile_basket():
         return jsonify({"error": f"could not parse input: {e}"}), 400
 
     today = _parse_date(body.get("today")) or datetime.date.today()
-    return jsonify(reconcile(proposed, current, candidates, today, sector_returns, stressed_extra, ranking))
+    return jsonify(reconcile(proposed, current, candidates, today, sector_returns, stressed_extra, ranking,
+                             scenario_moves=body.get("scenario_moves"), risk_view=body.get("risk_view"),
+                             macro_view=body.get("macro_view")))
