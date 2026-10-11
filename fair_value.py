@@ -19,6 +19,10 @@ Data
   Analyst consensus is NOT used: Yahoo blocks that endpoint from Render
   (see valuation.py, 2026-10-07).
 
+One-off gains: net profit is capped at after-tax operating profit (+20%) per
+year and for the trailing 12 months, so e.g. Alphabet's investment gains do not
+inflate its value (flag one_off_gains_capped). Financials are untouched.
+
 Methods (all computed on totals, i.e. in market-cap space, then divided by
 today's share count; split-safe):
   1. earnings     = profit basis x fair P/E (sector level x growth adjustment)
@@ -107,6 +111,9 @@ OCF_CONCEPTS = ("NetCashProvidedByUsedInOperatingActivities",
 CAPEX_CONCEPTS = ("PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsToAcquireProductiveAssets")
 REVENUE_CONCEPTS = ("Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "SalesRevenueNet",
                     "RevenueFromContractWithCustomerIncludingAssessedTax")
+OPINC_CONCEPTS = ("OperatingIncomeLoss",)
+TAX_RATE = 0.21                    # used only to turn operating profit into an after-tax ceiling for net profit
+ONE_OFF_TOLERANCE = 1.20           # net profit may exceed after-tax operating profit by 20% (low-tax firms, interest income)
 MIN_PROFIT_YEARS = 3               # profitable years (of the last 5) needed to define "normal" profit
 
 
@@ -242,6 +249,7 @@ def extract(facts):
     ocf_a = annual_by_report(facts, OCF_CONCEPTS, used=used)
     capex_a = annual_by_report(facts, CAPEX_CONCEPTS, used=used)
     rev_a = annual_by_report(facts, REVENUE_CONCEPTS, used=used)
+    op_a = annual_by_report(facts, OPINC_CONCEPTS, used=used)
     ocf = {e: v for e, v, _ in ocf_a}
     capex = {e: v for e, v, _ in capex_a}
     fcf = [(e, ocf[e] - capex.get(e, 0.0)) for e in sorted(ocf) if e in capex]
@@ -251,6 +259,35 @@ def extract(facts):
     ocf_ttm, _, _ = trailing_12m(facts, OCF_CONCEPTS, ocf_a)
     capex_ttm, _, _ = trailing_12m(facts, CAPEX_CONCEPTS, capex_a)
     rev_ttm, rev_ytd_growth, _ = trailing_12m(facts, REVENUE_CONCEPTS, rev_a)
+    op_ttm, _, _ = trailing_12m(facts, OPINC_CONCEPTS, op_a)
+
+    # one-off gains (e.g. investment gains at Alphabet) inflate GAAP net profit: cap each year's net profit
+    # at after-tax operating profit (+20%). Banks/insurers have no operating-income line, so they are untouched.
+    op_by_end = {e: v for e, v, _ in op_a}
+    capped_years = 0
+    ni_capped = []
+    for e, v, a in ni:
+        op = op_by_end.get(e)
+        if op is not None and op > 0 and v > op * (1 - TAX_RATE) * ONE_OFF_TOLERANCE:
+            v = op * (1 - TAX_RATE) * ONE_OFF_TOLERANCE
+            capped_years += 1
+        ni_capped.append((e, v, a))
+    ni = ni_capped
+    ni_ttm_capped = False
+    if ni_ttm is not None and op_ttm is not None and op_ttm > 0 and ni_ttm > op_ttm * (1 - TAX_RATE) * ONE_OFF_TOLERANCE:
+        ni_ttm, ni_ttm_capped = op_ttm * (1 - TAX_RATE) * ONE_OFF_TOLERANCE, True
+
+    # small raw sample of how profit is tagged, for debugging companies that do not parse (debug=1)
+    gaap = (facts.get("facts") or {}).get("us-gaap") or {}
+    raw_sample = {}
+    for c in ("NetIncomeLoss", "ProfitLoss", "Revenues"):
+        rows = ((gaap.get(c) or {}).get("units") or {}).get("USD") or []
+        if rows:
+            forms = {}
+            for r in rows:
+                forms[r.get("form", "?")] = forms.get(r.get("form", "?"), 0) + 1
+            raw_sample[c] = {"forms": forms, "last": [{k: r.get(k) for k in ("form", "fp", "fy", "start", "end", "val")}
+                                                     for r in sorted(rows, key=lambda r: r.get("end", ""))[-4:]]}
     fcf_ttm = (ocf_ttm - capex_ttm) if ocf_ttm is not None and capex_ttm is not None else None
     covers, diluted, balance = cover_shares(facts), diluted_shares(facts), balance_sheet_shares(facts)
     ni_by_accn = {a: (e, v) for e, v, a in ni}
@@ -274,6 +311,8 @@ def extract(facts):
         "revenue": revenue,
         "ni_ttm": ni_ttm, "fcf_ttm": fcf_ttm, "rev_ttm": rev_ttm, "rev_ytd_growth": rev_ytd_growth,
         "ttm_as_of": ttm_as_of, "concepts_found": sorted(used),
+        "op_ttm": op_ttm, "ni_capped_years": capped_years, "ni_ttm_capped": ni_ttm_capped,
+        "raw_sample": raw_sample, "units_found": sorted(set(u for c in gaap.values() for u in (c.get("units") or {})))[:10],
         "shares_now": now_shares,
         "shares_date": now_date,
         "pe_history": history,
@@ -338,12 +377,18 @@ def value_symbol(sym, sector, ex, price, monthly_raw, ttm_pe=None, fcf_yield=Non
     # trailing 12 months: this week's facts if given, else computed from the 10-Q filings, else last fiscal year
     if ttm_pe and ttm_pe > 0:
         ni_ttm = mcap / ttm_pe
+        op = ex.get("op_ttm")
+        if op is not None and op > 0 and ni_ttm > op * (1 - TAX_RATE) * ONE_OFF_TOLERANCE:
+            ni_ttm = op * (1 - TAX_RATE) * ONE_OFF_TOLERANCE
+            flags.append("one_off_gains_capped")
     else:
         ni_ttm = ex.get("ni_ttm") if ex.get("ni_ttm") is not None else (ni_series[-1][1] if ni_series else None)
     if fcf_yield is not None:
         fcf_ttm = mcap * fcf_yield
     else:
         fcf_ttm = ex.get("fcf_ttm") if ex.get("fcf_ttm") is not None else (fcf_series[-1][1] if fcf_series else None)
+    if ex.get("ni_ttm_capped") or ex.get("ni_capped_years"):
+        flags.append("one_off_gains_capped")
     if not ni_series and not fcf_series and ni_ttm is None:
         return {"symbol": sym, "sector": sector, "price": round(price, 2), "status": "no_data",
                 "error": "no profit or cash-flow data found under the expected XBRL names",
@@ -412,7 +457,7 @@ def value_symbol(sym, sector, ex, price, monthly_raw, ttm_pe=None, fcf_yield=Non
         "methods": {k: round(v, 2) for k, v in methods.items()},
         "growth_used_pct": round(g * 100, 1), "growth_adj": round(g_adj, 2),
         "ttm_as_of": ex.get("ttm_as_of"),
-        "flags": flags,
+        "flags": list(dict.fromkeys(flags)),
     }
 
 
@@ -485,6 +530,9 @@ def _debug_view(ex):
         "fcf_ttm_musd": round(ex["fcf_ttm"] / 1e6, 1) if ex.get("fcf_ttm") is not None else None,
         "rev_ytd_growth": ex.get("rev_ytd_growth"), "ttm_as_of": ex.get("ttm_as_of"),
         "pe_history_points": len(ex.get("pe_history", [])),
+        "op_ttm_musd": round(ex["op_ttm"] / 1e6, 1) if ex.get("op_ttm") is not None else None,
+        "ni_capped_years": ex.get("ni_capped_years"), "ni_ttm_capped": ex.get("ni_ttm_capped"),
+        "raw_sample": ex.get("raw_sample"), "units_found": ex.get("units_found"),
     }
 
 
