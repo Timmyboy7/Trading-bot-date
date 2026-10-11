@@ -26,15 +26,22 @@ today's share count; split-safe):
   3. own_history  = profit basis x the company's own median P/E over its last
                     5 annual reports (market cap at each 10-K cover / that year's profit)
   Profit/FCF basis = trailing value; for CYCLICAL sectors the average of trailing
-  and the 5-year average, so a peak year (e.g. refiners in an oil spike) is not
-  capitalised as if it were permanent.
+  and the median of the profitable years among the last 5 (loss years such as
+  COVID are skipped), so a peak year (e.g. refiners in an oil spike) is not
+  capitalised as if it were permanent. Fewer than 3 profitable years: trailing
+  value, flagged short_profit_history.
   Skips: Real Estate uses cash flow only (P/E is distorted by depreciation);
   Financials skip cash flow (FCF is not meaningful for banks/insurers);
   negative profit or FCF skips that method.
 
 Result per symbol
   fair_value      median of the available methods (per share)
-  upside_pct      fair value vs current price
+  upside_pct      fair value vs current price (absolute; long-run sector levels)
+  relative_upside_pct  upside minus the median upside of all names valued in the same call
+                  (cheap vs the others; use THIS for selection - absolute upside mostly
+                  says whether the whole market is expensive)
+  status          ok | not_valuable (e.g. GAAP profit depressed by acquisition write-offs)
+                  | no_data
   confidence      high (methods within 25% of each other), medium (within 50%),
                   low (wider, or only one method)
   methods         each method's value, so the reasoning is visible
@@ -98,6 +105,9 @@ NI_CONCEPTS = ("NetIncomeLoss", "ProfitLoss", "NetIncomeLossAvailableToCommonSto
 OCF_CONCEPTS = ("NetCashProvidedByUsedInOperatingActivities",
                 "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations")
 CAPEX_CONCEPTS = ("PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsToAcquireProductiveAssets")
+REVENUE_CONCEPTS = ("Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "SalesRevenueNet",
+                    "RevenueFromContractWithCustomerIncludingAssessedTax")
+MIN_PROFIT_YEARS = 3               # profitable years (of the last 5) needed to define "normal" profit
 
 
 # --------------------------------------------------------------------------- small helpers
@@ -182,28 +192,46 @@ def diluted_shares(facts):
     return sorted(((_date(r["end"]), float(r["val"]), a, r.get("form", "")) for a, r in best.items()), key=lambda t: t[0])
 
 
+def balance_sheet_shares(facts):
+    """[(date, shares)] us-gaap CommonStockSharesOutstanding (instant), last resort for today's share count."""
+    rows = ((((facts.get("facts") or {}).get("us-gaap") or {}).get("CommonStockSharesOutstanding") or {})
+            .get("units") or {}).get("shares") or []
+    out = {}
+    for r in rows:
+        if r.get("end") and r.get("val"):
+            out[r["end"]] = (_date(r["end"]), float(r["val"]))
+    return [out[k] for k in sorted(out)]
+
+
 def extract(facts):
     """Everything the methods need from one companyfacts document."""
     ni = annual_by_report(facts, NI_CONCEPTS)
     ocf = {e: v for e, v, _ in annual_by_report(facts, OCF_CONCEPTS)}
     capex = {e: v for e, v, _ in annual_by_report(facts, CAPEX_CONCEPTS)}
     fcf = [(e, ocf[e] - capex.get(e, 0.0)) for e in sorted(ocf) if e in capex]
-    shares = cover_shares(facts)
-    shares_source = "cover"
+    revenue = [(e, v) for e, v, _ in annual_by_report(facts, REVENUE_CONCEPTS)]
+    covers, diluted, balance = cover_shares(facts), diluted_shares(facts), balance_sheet_shares(facts)
     ni_by_accn = {a: (e, v) for e, v, a in ni}
-    k_covers = [(d, s, a) for d, s, a, form in shares if str(form).startswith("10-K") and a in ni_by_accn]
-    if len(k_covers) < 3 or not shares:
-        # fallback: diluted weighted shares of each report, priced at that period's end
-        shares = diluted_shares(facts)
-        shares_source = "diluted_weighted"
-        k_covers = [(d, s, a) for d, s, a, form in shares if str(form).startswith("10-K") and a in ni_by_accn]
+
+    # today's share count: the most recent of the three sources (each is as reported, so current)
+    latest = [(x[0], x[1], src) for src, lst in (("cover", covers), ("diluted_weighted", diluted),
+                                                  ("balance_sheet", balance)) if lst for x in lst[-1:]]
+    now_date, now_shares, now_src = max(latest, key=lambda t: t[0]) if latest else (None, None, None)
+
+    # history for the own-P/E method: cover shares if they cover >= 3 reports, else diluted weighted shares
+    k_covers = [(d, s, a) for d, s, a, form in covers if str(form).startswith("10-K") and a in ni_by_accn]
+    hist_src = "cover"
+    if len(k_covers) < 3:
+        k_covers = [(d, s, a) for d, s, a, form in diluted if str(form).startswith("10-K") and a in ni_by_accn]
+        hist_src = "diluted_weighted"
     history = [{"cover": d, "shares": s, "fy_end": ni_by_accn[a][0], "net_income": ni_by_accn[a][1]} for d, s, a in k_covers]
     return {
-        "shares_source": shares_source,
+        "shares_source": now_src, "history_shares_source": hist_src,
         "net_income": [(e, v) for e, v, _ in ni],
         "fcf": fcf,
-        "shares_now": shares[-1][1] if shares else None,
-        "shares_date": shares[-1][0] if shares else None,
+        "revenue": revenue,
+        "shares_now": now_shares,
+        "shares_date": now_date,
         "pe_history": history,
     }
 
@@ -250,7 +278,12 @@ def value_symbol(sym, sector, ex, price, monthly_raw, ttm_pe=None, fcf_yield=Non
     flags = []
     shares = ex.get("shares_now")
     if not price or not shares:
-        return {"symbol": sym, "error": "no price or share count"}
+        return {"symbol": sym, "sector": sector, "status": "no_data",
+                "error": "no price" if not price else "no share count in SEC filings"}
+    rev = ex.get("revenue") or []
+    if rev_growth is None and len(rev) >= 2 and rev[-2][1] > 0:
+        rev_growth = rev[-1][1] / rev[-2][1] - 1      # last fiscal year, when this week's figure is not given
+        flags.append("revenue_growth_from_filings")
     mcap = price * shares
     fair_pe, fair_yield = SECTOR_FAIR.get(sector, DEFAULT_FAIR)
     ni_series, fcf_series = ex["net_income"], ex["fcf"]
@@ -260,16 +293,21 @@ def value_symbol(sym, sector, ex, price, monthly_raw, ttm_pe=None, fcf_yield=Non
     fcf_ttm = mcap * fcf_yield if fcf_yield is not None else (fcf_series[-1][1] if fcf_series else None)
 
     def basis(ttm, series, label):
+        """Trailing value; for cyclicals blended 50/50 with the median of the PROFITABLE years among the
+        last 5 (loss years such as COVID are skipped, so they cannot drag 'normal' profit toward zero)."""
         if ttm is None:
             return None
-        last5 = [v for _, v in series[-5:]]
-        if len(last5) >= 3:
-            avg5 = statistics.mean(last5)
-            if avg5 > 0 and ttm > 1.5 * avg5:
-                flags.append(f"{label}_above_5y_avg")
+        positive = [v for _, v in series[-5:] if v > 0]
+        if len(positive) < MIN_PROFIT_YEARS:
             if sector in CYCLICAL:
-                flags.append(f"{label}_cyclical_normalised")
-                return (ttm + avg5) / 2
+                flags.append(f"{label}_short_profit_history")
+            return ttm
+        normal = statistics.median(positive)
+        if ttm > 1.5 * normal:
+            flags.append(f"{label}_above_normal")
+        if sector in CYCLICAL:
+            flags.append(f"{label}_cyclical_normalised")
+            return (ttm + normal) / 2
         return ttm
 
     ni_basis = basis(ni_ttm, ni_series, "earnings")
@@ -293,9 +331,11 @@ def value_symbol(sym, sector, ex, price, monthly_raw, ttm_pe=None, fcf_yield=Non
         else:
             flags.append(f"{k}_outlier_dropped")
     if not kept:
-        return {"symbol": sym, "sector": sector, "price": round(price, 2), "flags": flags,
-                "methods": {k: round(v, 2) for k, v in methods.items()},
-                "error": "no usable method (negative profit/FCF, missing data, or all outliers)"}
+        why = ("profit and cash flow are far below what the price implies (e.g. GAAP profit depressed by "
+               "acquisition write-offs, or a turnaround) - this method cannot value it" if methods
+               else "negative profit and cash flow - no earnings-based value")
+        return {"symbol": sym, "sector": sector, "price": round(price, 2), "status": "not_valuable",
+                "flags": flags, "methods": {k: round(v, 2) for k, v in methods.items()}, "error": why}
 
     vals = sorted(kept.values())
     fv = statistics.median(vals)
@@ -309,7 +349,7 @@ def value_symbol(sym, sector, ex, price, monthly_raw, ttm_pe=None, fcf_yield=Non
     else:
         conf = "low"
     return {
-        "symbol": sym, "sector": sector, "price": round(price, 2),
+        "symbol": sym, "sector": sector, "price": round(price, 2), "status": "ok",
         "fair_value": round(fv, 2), "upside_pct": round((fv / price - 1) * 100, 1),
         "confidence": conf, "spread_pct": round(spread * 100) if spread is not None else None,
         "methods": {k: round(v, 2) for k, v in methods.items()},
@@ -433,11 +473,20 @@ def compute(items, budget=None):
         except Exception as e:
             errors.append(f"{s}: valuation failed ({str(e)[:120]})")
 
-    ok = [r for r in results if "fair_value" in r]
+    ok = [r for r in results if r.get("status") == "ok"]
+    # Relative upside: vs the median of everything valued in this call. The sector "fair" levels are long-run
+    # averages, so in an expensive market nearly everything shows negative absolute upside; for PICKING stocks
+    # what matters is cheap vs the others. Absolute upside stays visible (market-level question for Macro).
+    med = statistics.median([r["upside_pct"] for r in ok]) if ok else None
+    for r in ok:
+        r["relative_upside_pct"] = round(r["upside_pct"] - med, 1) if len(ok) >= 8 else None
     summary = {
         "symbols": len(syms), "valued": len(ok), "pending": pending, "price_feed": feed,
         "confidence": {c: sum(1 for r in ok if r["confidence"] == c) for c in ("high", "medium", "low")},
-        "median_upside_pct": round(statistics.median([r["upside_pct"] for r in ok]), 1) if ok else None,
+        "median_upside_pct": round(med, 1) if med is not None else None,
+        "relative_basis": f"median of {len(ok)} valued names" if len(ok) >= 8 else "too few names for relative upside (need 8)",
+        "not_valuable": [r["symbol"] for r in results if r.get("status") == "not_valuable"],
+        "no_data": [r["symbol"] for r in results if r.get("status") == "no_data"],
         "seconds": round(time.time() - t0, 1),
     }
     if pending:
