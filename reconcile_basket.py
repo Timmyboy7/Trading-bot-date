@@ -87,14 +87,23 @@ Risk, macro and data flags (added 2026-10-11). Optional body fields:
   - "risk_view": the Risk Analyst's JSON ({"risks": [{risk, level, direction}...]}).
   - "macro_view": the Macro Analyst's JSON ({"sector_view": [{sector, stance}...]}).
   Rules:
-  - Risk limits (needs scenario_moves). After the normal swaps, in every scenario
-    the basket (equal weight) may lose at most RISK_MULT_BASE (1.5) x what SPY
-    loses; for a scenario the Risk Analyst rates "elevated" 1.3x, "high" 1.15x.
-    Scenarios where SPY itself barely moves (momentum reversal) use absolute
-    floors instead (-5% / -3.5% / -2.5%). On a breach, the stock that loses most
-    in that scenario is swapped for the best-scoring candidate (entry bar applies)
-    that lowers the loss without breaching another limit. At most MAX_RISK_SWAPS
-    (3) per run; like stress exits they ignore minimum hold and the swap cap.
+  - Risk limits (needs scenario_moves). This is the owner's fixed risk appetite,
+    not a forecast: after the normal swaps, in every scenario the basket (equal
+    weight) may lose at most 1.5x what SPY loses. "Elevated" from the Risk
+    Analyst only gets logged. The limit tightens (1.2x) only when the Risk
+    Analyst says "high" AND the market confirms it (stress test's `confirmed`,
+    e.g. semis -10% in a month); headlines alone never tighten it. Scenarios
+    where SPY itself barely moves (momentum reversal) use absolute floors
+    (-5% / -5% / -3%). On a breach, the stock that loses most in that scenario
+    is swapped for the best-scoring candidate (entry bar applies) that lowers the
+    loss without breaching another limit. At most MAX_RISK_SWAPS (2) per run;
+    like stress exits they ignore minimum hold and the swap cap.
+    Timing (when to get out of a still-trending name) is the daily deep dive's
+    job, not this weekly step: each basket row carries `risk_exposure` (the
+    scenarios where the stock alone loses far more than SPY) for it.
+    Decided 2026-10-11 after a case study: selling winners on "elevated" only
+    pays if a burst is near-certain; a fixed limit + daily trend exit keeps the
+    upside of a running trend and cuts the crash path.
   - Macro "avoid": new entries in that sector need MACRO_AVOID_BAR (0.3) more
     score. Nothing is sold because of macro (its sector calls have no tested edge).
   - Data flag (select's data_flag: most LLM runs said the code's metrics don't fit
@@ -142,10 +151,11 @@ MAX_PER_CLUSTER = int(os.environ.get("RECON_MAX_PER_CLUSTER", 2))
 
 # Risk limits (scenario loss vs SPY) per Risk Analyst level: 0 = low/none, 1 = elevated, 2 = high
 RISK_MULT = (float(os.environ.get("RECON_RISK_MULT_BASE", 1.5)),
-             float(os.environ.get("RECON_RISK_MULT_ELEVATED", 1.3)),
-             float(os.environ.get("RECON_RISK_MULT_HIGH", 1.15)))
-RISK_ABS_FLOOR = (-5.0, -3.5, -2.5)    # % loss floors for scenarios where SPY moves < 0.5%
-MAX_RISK_SWAPS = int(os.environ.get("RECON_MAX_RISK_SWAPS", 3))
+             float(os.environ.get("RECON_RISK_MULT_ELEVATED", 1.5)),   # elevated = watch, no tightening
+             float(os.environ.get("RECON_RISK_MULT_HIGH", 1.2)))       # only if market-confirmed
+RISK_ABS_FLOOR = (-5.0, -5.0, -3.0)    # % loss floors for scenarios where SPY moves < 0.5%
+MAX_RISK_SWAPS = int(os.environ.get("RECON_MAX_RISK_SWAPS", 2))
+EXPOSURE_NOTE_MULT = 2.0               # risk_exposure lists scenarios where a stock loses > 2x SPY
 MACRO_AVOID_BAR = float(os.environ.get("RECON_MACRO_AVOID_BAR", 0.3))
 DATA_FLAG_BAR = float(os.environ.get("RECON_DATA_FLAG_BAR", 0.3))
 LEVELS = {"none": 0, "low": 0, "moderate": 1, "medium": 1, "elevated": 1,
@@ -342,6 +352,10 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
     mv = _as_obj(scenario_moves)
     moves = {str(k).upper(): v for k, v in (mv.get("symbols") or {}).items() if isinstance(v, dict)}
     spy_moves = {k: float(v) for k, v in (mv.get("spy") or {}).items()}
+    confirmed = {k: bool(v) for k, v in (mv.get("confirmed") or {}).items()}
+    raw_levels = dict(levels)
+    # "high" without market confirmation counts as elevated (= watch only)
+    levels = {k: (1 if v == 2 and not confirmed.get(k) else v) for k, v in levels.items()}
 
     def extra_bar(s, sector):
         """extra score a NEW entry needs: macro 'avoid' sector and/or LLM data flag"""
@@ -736,6 +750,15 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
         final.pop(worst)
         log(worst, "dropped", f"basket above {BASKET_SIZE} names — trimmed weakest rank", kind="trim")
 
+    for x, row in final.items():
+        notes = []
+        for scn, spy in spy_moves.items():
+            m = (moves.get(x) or {}).get(scn)
+            if m is None:
+                continue
+            if (spy <= -0.5 and m < spy * EXPOSURE_NOTE_MULT) or (spy > -0.5 and m <= -10):
+                notes.append(f"{scn} {m:.0f}% (SPY {spy:.0f}%)")
+        row["risk_exposure"] = "; ".join(notes)
     basket = sorted(final.values(), key=lambda r: (r["sector"], rank_of(r["symbol"])))
     summary = {
         "basket_size": len(basket),
@@ -752,7 +775,10 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
     summary["review"] = sorted(x for x in final if x in scored and scored[x]["data_flag"])
     if risk_before is not None:
         summary["risk_swaps"] = risk_swaps
-        summary["risk_levels"] = {k: ("low", "elevated", "high")[v] for k, v in levels.items()}
+        summary["risk_levels"] = {k: ("low", "elevated", "high")[v] +
+                                  (" (not market-confirmed: limit not tightened)" if v == 2 and levels.get(k) != 2 else "")
+                                  for k, v in raw_levels.items()}
+        summary["market_confirmed"] = sorted(k for k, v in confirmed.items() if v)
         summary["risk_before"] = risk_before
         summary["risk_after"] = risk_table(list(final))
         summary["risk_breaches_left"] = [b[0] for b in breaches(list(final))]

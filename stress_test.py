@@ -320,6 +320,31 @@ def market_context(closes):
     return ctx
 
 
+def market_confirmation(ctx):
+    """Has the market itself started to move toward a scenario? Code-only check; reconcile
+    tightens a risk limit only when the Risk Analyst says "high" AND this is true
+    (headlines alone never tighten). Thresholds are 1-month moves of the factor ETFs."""
+    def g(label, key):
+        return (ctx.get(label) or {}).get(key)
+    spy1m, smh1m = g("market", "ret_1m_pct"), g("ai", "ret_1m_pct")
+    uso1m, tlt1m, mtum1m = g("oil", "ret_1m_pct"), g("rates_tlt", "ret_1m_pct"), g("momentum", "ret_1m_pct")
+    high = g("market", "from_1y_high_pct")
+    ok = lambda *v: all(x is not None for x in v)
+    return {
+        "market_crash": bool((ok(spy1m) and spy1m <= -7) or (ok(high) and high <= -10)),
+        "ai_bust": bool((ok(smh1m) and smh1m <= -10) or (ok(smh1m, spy1m) and smh1m - spy1m <= -8)),
+        "oil_spike": bool(ok(uso1m) and uso1m >= 15),
+        "oil_crash": bool(ok(uso1m) and uso1m <= -15),
+        "rate_shock": bool(ok(tlt1m) and tlt1m <= -5),
+        "momentum_reversal": bool(ok(mtum1m, spy1m) and mtum1m - spy1m <= -5),
+    }
+
+
+CONFIRM_RULES = ("1-month moves: market_crash SPY <= -7% or >= 10% below 1y high; ai_bust SMH <= -10% "
+                 "or 8 points worse than SPY; oil_spike USO >= +15%; oil_crash USO <= -15%; "
+                 "rate_shock TLT <= -5%; momentum_reversal MTUM 5 points worse than SPY")
+
+
 # --------------------------------------------------------------------------- core
 
 def scenario_moves(closes, symbols, factor_dates):
@@ -500,6 +525,8 @@ def compute(basket, weights=None, closes=None, news=None, universe=None):
         "warnings": len(warnings),
     }
     moves = scenario_moves(closes, basket + universe, factor_dates)
+    moves["confirmed"] = market_confirmation(ctx)
+    moves["confirm_rules"] = CONFIRM_RULES
     if moves["skipped"]:
         errors.append(f"no scenario moves (short history): {','.join(moves['skipped'][:15])}")
     return {
