@@ -1,0 +1,918 @@
+{
+ "run": "2026-10-11",
+ "range": [
+  "2021-01",
+  "2026-03"
+ ],
+ "universe": "S&P 500 constituents as of 2026-10 (490 with data)",
+ "minutes": 19.7,
+ "failed_symbols": 1,
+ "summary": {
+  "3m": {
+   "momentum": {
+    "dates": 63,
+    "avg_excess_vs_spy_pct": 5.36,
+    "beat_spy_share": 0.68,
+    "t_stat_overlapping": 4.9
+   },
+   "value": {
+    "dates": 63,
+    "avg_excess_vs_spy_pct": -0.84,
+    "beat_spy_share": 0.44,
+    "t_stat_overlapping": -1.25
+   },
+   "value_any": {
+    "dates": 63,
+    "avg_excess_vs_spy_pct": -0.7,
+    "beat_spy_share": 0.46,
+    "t_stat_overlapping": -0.91
+   },
+   "combo": {
+    "dates": 63,
+    "avg_excess_vs_spy_pct": 1.36,
+    "beat_spy_share": 0.56,
+    "t_stat_overlapping": 1.85
+   },
+   "value_rising": {
+    "dates": 63,
+    "avg_excess_vs_spy_pct": 0.49,
+    "beat_spy_share": 0.59,
+    "t_stat_overlapping": 0.75
+   }
+  },
+  "6m": {
+   "momentum": {
+    "dates": 63,
+    "avg_excess_vs_spy_pct": 12.67,
+    "beat_spy_share": 0.86,
+    "t_stat_overlapping": 5.98
+   },
+   "value": {
+    "dates": 63,
+    "avg_excess_vs_spy_pct": -1.67,
+    "beat_spy_share": 0.38,
+    "t_stat_overlapping": -2.19
+   },
+   "value_any": {
+    "dates": 63,
+    "avg_excess_vs_spy_pct": -1.0,
+    "beat_spy_share": 0.33,
+    "t_stat_overlapping": -1.1
+   },
+   "combo": {
+    "dates": 63,
+    "avg_excess_vs_spy_pct": 3.16,
+    "beat_spy_share": 0.67,
+    "t_stat_overlapping": 3.36
+   },
+   "value_rising": {
+    "dates": 63,
+    "avg_excess_vs_spy_pct": 0.48,
+    "beat_spy_share": 0.57,
+    "t_stat_overlapping": 0.55
+   }
+  },
+  "ic_6m": {
+   "value_mean": 0.019,
+   "value_positive_share": 0.57,
+   "momentum_mean": 0.021,
+   "momentum_positive_share": 0.6
+  },
+  "by_regime_6m_excess_pct": {
+   "2021-2022": {
+    "momentum": 2.63,
+    "value": 1.76,
+    "value_any": 0.96,
+    "combo": 0.58,
+    "value_rising": 0.06
+   },
+   "2023-2024": {
+    "momentum": 18.27,
+    "value": -1.83,
+    "value_any": 0.25,
+    "combo": 4.71,
+    "value_rising": 0.42
+   },
+   "2025-2026": {
+    "momentum": 19.79,
+    "value": -6.93,
+    "value_any": -6.14,
+    "combo": 4.83,
+    "value_rising": 1.26
+   }
+  }
+ },
+ "baskets_2026_03": {
+  "momentum": [
+   {
+    "symbol": "SNDK",
+    "sector": "Information Technology",
+    "rel_upside": -35.1,
+    "confidence": "low",
+    "momentum": 5.86,
+    "ret_6m_pct": 173.9
+   },
+   {
+    "symbol": "MRNA",
+    "sector": "Health Care",
+    "rel_upside": null,
+    "confidence": null,
+    "momentum": 4.38,
+    "ret_6m_pct": 279.1
+   },
+   {
+    "symbol": "VRT",
+    "sector": "Industrials",
+    "rel_upside": -45.0,
+    "confidence": "high",
+    "momentum": 3.12,
+    "ret_6m_pct": -3.7
+   },
+   {
+    "symbol": "BG",
+    "sector": "Consumer Staples",
+    "rel_upside": 4.5,
+    "confidence": "low",
+    "momentum": 2.8,
+    "ret_6m_pct": -15.9
+   },
+   {
+    "symbol": "ROST",
+    "sector": "Consumer Discretionary",
+    "rel_upside": -26.7,
+    "confidence": "high",
+    "momentum": 2.58,
+    "ret_6m_pct": 7.7
+   },
+   {
+    "symbol": "LYB",
+    "sector": "Materials",
+    "rel_upside": -21.6,
+    "confidence": "low",
+    "momentum": 2.47,
+    "ret_6m_pct": -28.7
+   },
+   {
+    "symbol": "APA",
+    "sector": "Energy",
+    "rel_upside": -7.8,
+    "confidence": "low",
+    "momentum": 2.28,
+    "ret_6m_pct": -2.1
+   },
+   {
+    "symbol": "CIEN",
+    "sector": "Information Technology",
+    "rel_upside": -52.5,
+    "confidence": "low",
+    "momentum": 2.13,
+    "ret_6m_pct": -9.4
+   },
+   {
+    "symbol": "ALB",
+    "sector": "Materials",
+    "rel_upside": -44.7,
+    "confidence": "low",
+    "momentum": 2.06,
+    "ret_6m_pct": -41.1
+   },
+   {
+    "symbol": "EIX",
+    "sector": "Utilities",
+    "rel_upside": null,
+    "confidence": null,
+    "momentum": 2.05,
+    "ret_6m_pct": -26.6
+   },
+   {
+    "symbol": "EQIX",
+    "sector": "Real Estate",
+    "rel_upside": null,
+    "confidence": null,
+    "momentum": 2.03,
+    "ret_6m_pct": 3.2
+   },
+   {
+    "symbol": "GEV",
+    "sector": "Industrials",
+    "rel_upside": null,
+    "confidence": null,
+    "momentum": 1.88,
+    "ret_6m_pct": 8.9
+   },
+   {
+    "symbol": "CBOE",
+    "sector": "Financials",
+    "rel_upside": -1.4,
+    "confidence": "medium",
+    "momentum": 1.85,
+    "ret_6m_pct": -2.1
+   },
+   {
+    "symbol": "HAS",
+    "sector": "Consumer Discretionary",
+    "rel_upside": 33.2,
+    "confidence": "low",
+    "momentum": 1.76,
+    "ret_6m_pct": -6.3
+   },
+   {
+    "symbol": "CF",
+    "sector": "Materials",
+    "rel_upside": 66.0,
+    "confidence": "low",
+    "momentum": 1.75,
+    "ret_6m_pct": -11.3
+   },
+   {
+    "symbol": "FDX",
+    "sector": "Industrials",
+    "rel_upside": 0.3,
+    "confidence": "medium",
+    "momentum": 1.75,
+    "ret_6m_pct": -20.0
+   },
+   {
+    "symbol": "CAT",
+    "sector": "Industrials",
+    "rel_upside": -33.8,
+    "confidence": "medium",
+    "momentum": 1.7,
+    "ret_6m_pct": 14.4
+   },
+   {
+    "symbol": "WDC",
+    "sector": "Information Technology",
+    "rel_upside": -10.9,
+    "confidence": "low",
+    "momentum": 1.7,
+    "ret_6m_pct": 68.0
+   },
+   {
+    "symbol": "GNRC",
+    "sector": "Industrials",
+    "rel_upside": -45.1,
+    "confidence": "medium",
+    "momentum": 1.64,
+    "ret_6m_pct": 5.9
+   },
+   {
+    "symbol": "CASY",
+    "sector": "Consumer Staples",
+    "rel_upside": -36.3,
+    "confidence": "high",
+    "momentum": 1.64,
+    "ret_6m_pct": -16.4
+   }
+  ],
+  "value": [
+   {
+    "symbol": "BLDR",
+    "sector": "Industrials",
+    "rel_upside": 125.5,
+    "confidence": "medium",
+    "momentum": -1.53,
+    "ret_6m_pct": -30.8
+   },
+   {
+    "symbol": "CTSH",
+    "sector": "Information Technology",
+    "rel_upside": 125.5,
+    "confidence": "medium",
+    "momentum": -0.55,
+    "ret_6m_pct": -6.4
+   },
+   {
+    "symbol": "INCY",
+    "sector": "Health Care",
+    "rel_upside": 112.0,
+    "confidence": "high",
+    "momentum": 0.21,
+    "ret_6m_pct": 28.9
+   },
+   {
+    "symbol": "INTU",
+    "sector": "Information Technology",
+    "rel_upside": 106.9,
+    "confidence": "medium",
+    "momentum": -0.89,
+    "ret_6m_pct": -36.2
+   },
+   {
+    "symbol": "PGR",
+    "sector": "Financials",
+    "rel_upside": 103.6,
+    "confidence": "high",
+    "momentum": -0.66,
+    "ret_6m_pct": 4.6
+   },
+   {
+    "symbol": "PTC",
+    "sector": "Information Technology",
+    "rel_upside": 100.3,
+    "confidence": "high",
+    "momentum": -0.58,
+    "ret_6m_pct": -1.5
+   },
+   {
+    "symbol": "IT",
+    "sector": "Information Technology",
+    "rel_upside": 100.0,
+    "confidence": "high",
+    "momentum": -0.95,
+    "ret_6m_pct": 17.8
+   },
+   {
+    "symbol": "CDW",
+    "sector": "Information Technology",
+    "rel_upside": 96.4,
+    "confidence": "high",
+    "momentum": -0.43,
+    "ret_6m_pct": 5.9
+   },
+   {
+    "symbol": "MKC",
+    "sector": "Consumer Staples",
+    "rel_upside": 83.4,
+    "confidence": "medium",
+    "momentum": -1.8,
+    "ret_6m_pct": -8.0
+   },
+   {
+    "symbol": "GIS",
+    "sector": "Consumer Staples",
+    "rel_upside": 80.5,
+    "confidence": "medium",
+    "momentum": -1.64,
+    "ret_6m_pct": -13.6
+   },
+   {
+    "symbol": "UHS",
+    "sector": "Health Care",
+    "rel_upside": 74.9,
+    "confidence": "medium",
+    "momentum": -0.69,
+    "ret_6m_pct": -2.6
+   },
+   {
+    "symbol": "BBY",
+    "sector": "Consumer Discretionary",
+    "rel_upside": 65.4,
+    "confidence": "medium",
+    "momentum": -0.19,
+    "ret_6m_pct": 37.4
+   },
+   {
+    "symbol": "LDOS",
+    "sector": "Industrials",
+    "rel_upside": 60.1,
+    "confidence": "medium",
+    "momentum": -1.01,
+    "ret_6m_pct": -21.7
+   },
+   {
+    "symbol": "IQV",
+    "sector": "Health Care",
+    "rel_upside": 59.4,
+    "confidence": "medium",
+    "momentum": -0.84,
+    "ret_6m_pct": 57.6
+   },
+   {
+    "symbol": "GL",
+    "sector": "Financials",
+    "rel_upside": 58.3,
+    "confidence": "medium",
+    "momentum": 0.59,
+    "ret_6m_pct": 19.0
+   },
+   {
+    "symbol": "MOS",
+    "sector": "Materials",
+    "rel_upside": 56.1,
+    "confidence": "medium",
+    "momentum": -0.76,
+    "ret_6m_pct": -15.1
+   },
+   {
+    "symbol": "CI",
+    "sector": "Health Care",
+    "rel_upside": 54.5,
+    "confidence": "medium",
+    "momentum": -0.14,
+    "ret_6m_pct": 1.9
+   },
+   {
+    "symbol": "TROW",
+    "sector": "Financials",
+    "rel_upside": 49.8,
+    "confidence": "medium",
+    "momentum": -0.34,
+    "ret_6m_pct": 15.4
+   },
+   {
+    "symbol": "AIZ",
+    "sector": "Financials",
+    "rel_upside": 46.2,
+    "confidence": "medium",
+    "momentum": 0.24,
+    "ret_6m_pct": 21.0
+   },
+   {
+    "symbol": "BR",
+    "sector": "Industrials",
+    "rel_upside": 45.7,
+    "confidence": "medium",
+    "momentum": -1.77,
+    "ret_6m_pct": -0.8
+   }
+  ],
+  "value_any": [
+   {
+    "symbol": "ADBE",
+    "sector": "Information Technology",
+    "rel_upside": 151.4,
+    "confidence": "low",
+    "momentum": -0.78,
+    "ret_6m_pct": -1.3
+   },
+   {
+    "symbol": "VTRS",
+    "sector": "Health Care",
+    "rel_upside": 147.8,
+    "confidence": "low",
+    "momentum": 1.16,
+    "ret_6m_pct": 31.2
+   },
+   {
+    "symbol": "PYPL",
+    "sector": "Financials",
+    "rel_upside": 140.9,
+    "confidence": "low",
+    "momentum": -1.6,
+    "ret_6m_pct": 16.1
+   },
+   {
+    "symbol": "TAP",
+    "sector": "Consumer Staples",
+    "rel_upside": 139.5,
+    "confidence": "low",
+    "momentum": -0.63,
+    "ret_6m_pct": -15.3
+   },
+   {
+    "symbol": "BLDR",
+    "sector": "Industrials",
+    "rel_upside": 125.5,
+    "confidence": "medium",
+    "momentum": -1.53,
+    "ret_6m_pct": -30.8
+   },
+   {
+    "symbol": "CTSH",
+    "sector": "Information Technology",
+    "rel_upside": 125.5,
+    "confidence": "medium",
+    "momentum": -0.55,
+    "ret_6m_pct": -6.4
+   },
+   {
+    "symbol": "CMCSA",
+    "sector": "Communication Services",
+    "rel_upside": 121.7,
+    "confidence": "low",
+    "momentum": 0.22,
+    "ret_6m_pct": -24.2
+   },
+   {
+    "symbol": "TTD",
+    "sector": "Communication Services",
+    "rel_upside": 121.3,
+    "confidence": "low",
+    "momentum": -1.85,
+    "ret_6m_pct": -46.4
+   },
+   {
+    "symbol": "ALL",
+    "sector": "Financials",
+    "rel_upside": 112.9,
+    "confidence": "low",
+    "momentum": 0.57,
+    "ret_6m_pct": 7.0
+   },
+   {
+    "symbol": "INCY",
+    "sector": "Health Care",
+    "rel_upside": 112.0,
+    "confidence": "high",
+    "momentum": 0.21,
+    "ret_6m_pct": 28.9
+   },
+   {
+    "symbol": "T",
+    "sector": "Communication Services",
+    "rel_upside": 109.8,
+    "confidence": "low",
+    "momentum": 1.06,
+    "ret_6m_pct": -15.8
+   },
+   {
+    "symbol": "SJM",
+    "sector": "Consumer Staples",
+    "rel_upside": 107.9,
+    "confidence": "low",
+    "momentum": -0.6,
+    "ret_6m_pct": 23.3
+   },
+   {
+    "symbol": "INTU",
+    "sector": "Information Technology",
+    "rel_upside": 106.9,
+    "confidence": "medium",
+    "momentum": -0.89,
+    "ret_6m_pct": -36.2
+   },
+   {
+    "symbol": "UDR",
+    "sector": "Real Estate",
+    "rel_upside": 105.8,
+    "confidence": "low",
+    "momentum": -0.36,
+    "ret_6m_pct": -0.7
+   },
+   {
+    "symbol": "PGR",
+    "sector": "Financials",
+    "rel_upside": 103.6,
+    "confidence": "high",
+    "momentum": -0.66,
+    "ret_6m_pct": 4.6
+   },
+   {
+    "symbol": "PTC",
+    "sector": "Information Technology",
+    "rel_upside": 100.3,
+    "confidence": "high",
+    "momentum": -0.58,
+    "ret_6m_pct": -1.5
+   },
+   {
+    "symbol": "IT",
+    "sector": "Information Technology",
+    "rel_upside": 100.0,
+    "confidence": "high",
+    "momentum": -0.95,
+    "ret_6m_pct": 17.8
+   },
+   {
+    "symbol": "VICI",
+    "sector": "Real Estate",
+    "rel_upside": 94.9,
+    "confidence": "low",
+    "momentum": -0.38,
+    "ret_6m_pct": -15.9
+   },
+   {
+    "symbol": "CCL",
+    "sector": "Consumer Discretionary",
+    "rel_upside": 89.9,
+    "confidence": "low",
+    "momentum": -0.54,
+    "ret_6m_pct": -5.2
+   },
+   {
+    "symbol": "FOXA",
+    "sector": "Communication Services",
+    "rel_upside": 86.1,
+    "confidence": "low",
+    "momentum": -0.21,
+    "ret_6m_pct": 7.3
+   }
+  ],
+  "combo": [
+   {
+    "symbol": "VTRS",
+    "sector": "Health Care",
+    "rel_upside": 147.8,
+    "confidence": "low",
+    "momentum": 1.16,
+    "ret_6m_pct": 31.2
+   },
+   {
+    "symbol": "CF",
+    "sector": "Materials",
+    "rel_upside": 66.0,
+    "confidence": "low",
+    "momentum": 1.75,
+    "ret_6m_pct": -11.3
+   },
+   {
+    "symbol": "T",
+    "sector": "Communication Services",
+    "rel_upside": 109.8,
+    "confidence": "low",
+    "momentum": 1.06,
+    "ret_6m_pct": -15.8
+   },
+   {
+    "symbol": "VZ",
+    "sector": "Communication Services",
+    "rel_upside": 63.5,
+    "confidence": "low",
+    "momentum": 1.52,
+    "ret_6m_pct": -8.6
+   },
+   {
+    "symbol": "HST",
+    "sector": "Real Estate",
+    "rel_upside": 83.5,
+    "confidence": "low",
+    "momentum": 0.9,
+    "ret_6m_pct": 16.9
+   },
+   {
+    "symbol": "ADM",
+    "sector": "Consumer Staples",
+    "rel_upside": 46.5,
+    "confidence": "low",
+    "momentum": 1.26,
+    "ret_6m_pct": 9.2
+   },
+   {
+    "symbol": "DVA",
+    "sector": "Health Care",
+    "rel_upside": 38.0,
+    "confidence": "low",
+    "momentum": 1.52,
+    "ret_6m_pct": 13.8
+   },
+   {
+    "symbol": "HAS",
+    "sector": "Consumer Discretionary",
+    "rel_upside": 33.2,
+    "confidence": "low",
+    "momentum": 1.76,
+    "ret_6m_pct": -6.3
+   },
+   {
+    "symbol": "KIM",
+    "sector": "Real Estate",
+    "rel_upside": 86.0,
+    "confidence": "low",
+    "momentum": 0.71,
+    "ret_6m_pct": -1.2
+   },
+   {
+    "symbol": "ALL",
+    "sector": "Financials",
+    "rel_upside": 112.9,
+    "confidence": "low",
+    "momentum": 0.57,
+    "ret_6m_pct": 7.0
+   },
+   {
+    "symbol": "MTB",
+    "sector": "Financials",
+    "rel_upside": 40.3,
+    "confidence": "medium",
+    "momentum": 1.01,
+    "ret_6m_pct": 5.3
+   },
+   {
+    "symbol": "CB",
+    "sector": "Financials",
+    "rel_upside": 29.4,
+    "confidence": "medium",
+    "momentum": 1.49,
+    "ret_6m_pct": -0.2
+   },
+   {
+    "symbol": "KEY",
+    "sector": "Financials",
+    "rel_upside": 40.8,
+    "confidence": "low",
+    "momentum": 0.82,
+    "ret_6m_pct": 0.1
+   },
+   {
+    "symbol": "MGM",
+    "sector": "Consumer Discretionary",
+    "rel_upside": 49.4,
+    "confidence": "low",
+    "momentum": 0.7,
+    "ret_6m_pct": -16.1
+   },
+   {
+    "symbol": "USB",
+    "sector": "Financials",
+    "rel_upside": 36.5,
+    "confidence": "medium",
+    "momentum": 0.85,
+    "ret_6m_pct": 11.1
+   },
+   {
+    "symbol": "GILD",
+    "sector": "Health Care",
+    "rel_upside": 24.8,
+    "confidence": "high",
+    "momentum": 1.08,
+    "ret_6m_pct": 6.9
+   },
+   {
+    "symbol": "TGT",
+    "sector": "Consumer Staples",
+    "rel_upside": 17.6,
+    "confidence": "medium",
+    "momentum": 1.56,
+    "ret_6m_pct": 29.3
+   },
+   {
+    "symbol": "CMCSA",
+    "sector": "Communication Services",
+    "rel_upside": 121.7,
+    "confidence": "low",
+    "momentum": 0.22,
+    "ret_6m_pct": -24.2
+   },
+   {
+    "symbol": "INCY",
+    "sector": "Health Care",
+    "rel_upside": 112.0,
+    "confidence": "high",
+    "momentum": 0.21,
+    "ret_6m_pct": 28.9
+   },
+   {
+    "symbol": "DELL",
+    "sector": "Information Technology",
+    "rel_upside": 44.1,
+    "confidence": "low",
+    "momentum": 0.5,
+    "ret_6m_pct": 227.8
+   }
+  ],
+  "value_rising": [
+   {
+    "symbol": "VTRS",
+    "sector": "Health Care",
+    "rel_upside": 147.8,
+    "confidence": "low",
+    "momentum": 1.16,
+    "ret_6m_pct": 31.2
+   },
+   {
+    "symbol": "CMCSA",
+    "sector": "Communication Services",
+    "rel_upside": 121.7,
+    "confidence": "low",
+    "momentum": 0.22,
+    "ret_6m_pct": -24.2
+   },
+   {
+    "symbol": "ALL",
+    "sector": "Financials",
+    "rel_upside": 112.9,
+    "confidence": "low",
+    "momentum": 0.57,
+    "ret_6m_pct": 7.0
+   },
+   {
+    "symbol": "INCY",
+    "sector": "Health Care",
+    "rel_upside": 112.0,
+    "confidence": "high",
+    "momentum": 0.21,
+    "ret_6m_pct": 28.9
+   },
+   {
+    "symbol": "T",
+    "sector": "Communication Services",
+    "rel_upside": 109.8,
+    "confidence": "low",
+    "momentum": 1.06,
+    "ret_6m_pct": -15.8
+   },
+   {
+    "symbol": "KIM",
+    "sector": "Real Estate",
+    "rel_upside": 86.0,
+    "confidence": "low",
+    "momentum": 0.71,
+    "ret_6m_pct": -1.2
+   },
+   {
+    "symbol": "HST",
+    "sector": "Real Estate",
+    "rel_upside": 83.5,
+    "confidence": "low",
+    "momentum": 0.9,
+    "ret_6m_pct": 16.9
+   },
+   {
+    "symbol": "EG",
+    "sector": "Financials",
+    "rel_upside": 73.5,
+    "confidence": "low",
+    "momentum": 0.28,
+    "ret_6m_pct": 11.7
+   },
+   {
+    "symbol": "DAL",
+    "sector": "Industrials",
+    "rel_upside": 67.8,
+    "confidence": "low",
+    "momentum": 0.09,
+    "ret_6m_pct": 25.5
+   },
+   {
+    "symbol": "CF",
+    "sector": "Materials",
+    "rel_upside": 66.0,
+    "confidence": "low",
+    "momentum": 1.75,
+    "ret_6m_pct": -11.3
+   },
+   {
+    "symbol": "VZ",
+    "sector": "Communication Services",
+    "rel_upside": 63.5,
+    "confidence": "low",
+    "momentum": 1.52,
+    "ret_6m_pct": -8.6
+   },
+   {
+    "symbol": "FFIV",
+    "sector": "Information Technology",
+    "rel_upside": 59.3,
+    "confidence": "medium",
+    "momentum": 0.05,
+    "ret_6m_pct": 53.9
+   },
+   {
+    "symbol": "GL",
+    "sector": "Financials",
+    "rel_upside": 58.3,
+    "confidence": "medium",
+    "momentum": 0.59,
+    "ret_6m_pct": 19.0
+   },
+   {
+    "symbol": "MGM",
+    "sector": "Consumer Discretionary",
+    "rel_upside": 49.4,
+    "confidence": "low",
+    "momentum": 0.7,
+    "ret_6m_pct": -16.1
+   },
+   {
+    "symbol": "HCA",
+    "sector": "Health Care",
+    "rel_upside": 48.8,
+    "confidence": "low",
+    "momentum": 0.4,
+    "ret_6m_pct": -9.8
+   },
+   {
+    "symbol": "TMUS",
+    "sector": "Communication Services",
+    "rel_upside": 47.9,
+    "confidence": "low",
+    "momentum": 0.34,
+    "ret_6m_pct": -22.4
+   },
+   {
+    "symbol": "ADM",
+    "sector": "Consumer Staples",
+    "rel_upside": 46.5,
+    "confidence": "low",
+    "momentum": 1.26,
+    "ret_6m_pct": 9.2
+   },
+   {
+    "symbol": "AIZ",
+    "sector": "Financials",
+    "rel_upside": 46.2,
+    "confidence": "medium",
+    "momentum": 0.24,
+    "ret_6m_pct": 21.0
+   },
+   {
+    "symbol": "ON",
+    "sector": "Information Technology",
+    "rel_upside": 45.4,
+    "confidence": "low",
+    "momentum": 0.32,
+    "ret_6m_pct": 24.1
+   },
+   {
+    "symbol": "DELL",
+    "sector": "Information Technology",
+    "rel_upside": 44.1,
+    "confidence": "low",
+    "momentum": 0.5,
+    "ret_6m_pct": 227.8
+   }
+  ]
+ },
+ "spy_6m_pct_2026_03": 17.3
+}
