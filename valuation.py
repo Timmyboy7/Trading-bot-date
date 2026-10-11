@@ -90,6 +90,7 @@ import json
 import math
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FuturesTimeout
 
 import yfinance as yf
 from flask import Blueprint, jsonify, request
@@ -123,6 +124,41 @@ MAX_CONCURRENT_SYMBOLS = 5
 # peg_ratio are not derivable and stay null.
 INFO_BLOCK_COOLDOWN_SEC = 600
 _info_blocked_until = 0.0
+
+# 2026-10-11: Yahoo now blocks Render's IP for EVERYTHING (snapshot AND
+# statements AND prices). Calls then hang/retry for seconds each, a 20-symbol
+# /valuation took 60-70s, Make retried, and the single gunicorn worker jammed
+# (even GET / stopped answering). Fail-fast: once a symbol gets nothing at
+# all from Yahoo while the snapshot is blocked, every Yahoo call is skipped
+# for YAHOO_DEAD_COOLDOWN_SEC and symbols return immediately with an error.
+# On top, the whole request has a hard budget (REQUEST_BUDGET_SEC) so it
+# always answers before Render's ~40s proxy limit.
+YAHOO_DEAD_COOLDOWN_SEC = 1800
+REQUEST_BUDGET_SEC = 25
+_yahoo_dead_until = 0.0
+_BLOCK_MARKERS = ("blocked by yahoo", "401", "unauthorized", "crumb", "unable to access", "429", "too many requests", "rate limit")
+
+
+def _looks_blocked(msg):
+    low = (msg or "").lower()
+    return any(m in low for m in _BLOCK_MARKERS)
+
+
+def _mark_yahoo_dead():
+    global _yahoo_dead_until, _info_blocked_until
+    _yahoo_dead_until = time.time() + YAHOO_DEAD_COOLDOWN_SEC
+    _info_blocked_until = max(_info_blocked_until, _yahoo_dead_until)
+
+
+def _yahoo_dead():
+    return time.time() < _yahoo_dead_until
+
+
+def _empty_result(reason):
+    result = {k: None for k in FIELDS}
+    result.update({k: "n/a" for k in TREND_FIELDS})
+    result["trend_error"] = reason
+    return result
 
 FIELDS = (
     "pe_ratio",
@@ -182,7 +218,7 @@ def fetch_fundamentals(symbol, retries=SNAPSHOT_RETRIES):
             last_err = str(e)
             info = None
             low = last_err.lower()
-            if "401" in low or "unauthorized" in low or "crumb" in low or "unable to access" in low:
+            if _looks_blocked(low):
                 _info_blocked_until = time.time() + INFO_BLOCK_COOLDOWN_SEC
                 return None, last_err
         else:
@@ -267,6 +303,8 @@ def fetch_trend(symbol, quarters=TREND_QUARTERS, ctx=None):
         fin = t.quarterly_financials
         cf = t.quarterly_cashflow
     except Exception as e:
+        if _looks_blocked(str(e)):
+            _mark_yahoo_dead()
         return None, str(e)
     if ctx is not None:  # share the already-fetched statements with fetch_derived
         ctx.update({"ticker": t, "fin": fin, "cf": cf})
@@ -478,6 +516,9 @@ def _fetch_one(sym):
     symbol instead of per request batch to Alpaca.
     """
     sym_errors = []
+    if _yahoo_dead():
+        reason = "Yahoo blocked (cool-down) - fundamentals unavailable"
+        return sym, _empty_result(reason), [f"{sym}: {reason}"]
     try:
         data, err = fetch_fundamentals(sym)
         ctx = {}
@@ -493,6 +534,11 @@ def _fetch_one(sym):
             else:
                 result = {k: None for k in FIELDS}
                 sym_errors.append(f"{sym}: {err}; derived: {derr}")
+
+        # nothing at all from Yahoo while the snapshot is blocked -> Yahoo is
+        # blocking this IP completely; stop calling it for everyone.
+        if not data and not trend and _looks_blocked(err) and "derived" not in result.get("snapshot_source", ""):
+            _mark_yahoo_dead()
 
         if trend:
             result.update(trend)
@@ -522,12 +568,22 @@ def valuation():
     # Concurrent, not sequential — see MAX_CONCURRENT_SYMBOLS note above for
     # why: Render's platform proxy times this whole request out at ~40s,
     # which a 30+ symbol sequential loop cannot finish inside of.
-    with ThreadPoolExecutor(max_workers=MAX_CONCURRENT_SYMBOLS) as pool:
-        futures = {pool.submit(_fetch_one, sym): sym for sym in symbols}
-        for future in as_completed(futures):
+    pool = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_SYMBOLS)
+    futures = {pool.submit(_fetch_one, sym): sym for sym in symbols}
+    try:
+        for future in as_completed(futures, timeout=REQUEST_BUDGET_SEC):
             sym, result, sym_errors = future.result()
             fundamentals[sym] = result
             errors.extend(sym_errors)
+    except FuturesTimeout:
+        for sym in symbols:
+            if sym not in fundamentals:
+                reason = f"skipped - request time budget ({REQUEST_BUDGET_SEC}s) used up"
+                fundamentals[sym] = _empty_result(reason)
+                errors.append(f"{sym}: {reason}")
+    finally:
+        # don't wait for stragglers: answer now, queued symbols are cancelled
+        pool.shutdown(wait=False, cancel_futures=True)
 
     return jsonify(
         {
