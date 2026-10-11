@@ -13,9 +13,9 @@ Data
     operating cash flow, capex, and shares outstanding from each 10-K cover.
   - Alpaca monthly bars, RAW (not split-adjusted), ~7 years: the price on each
     10-K cover date, so historical market caps are correct across splits.
-  - Optional: this week's facts from /base-score (price, TTM P/E, FCF yield,
-    revenue growth), which give trailing-12-month values instead of the last
-    fiscal year.
+  - Trailing 12 months are computed from the latest 10-Q (last fiscal year +
+    year-to-date - same period a year earlier). This week's facts from
+    /base-score (TTM P/E, FCF yield, revenue growth) take precedence when given.
   Analyst consensus is NOT used: Yahoo blocks that endpoint from Render
   (see valuation.py, 2026-10-07).
 
@@ -48,7 +48,7 @@ Result per symbol
   flags           e.g. cyclical_normalised, earnings_above_5y_avg, outlier_dropped
 
 Endpoint
-  GET  /fair-value?symbols=AAA,BBB   (quick check in a browser)
+  GET  /fair-value?symbols=AAA,BBB   (quick check in a browser; add &debug=1 to see the raw filing figures)
   POST /fair-value
   Body: {"base": "<base_json from /base-score>"}       (weekly pipeline), or
         {"symbols": "AAA,BBB", "sectors": {"AAA": "Energy"}}   (ad hoc / daily)
@@ -141,29 +141,61 @@ def _clamp(x, lo, hi):
 
 # --------------------------------------------------------------------------- EDGAR parsing (pure)
 
-def annual_by_report(facts, concepts, unit="USD"):
-    """[(period_end, value, accn)] — one value per 10-K: the full fiscal year that report is about."""
-    gaap = (facts.get("facts") or {}).get("us-gaap") or {}
-    for c in concepts:
-        rows = ((gaap.get(c) or {}).get("units") or {}).get(unit) or []
+def _rows(facts, concept, unit="USD"):
+    return ((((facts.get("facts") or {}).get("us-gaap") or {}).get(concept) or {}).get("units") or {}).get(unit) or []
+
+
+def _days(r):
+    return (_date(r["end"]) - _date(r["start"])).days
+
+
+def annual_by_report(facts, concepts, unit="USD", used=None):
+    """[(period_end, value, accn)] - one value per 10-K: the full fiscal year that report is about.
+    Merged across the alternative concept names (companies switch XBRL tags over the years);
+    earlier names in `concepts` win for the same period. `used` (a set) collects the names found."""
+    merged = {}
+    for c in reversed(concepts):            # later names first, so earlier names overwrite them
         best = {}
-        for r in rows:
+        for r in _rows(facts, c, unit):
             if not str(r.get("form", "")).startswith("10-K") or not r.get("start") or not r.get("end"):
                 continue
-            days = (_date(r["end"]) - _date(r["start"])).days
-            if not 330 <= days <= 400:
+            if not 330 <= _days(r) <= 400:
                 continue
             accn = r.get("accn")
             if accn not in best or r["end"] > best[accn]["end"]:
                 best[accn] = r
-        if best:
-            out = sorted(((_date(r["end"]), float(r["val"]), a) for a, r in best.items()), key=lambda t: t[0])
-            # a restated year can appear in several reports: keep the latest report per period end
-            dedup = {}
-            for end, val, accn in out:
-                dedup[end] = (end, val, accn)
-            return [dedup[k] for k in sorted(dedup)]
-    return []
+        if best and used is not None:
+            used.add(c)
+        # a restated year can appear in several reports: the latest report per period end wins
+        for a, r in sorted(best.items(), key=lambda kv: kv[1].get("filed", "")):
+            merged[_date(r["end"])] = (_date(r["end"]), float(r["val"]), a)
+    return [merged[k] for k in sorted(merged)]
+
+
+def trailing_12m(facts, concepts, annual):
+    """(ttm_value, ytd_growth, as_of) from the latest 10-Q: last fiscal year + year-to-date - same period a year
+    earlier (both YTD figures are in the same 10-Q). Falls back to the last fiscal year when the latest report
+    is a 10-K or the quarter data does not line up."""
+    fy_end, fy_val = (annual[-1][0], annual[-1][1]) if annual else (None, None)
+    for c in concepts:
+        q = [r for r in _rows(facts, c) if str(r.get("form", "")).startswith("10-Q") and r.get("start") and r.get("end")]
+        if not q:
+            continue
+        latest_accn = max(q, key=lambda r: (r["end"], r.get("filed", "")))["accn"]
+        rows = [r for r in q if r["accn"] == latest_accn and 80 <= _days(r) <= 300]
+        if not rows:
+            continue
+        ytd = max(rows, key=lambda r: (r["end"], _days(r)))
+        if fy_end is not None and (_date(ytd["end"]) <= fy_end or abs((_date(ytd["start"]) - fy_end).days - 1) > 10):
+            continue
+        target = _date(ytd["end"]) - datetime.timedelta(days=365)
+        prior = [r for r in rows if abs((_date(r["end"]) - target).days) <= 10 and abs(_days(r) - _days(ytd)) <= 10]
+        if not prior:
+            continue
+        cur, prev = float(ytd["val"]), float(prior[0]["val"])
+        growth = (cur / prev - 1) if prev > 0 else None
+        return (fy_val + cur - prev if fy_val is not None else None), growth, ytd["end"]
+    return fy_val, None, (fy_end.isoformat() if fy_end else None)
 
 
 def cover_shares(facts):
@@ -205,11 +237,21 @@ def balance_sheet_shares(facts):
 
 def extract(facts):
     """Everything the methods need from one companyfacts document."""
-    ni = annual_by_report(facts, NI_CONCEPTS)
-    ocf = {e: v for e, v, _ in annual_by_report(facts, OCF_CONCEPTS)}
-    capex = {e: v for e, v, _ in annual_by_report(facts, CAPEX_CONCEPTS)}
+    used = set()
+    ni = annual_by_report(facts, NI_CONCEPTS, used=used)
+    ocf_a = annual_by_report(facts, OCF_CONCEPTS, used=used)
+    capex_a = annual_by_report(facts, CAPEX_CONCEPTS, used=used)
+    rev_a = annual_by_report(facts, REVENUE_CONCEPTS, used=used)
+    ocf = {e: v for e, v, _ in ocf_a}
+    capex = {e: v for e, v, _ in capex_a}
     fcf = [(e, ocf[e] - capex.get(e, 0.0)) for e in sorted(ocf) if e in capex]
-    revenue = [(e, v) for e, v, _ in annual_by_report(facts, REVENUE_CONCEPTS)]
+    revenue = [(e, v) for e, v, _ in rev_a]
+
+    ni_ttm, _, ttm_as_of = trailing_12m(facts, NI_CONCEPTS, ni)
+    ocf_ttm, _, _ = trailing_12m(facts, OCF_CONCEPTS, ocf_a)
+    capex_ttm, _, _ = trailing_12m(facts, CAPEX_CONCEPTS, capex_a)
+    rev_ttm, rev_ytd_growth, _ = trailing_12m(facts, REVENUE_CONCEPTS, rev_a)
+    fcf_ttm = (ocf_ttm - capex_ttm) if ocf_ttm is not None and capex_ttm is not None else None
     covers, diluted, balance = cover_shares(facts), diluted_shares(facts), balance_sheet_shares(facts)
     ni_by_accn = {a: (e, v) for e, v, a in ni}
 
@@ -230,6 +272,8 @@ def extract(facts):
         "net_income": [(e, v) for e, v, _ in ni],
         "fcf": fcf,
         "revenue": revenue,
+        "ni_ttm": ni_ttm, "fcf_ttm": fcf_ttm, "rev_ttm": rev_ttm, "rev_ytd_growth": rev_ytd_growth,
+        "ttm_as_of": ttm_as_of, "concepts_found": sorted(used),
         "shares_now": now_shares,
         "shares_date": now_date,
         "pe_history": history,
@@ -281,16 +325,29 @@ def value_symbol(sym, sector, ex, price, monthly_raw, ttm_pe=None, fcf_yield=Non
         return {"symbol": sym, "sector": sector, "status": "no_data",
                 "error": "no price" if not price else "no share count in SEC filings"}
     rev = ex.get("revenue") or []
-    if rev_growth is None and len(rev) >= 2 and rev[-2][1] > 0:
-        rev_growth = rev[-1][1] / rev[-2][1] - 1      # last fiscal year, when this week's figure is not given
-        flags.append("revenue_growth_from_filings")
+    if rev_growth is None and ex.get("rev_ytd_growth") is not None:
+        rev_growth = ex["rev_ytd_growth"]               # this year to date vs same period last year (10-Q)
+        flags.append("revenue_growth_ytd_from_filings")
+    elif rev_growth is None and len(rev) >= 2 and rev[-2][1] > 0:
+        rev_growth = rev[-1][1] / rev[-2][1] - 1      # last fiscal year
+        flags.append("revenue_growth_fy_from_filings")
     mcap = price * shares
     fair_pe, fair_yield = SECTOR_FAIR.get(sector, DEFAULT_FAIR)
     ni_series, fcf_series = ex["net_income"], ex["fcf"]
 
-    # trailing values: this week's facts if given, else the last fiscal year
-    ni_ttm = mcap / ttm_pe if ttm_pe and ttm_pe > 0 else (ni_series[-1][1] if ni_series else None)
-    fcf_ttm = mcap * fcf_yield if fcf_yield is not None else (fcf_series[-1][1] if fcf_series else None)
+    # trailing 12 months: this week's facts if given, else computed from the 10-Q filings, else last fiscal year
+    if ttm_pe and ttm_pe > 0:
+        ni_ttm = mcap / ttm_pe
+    else:
+        ni_ttm = ex.get("ni_ttm") if ex.get("ni_ttm") is not None else (ni_series[-1][1] if ni_series else None)
+    if fcf_yield is not None:
+        fcf_ttm = mcap * fcf_yield
+    else:
+        fcf_ttm = ex.get("fcf_ttm") if ex.get("fcf_ttm") is not None else (fcf_series[-1][1] if fcf_series else None)
+    if not ni_series and not fcf_series and ni_ttm is None:
+        return {"symbol": sym, "sector": sector, "price": round(price, 2), "status": "no_data",
+                "error": "no profit or cash-flow data found under the expected XBRL names",
+                "concepts_found": ex.get("concepts_found")}
 
     def basis(ttm, series, label):
         """Trailing value; for cyclicals blended 50/50 with the median of the PROFITABLE years among the
@@ -354,6 +411,7 @@ def value_symbol(sym, sector, ex, price, monthly_raw, ttm_pe=None, fcf_yield=Non
         "confidence": conf, "spread_pct": round(spread * 100) if spread is not None else None,
         "methods": {k: round(v, 2) for k, v in methods.items()},
         "growth_used_pct": round(g * 100, 1), "growth_adj": round(g_adj, 2),
+        "ttm_as_of": ex.get("ttm_as_of"),
         "flags": flags,
     }
 
@@ -415,7 +473,22 @@ def _sector_map():
         return {}
 
 
-def compute(items, budget=None):
+def _debug_view(ex):
+    def tail(series, n=6):
+        return [[str(e), round(v / 1e6, 1)] for e, v in series[-n:]]
+    return {
+        "concepts_found": ex.get("concepts_found"), "shares_source": ex.get("shares_source"),
+        "shares_now_m": round(ex["shares_now"] / 1e6, 1) if ex.get("shares_now") else None,
+        "net_income_fy_musd": tail(ex.get("net_income", [])), "fcf_fy_musd": tail(ex.get("fcf", [])),
+        "revenue_fy_musd": tail(ex.get("revenue", [])),
+        "ni_ttm_musd": round(ex["ni_ttm"] / 1e6, 1) if ex.get("ni_ttm") is not None else None,
+        "fcf_ttm_musd": round(ex["fcf_ttm"] / 1e6, 1) if ex.get("fcf_ttm") is not None else None,
+        "rev_ytd_growth": ex.get("rev_ytd_growth"), "ttm_as_of": ex.get("ttm_as_of"),
+        "pe_history_points": len(ex.get("pe_history", [])),
+    }
+
+
+def compute(items, budget=None, debug=False):
     """items: [{symbol, sector?, price?, pe?, fcf_yield?, rev_growth?}]"""
     budget = BUDGET_SEC if budget is None else budget
     t0 = time.time()
@@ -467,9 +540,12 @@ def compute(items, budget=None):
         m = monthly.get(s, [])
         price = _f(i.get("price")) or (m[-1][1] if m else None)
         try:
-            results.append(value_symbol(s, sector, facts[s], price, m,
-                                        ttm_pe=_f(i.get("pe")), fcf_yield=_f(i.get("fcf_yield")),
-                                        rev_growth=_f(i.get("rev_growth"))))
+            res = value_symbol(s, sector, facts[s], price, m,
+                               ttm_pe=_f(i.get("pe")), fcf_yield=_f(i.get("fcf_yield")),
+                               rev_growth=_f(i.get("rev_growth")))
+            if debug:
+                res["debug"] = _debug_view(facts[s])
+            results.append(res)
         except Exception as e:
             errors.append(f"{s}: valuation failed ({str(e)[:120]})")
 
@@ -525,4 +601,4 @@ def fair_value():
         return jsonify({"error": "no symbols given (send base or symbols)"}), 400
     if len(items) > 60:
         return jsonify({"error": f"{len(items)} symbols - max 60 per call"}), 400
-    return jsonify(compute(items))
+    return jsonify(compute(items, debug=str(body.get("debug", "")).lower() in ("1", "true", "yes")))
