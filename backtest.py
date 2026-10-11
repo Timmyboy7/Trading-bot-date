@@ -25,13 +25,23 @@ Baskets per date (20 names, max 5 per sector, equal weight):
 Plus the information coefficient (rank correlation of each signal with the next
 6-month return across ALL names) per date.
 
-Known biases: today's constituent list (survivorship), price-only returns (no
-dividends, also for SPY), overlapping 6-month windows (statistics look more
-certain than they are), no costs or taxes.
+Round 2 (2026-10-11): point-in-time S&P 500 membership (research/sp500_membership_monthly.csv,
+from the fja05680/sp500 dataset) - a stock is only eligible while it was in the index,
+which removes most of the survivorship bias of round 1. Extra baskets: momentum_guard
+(momentum without names >40% overvalued vs the others at high/medium confidence),
+momentum_12_1 (academic 12-month-minus-last-month momentum), momentum_nocap (no sector
+cap), equal_all_members (all members equal weight, the "dumb" benchmark). A per-stock
+panel (signals, volatility, forward returns) is kept for /backtest/export.csv.
+
+Remaining biases: former members without SEC/Alpaca data drop out, sector unknown for
+former members ("Unknown"), price-only returns (no dividends, also for SPY), overlapping
+6-month windows (statistics look more certain than they are), no costs or taxes.
 
 Endpoints (GET, so they can be opened in a browser):
   /backtest/start[?from=2021-01&to=2026-03]   starts the background job (~15-20 min)
   /backtest/status                            progress, and the results when done
+  /backtest/export.csv                        per-stock panel of the last finished run
+  ?membership=current on /backtest/start      round-1 behaviour (today's constituents)
 Results are also written to the app log, lines starting with BACKTEST_RESULT.
 """
 import datetime
@@ -227,7 +237,18 @@ def _keepalive(stop):
         stop.wait(240)
 
 
-def run(month_from, month_to):
+MEMBERSHIP_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "research", "sp500_membership_monthly.csv")
+GUARD_REL_UPSIDE = -40.0      # momentum_guard: drop names this overvalued vs the others (high/medium confidence)
+
+
+def load_membership():
+    """{"YYYY-MM": set(tickers)} point-in-time S&P 500 members at each month-end (fja05680/sp500 dataset)."""
+    import csv
+    with open(MEMBERSHIP_FILE, newline="") as f:
+        return {r["month"]: set(r["tickers"].split(",")) for r in csv.DictReader(f)}
+
+
+def run(month_from, month_to, pit=True):
     from screener import load_constituents
     from signals import _cik_for, _get
 
@@ -236,27 +257,37 @@ def run(month_from, month_to):
     try:
         t0 = time.time()
         sector_of = dict(load_constituents())
-        universe = sorted(sector_of)
         months = _months(month_from, month_to)
-        STATE.update(status="loading prices", universe=len(universe), months=len(months))
+        if pit:
+            membership = load_membership()
+            members_at = {m: membership.get(m, set()) for m in months}
+            universe = sorted(set().union(*members_at.values()))
+        else:
+            universe = sorted(sector_of)
+            members_at = {m: set(universe) for m in months}
+        for s in universe:
+            sector_of.setdefault(s, "Unknown")      # former members: sector not in today's list
+        STATE.update(status="loading prices", universe=len(universe), months=len(months), point_in_time=pit)
         adj = monthly_closes(universe + ["SPY"], "split")
         raw = monthly_closes(universe, "raw")
         raw_lists = {s: sorted((datetime.date.fromisoformat(m + "-01"), c) for m, c in d.items()) for s, d in raw.items()}
-        _log("PROGRESS", {"step": "prices", "adj": len(adj), "raw": len(raw), "sec": round(time.time() - t0)})
+        _log("PROGRESS", {"step": "prices", "universe": len(universe), "adj": len(adj), "raw": len(raw),
+                          "sec": round(time.time() - t0), "point_in_time": pit})
 
-        # fair value per (month, symbol): (upside_pct, confidence)
+        # fair value per (month, symbol): (upside_pct, confidence) - only while the stock is a member
         fvres = {m: {} for m in months}
         failed = []
         for i, s in enumerate(universe):
             STATE.update(status="fair value", done=i, of=len(universe), elapsed_min=round((time.time() - t0) / 60, 1))
+            member_months = [m for m in months if s in members_at[m]]
             try:
                 cik = _cik_for(s)
-                if not cik or s not in raw:
+                if not cik or s not in raw or not member_months:
                     failed.append(s)
                     continue
                 red = reduce_facts(_get(f"https://data.sec.gov/api/xbrl/companyfacts/CIK{int(cik):010d}.json", as_json=True))
                 gc.collect()
-                for m in months:
+                for m in member_months:
                     price = raw[s].get(m)
                     if not price:
                         continue
@@ -276,17 +307,27 @@ def run(month_from, month_to):
                 _log("PROGRESS", {"step": "fair value", "done": i, "of": len(universe), "min": round((time.time() - t0) / 60, 1)})
 
         STATE.update(status="computing")
-        per_date, detail = [], None
+        per_date, detail, panel = [], None, []
         for m in months:
             def ret(s, k):
                 a, b = adj.get(s, {}).get(m), adj.get(s, {}).get(_shift(m, k))
                 return (b / a - 1) if a and b else None
 
-            # momentum score: within-sector z-scores of the 3m and 6m returns up to T, 50/50 (screener logic)
-            mom, by_sec = {}, {}
-            for s in universe:
+            members = [s for s in members_at[m] if s in adj]
+
+            # momentum score: within-sector z-scores of the 3m and 6m returns up to T, 50/50 (screener logic),
+            # computed among the members at T only
+            mom, by_sec, r3m, r6m, r12_1, vol = {}, {}, {}, {}, {}, {}
+            for s in members:
                 r3, r6 = ret_back(adj, s, m, 3), ret_back(adj, s, m, 6)
+                a, b = adj[s].get(_shift(m, -12)), adj[s].get(_shift(m, -1))
+                r12_1[s] = (b / a - 1) if a and b else None
+                rets = [adj[s].get(_shift(m, -k)) for k in range(12, -1, -1)]
+                if all(rets):
+                    mr = [rets[j + 1] / rets[j] - 1 for j in range(12)]
+                    vol[s] = statistics.pstdev(mr) * math.sqrt(12)
                 if r3 is not None and r6 is not None:
+                    r3m[s], r6m[s] = r3, r6
                     by_sec.setdefault(sector_of[s], []).append((s, r3, r6))
             for sec, rows in by_sec.items():
                 if len(rows) < 3:
@@ -297,46 +338,66 @@ def run(month_from, month_to):
                     for r in rows:
                         mom[r[0]] = mom.get(r[0], 0.0) + 0.5 * (r[idx] - mu) / sd
 
-            vals = fvres[m]
+            vals = {s: v for s, v in fvres[m].items() if s in members_at[m]}
             med = statistics.median([u for u, _ in vals.values()]) if vals else 0.0
             rel = {s: u - med for s, (u, c) in vals.items()}
             conf_ok = {s for s, (u, c) in vals.items() if c in ("high", "medium")}
+            mom12 = {s: v for s, v in r12_1.items() if v is not None}
 
             mom_pct = dict(zip(mom, [x / max(len(mom) - 1, 1) for x in _ranks(list(mom.values()))])) if mom else {}
             val_pct = dict(zip(rel, [x / max(len(rel) - 1, 1) for x in _ranks(list(rel.values()))])) if rel else {}
+            overvalued = {s for s in rel if s in conf_ok and rel[s] < GUARD_REL_UPSIDE}
 
             baskets = {
                 "momentum": pick(list(mom), lambda s: mom[s], sector_of),
+                "momentum_guard": pick([s for s in mom if s not in overvalued], lambda s: mom[s], sector_of),
+                "momentum_12_1": pick(list(mom12), lambda s: mom12[s], sector_of),
+                "momentum_nocap": sorted(mom, key=lambda s: mom[s], reverse=True)[:BASKET_SIZE],
                 "value": pick([s for s in rel if s in conf_ok], lambda s: rel[s], sector_of),
                 "value_any": pick(list(rel), lambda s: rel[s], sector_of),
                 "combo": pick([s for s in rel if s in mom_pct], lambda s: (mom_pct[s] + val_pct[s]) / 2, sector_of),
                 "value_rising": pick([s for s in rel if mom.get(s, -1) > 0], lambda s: rel[s], sector_of),
+                "equal_all_members": members,
             }
-            row = {"month": m, "n_valued": len(vals), "n_mom": len(mom),
-                   "spy_3m": ret("SPY", 3), "spy_6m": ret("SPY", 6)}
+            row = {"month": m, "n_members": len(members_at[m]), "n_priced": len(members), "n_valued": len(vals),
+                   "n_mom": len(mom), "spy_3m": ret("SPY", 3), "spy_6m": ret("SPY", 6)}
             for name, b in baskets.items():
                 row[name + "_3m"] = _mean([ret(s, 3) for s in b])
                 row[name + "_6m"] = _mean([ret(s, 6) for s in b])
-            fwd6 = {s: ret(s, 6) for s in universe}
+            fwd6 = {s: ret(s, 6) for s in members}
             pv = [(rel[s], fwd6[s]) for s in rel if fwd6.get(s) is not None]
             pm = [(mom[s], fwd6[s]) for s in mom if fwd6.get(s) is not None]
+            p12 = [(mom12[s], fwd6[s]) for s in mom12 if fwd6.get(s) is not None]
             row["ic_value_6m"] = spearman([a for a, _ in pv], [b for _, b in pv])
             row["ic_mom_6m"] = spearman([a for a, _ in pm], [b for _, b in pm])
+            row["ic_mom12_6m"] = spearman([a for a, _ in p12], [b for _, b in p12])
             per_date.append(row)
+
+            # per-stock panel for later research (weighting, other baskets) - members only
+            for s in members:
+                u = vals.get(s)
+                panel.append([m, s, sector_of[s], _r(mom.get(s), 3), _r(r3m.get(s), 4), _r(r6m.get(s), 4),
+                              _r(r12_1.get(s), 4), _r(vol.get(s), 4), _r(rel.get(s), 1), _r(u[0] if u else None, 1),
+                              u[1] if u else "", _r(ret(s, 1), 4), _r(ret(s, 3), 4), _r(ret(s, 6), 4)])
+            panel.append([m, "SPY", "benchmark", "", "", "", "", "", "", "", "", _r(ret("SPY", 1), 4),
+                          _r(ret("SPY", 3), 4), _r(ret("SPY", 6), 4)])
+
             if m == month_to:
                 detail = {name: [{"symbol": s, "sector": sector_of[s],
                                   "rel_upside": round(rel[s], 1) if s in rel else None,
                                   "confidence": vals[s][1] if s in vals else None,
                                   "momentum": round(mom[s], 2) if s in mom else None,
                                   "ret_6m_pct": round(ret(s, 6) * 100, 1) if ret(s, 6) is not None else None}
-                                 for s in b] for name, b in baskets.items()}
+                                 for s in b] for name, b in baskets.items() if name != "equal_all_members"}
                 detail["spy_6m_pct"] = round(ret("SPY", 6) * 100, 1) if ret("SPY", 6) is not None else None
 
-        summary = summarise(per_date)
-        result = {"summary": summary, "per_date": per_date, "latest_baskets": detail,
-                  "failed_symbols": len(failed), "minutes": round((time.time() - t0) / 60, 1)}
-        STATE.update(status="done", result=result)
-        _log("RESULT", {"summary": summary, "failed": len(failed), "minutes": result["minutes"]})
+        names = [k[:-3] for k in per_date[0] if k.endswith("_6m") and not k.startswith(("spy", "ic_"))]
+        summary = summarise(per_date, names)
+        result = {"summary": summary, "per_date": per_date, "latest_baskets": detail, "point_in_time": pit,
+                  "universe": len(universe), "failed_symbols": len(failed), "minutes": round((time.time() - t0) / 60, 1)}
+        STATE.update(status="done", result=result, panel=panel)
+        _log("RESULT", {"summary": summary, "failed": len(failed), "universe": len(universe),
+                        "point_in_time": pit, "minutes": result["minutes"], "panel_rows": len(panel)})
         for name, rows in (detail or {}).items():
             _log("RESULT_BASKET", {"basket": name, "rows": rows})
         for row in per_date:
@@ -345,7 +406,17 @@ def run(month_from, month_to):
         STATE.update(status="error", error=str(e), trace=traceback.format_exc()[-1500:])
         _log("ERROR", {"error": str(e), "trace": traceback.format_exc()[-800:]})
     finally:
-        stop.set()
+        # keep the free Render instance awake for another hour so the results and the
+        # /backtest/export.csv panel can still be fetched before it sleeps and forgets them
+        threading.Timer(3600, stop.set).start()
+
+
+def _r(x, n):
+    return "" if x is None else round(x, n)
+
+
+PANEL_COLUMNS = ["month", "symbol", "sector", "momentum_score", "ret_3m_back", "ret_6m_back", "ret_12_1_back",
+                 "vol_12m", "rel_upside_pct", "upside_pct", "fv_confidence", "fwd_1m", "fwd_3m", "fwd_6m"]
 
 
 def ret_back(adj, s, m, k):
@@ -354,8 +425,8 @@ def ret_back(adj, s, m, k):
     return (b / a - 1) if a and b else None
 
 
-def summarise(per_date):
-    names = ["momentum", "value", "value_any", "combo", "value_rising"]
+def summarise(per_date, names=None):
+    names = names or ["momentum", "value", "value_any", "combo", "value_rising"]
     out = {}
     for h in ("3m", "6m"):
         block = {}
@@ -369,12 +440,12 @@ def summarise(per_date):
                 "t_stat_overlapping": round(_tstat(ex), 2) if _tstat(ex) is not None else None,
             }
         out[h] = block
-    ics_v = [r["ic_value_6m"] for r in per_date if r.get("ic_value_6m") is not None]
-    ics_m = [r["ic_mom_6m"] for r in per_date if r.get("ic_mom_6m") is not None]
-    out["ic_6m"] = {"value_mean": round(_mean(ics_v), 3) if ics_v else None,
-                    "value_positive_share": round(sum(1 for x in ics_v if x > 0) / len(ics_v), 2) if ics_v else None,
-                    "momentum_mean": round(_mean(ics_m), 3) if ics_m else None,
-                    "momentum_positive_share": round(sum(1 for x in ics_m if x > 0) / len(ics_m), 2) if ics_m else None}
+    out["ic_6m"] = {}
+    for key, label in (("ic_value_6m", "value"), ("ic_mom_6m", "momentum"), ("ic_mom12_6m", "momentum_12_1")):
+        xs = [r[key] for r in per_date if r.get(key) is not None]
+        if xs:
+            out["ic_6m"][label + "_mean"] = round(_mean(xs), 3)
+            out["ic_6m"][label + "_positive_share"] = round(sum(1 for x in xs if x > 0) / len(xs), 2)
     # by regime
     regimes = {"2021-2022": ("2021-01", "2022-12"), "2023-2024": ("2023-01", "2024-12"), "2025-2026": ("2025-01", "2026-12")}
     reg = {}
@@ -391,20 +462,39 @@ def summarise(per_date):
 def backtest_start():
     a = request.args.get("from", "2021-01")
     b = request.args.get("to", "2026-03")
+    pit = request.args.get("membership", "pit") != "current"
     with _LOCK:
         if STATE.get("status") not in ("idle", "done", "error"):
             return jsonify({"message": "already running", "state": {k: v for k, v in STATE.items() if k != "result"}})
         STATE.clear()
         STATE.update(status="starting", started=datetime.datetime.utcnow().isoformat(timespec="seconds"), range=[a, b])
-        threading.Thread(target=run, args=(a, b), daemon=True).start()
-    return jsonify({"message": "started - check /backtest/status in ~15-20 minutes", "range": [a, b]})
+        threading.Thread(target=run, args=(a, b, pit), daemon=True).start()
+    return jsonify({"message": "started - check /backtest/status in ~20-25 minutes", "range": [a, b],
+                    "membership": "point-in-time" if pit else "current constituents"})
 
 
 @backtest_bp.route("/backtest/status", methods=["GET"])
 def backtest_status():
     full = request.args.get("full") in ("1", "true")
-    st = {k: v for k, v in STATE.items() if k != "result"}
+    st = {k: v for k, v in STATE.items() if k not in ("result", "panel")}
     if STATE.get("status") == "done":
         res = STATE["result"]
         st["result"] = res if full else {k: v for k, v in res.items() if k != "per_date"}
     return jsonify(st)
+
+
+@backtest_bp.route("/backtest/export.csv", methods=["GET"])
+def backtest_export():
+    """Per-stock panel of the last finished run (one row per member and month) as CSV, for offline research."""
+    import csv
+    import io
+    from flask import Response
+    panel = STATE.get("panel")
+    if not panel:
+        return jsonify({"error": "no finished run in memory - start one with /backtest/start"}), 404
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(PANEL_COLUMNS)
+    w.writerows(panel)
+    return Response(buf.getvalue(), mimetype="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=backtest_panel.csv"})
