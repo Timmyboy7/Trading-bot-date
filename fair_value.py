@@ -197,11 +197,17 @@ def trailing_12m(facts, concepts, annual):
             continue
         target = _date(ytd["end"]) - datetime.timedelta(days=365)
         prior = [r for r in rows if abs((_date(r["end"]) - target).days) <= 10 and abs(_days(r) - _days(ytd)) <= 10]
-        if not prior:
+        if not prior and fy_val is not None:
             continue
+        if not prior:
+            prior = [{"val": 0}]   # growth unknown, value still usable for annualising
         cur, prev = float(ytd["val"]), float(prior[0]["val"])
         growth = (cur / prev - 1) if prev > 0 else None
-        return (fy_val + cur - prev if fy_val is not None else None), growth, ytd["end"]
+        if fy_val is None:
+            # no annual report under this registration (e.g. XOM after a reorganisation): annualise the
+            # year-to-date figure. Rough (ignores seasonality), so callers mark the result low confidence.
+            return cur * 365.0 / max(_days(ytd), 1), growth, ytd["end"] + " (annualised YTD)"
+        return fy_val + cur - prev, growth, ytd["end"]
     return fy_val, None, (fy_end.isoformat() if fy_end else None)
 
 
@@ -439,6 +445,9 @@ def value_symbol(sym, sector, ex, price, monthly_raw, ttm_pe=None, fcf_yield=Non
         return {"symbol": sym, "sector": sector, "price": round(price, 2), "status": "not_valuable",
                 "flags": flags, "methods": {k: round(v, 2) for k, v in methods.items()}, "error": why}
 
+    annualised = "annualised" in str(ex.get("ttm_as_of") or "")
+    if annualised:
+        flags.append("annualised_ytd_no_annual_reports")
     vals = sorted(kept.values())
     fv = statistics.median(vals)
     spread = (vals[-1] - vals[0]) / fv if len(vals) > 1 else None
@@ -449,6 +458,8 @@ def value_symbol(sym, sector, ex, price, monthly_raw, ttm_pe=None, fcf_yield=Non
     elif spread <= MEDIUM_SPREAD:
         conf = "medium"
     else:
+        conf = "low"
+    if annualised:
         conf = "low"
     return {
         "symbol": sym, "sector": sector, "price": round(price, 2), "status": "ok",
