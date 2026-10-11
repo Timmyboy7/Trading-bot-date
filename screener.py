@@ -246,7 +246,8 @@ def screen():
         return jsonify({"error": "ALPACA_API_KEY / ALPACA_API_SECRET not configured"}), 500
 
     top_n = int(request.args.get("top", 30))
-    # mode=mom12_1 (default since 2026-10-11): rank by 12-1 momentum across the whole index.
+    # mode=mom12_1 (default since 2026-10-11): rank by 12-1 momentum across the whole index
+    # (names with 6-12 months of history placed via 6-month momentum, max_young per list).
     # mode=classic: the original 3/6-month momentum + rebound blend, z-scored within sector.
     mode = request.args.get("mode", "mom12_1")
     max_per_sector = int(request.args.get("max_per_sector", 5 if mode == "mom12_1" else 8))
@@ -284,17 +285,30 @@ def screen():
             mom_weight * r["momentum_raw_z"] + rebound_weight * r["rebound_raw_z"], 3
         )
 
+    max_young = int(request.args.get("max_young", 2))
     if mode == "mom12_1":
-        # cross-sectional (not sector-relative) z-score of 12-1 momentum becomes the ranking score;
-        # names without a full year of history cannot be ranked and are left out
-        rows = [r for r in rows if r.get("ret_12_1") is not None]
-        if not rows:
+        # cross-sectional (not sector-relative) z-score of 12-1 momentum becomes the ranking score.
+        # "Young" names (6-12 months of history: new listings, spin-offs such as SNDK or GEV) have no
+        # 12-1 return; they are placed via their 6-month return percentile among established names and
+        # get the 12-1 score an established name at that percentile has. At most max_young (2) of them
+        # make the list, flagged young=true. Backtest: +5.8% vs +4.6% per 6 months, 17 picks in 63 months.
+        est = [r for r in rows if r.get("ret_12_1") is not None]
+        young = [r for r in rows if r.get("ret_12_1") is None and r.get("ret_6m") is not None]
+        if not est:
             return jsonify({"error": "no symbol has 12 months of history - check Alpaca bars"}), 502
-        vals = [r["ret_12_1"] for r in rows]
+        vals = [r["ret_12_1"] for r in est]
         mu = sum(vals) / len(vals)
         sd = math.sqrt(sum((v - mu) ** 2 for v in vals) / len(vals)) or 1.0
-        for r in rows:
+        for r in est:
             r["combined_score"] = round((r["ret_12_1"] - mu) / sd, 3)
+            r["young"] = False
+        z_sorted = sorted(r["combined_score"] for r in est)
+        r6_sorted = sorted(r["ret_6m"] for r in est if r.get("ret_6m") is not None)
+        for r in young:
+            pct = sum(1 for v in r6_sorted if v <= r["ret_6m"]) / len(r6_sorted) if r6_sorted else 0.0
+            r["combined_score"] = z_sorted[min(int(pct * (len(z_sorted) - 1)), len(z_sorted) - 1)]
+            r["young"] = True
+        rows = est + young
 
     rows.sort(key=lambda r: r["combined_score"], reverse=True)
 
@@ -302,10 +316,15 @@ def screen():
     # the final cut, so this doesn't turn into an all-tech list.
     picked = []
     per_sector_count = {}
+    young_count = 0
     for r in rows:
         c = per_sector_count.get(r["sector"], 0)
         if c >= max_per_sector:
             continue
+        if r.get("young"):
+            if young_count >= max_young:
+                continue
+            young_count += 1
         picked.append(r)
         per_sector_count[r["sector"]] = c + 1
         if len(picked) >= top_n:
@@ -321,6 +340,7 @@ def screen():
             "ret_3m": round(r["ret_3m"], 4),
             "ret_6m": round(r["ret_6m"], 4),
             "ret_12_1": round(r["ret_12_1"], 4) if r.get("ret_12_1") is not None else None,
+            "young": bool(r.get("young")),
             "drawdown_from_52w_high": round(r["drawdown_from_52w_high"], 4),
             "rsi14": round(r["rsi14"], 1),
         }
