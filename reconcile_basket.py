@@ -781,11 +781,15 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
 
     # --- step D: refill to BASKET_SIZE (cold start, stress exits, or earlier shortfalls)
     while len(final) < BASKET_SIZE:
-        ch = find_challenger(entry_bar=False)
+        # strict first (entry bar + macro/data-flag bars), only then any non-vetoed name
+        ch = find_challenger(entry_bar=True) if score_mode else None
+        relaxed = ch is None
+        if relaxed:
+            ch = find_challenger(entry_bar=False)
         if ch is None:
             break
         base, from_micro = ch
-        add_entry(base, describe(base, from_micro) + " (refill)")
+        add_entry(base, describe(base, from_micro) + (" (refill below the entry bar)" if relaxed and score_mode else " (refill)"))
     shortfall = max(BASKET_SIZE - len(final), 0)
 
     # --- step E: risk limits (needs /stress-test's scenario moves). Runs on the

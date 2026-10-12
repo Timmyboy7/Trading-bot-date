@@ -333,6 +333,8 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
         if s:
             prev[s] = _to_float(_get(r, "score"))
 
+    shadow = {}   # momentum mode: what the old base-score selection would have scored
+
     # collect each run's reading per symbol
     readings = {}
     for run_no, run in overlay_runs:
@@ -444,6 +446,7 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
             new = momentum_score(mom_rank, len(candidates))
             old = None
             blended = new
+            shadow[s] = min(max(base_score + overlay + adj, 1.0), 5.0)   # old selection, logged for comparison
             if base_score < QUALITY_FLOOR:
                 no_entry = True
                 flags.append("weak_fundamentals")
@@ -510,8 +513,21 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
         counts[r["sector"]] = counts.get(r["sector"], 0) + 1
         proposed.append(r)
 
+    # shadow basket: the old base-score selection (red flags and sector cap applied), so the
+    # Runs log can compare both ways of picking over the coming months
+    shadow_basket, sc_counts = [], {}
+    sec_of = {r["symbol"]: r["sector"] for r in ranking}
+    for sym in sorted(shadow, key=lambda x: -shadow[x]):
+        r = next(x for x in ranking if x["symbol"] == sym)
+        if len(shadow_basket) >= BASKET_SIZE:
+            break
+        if r["red_flag"] or sc_counts.get(sec_of[sym], 0) >= MAX_PER_SECTOR:
+            continue
+        sc_counts[sec_of[sym]] = sc_counts.get(sec_of[sym], 0) + 1
+        shadow_basket.append(sym)
     summary = {
         "mode": "overlay" if SELECT_MODE != "momentum" else "momentum",
+        "shadow_score_basket": shadow_basket,
         "no_entry": sorted(r["symbol"] for r in ranking if r.get("no_entry")),
         "scored_symbols": len(ranking),
         "proposed": len(proposed),
