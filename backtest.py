@@ -58,13 +58,15 @@ import requests
 from flask import Blueprint, jsonify, request
 
 import fair_value as fv
+import sec_fundamentals as secf
+import base_score as bscore
 
 backtest_bp = Blueprint("backtest", __name__)
 
 BASKET_SIZE = 20
 MAX_PER_SECTOR = 5
 KEEP = {"start", "end", "val", "form", "accn", "filed", "fp"}
-GAAP_NEEDED = set(fv.NI_CONCEPTS + fv.OCF_CONCEPTS + fv.CAPEX_CONCEPTS + fv.REVENUE_CONCEPTS + fv.OPINC_CONCEPTS
+GAAP_NEEDED = set(("RevenuesNetOfInterestExpense",) + fv.NI_CONCEPTS + fv.OCF_CONCEPTS + fv.CAPEX_CONCEPTS + fv.REVENUE_CONCEPTS + fv.OPINC_CONCEPTS
                   + ("WeightedAverageNumberOfDilutedSharesOutstanding", "CommonStockSharesOutstanding"))
 
 STATE = {"status": "idle"}
@@ -131,6 +133,90 @@ def monthly_closes(symbols, adjustment, start="2015-06-01"):
                 out.update(got)
                 break
     return out
+
+
+def daily_closes(symbol, start="2020-06-01"):
+    """[(YYYY-MM-DD, close)] split-adjusted daily closes for one symbol (SIP, IEX fallback)."""
+    from screener import DATA_BASE, HEADERS
+    for feed in ("sip", "iex"):
+        out, token = [], None
+        for _ in range(10):
+            params = {"symbols": symbol, "timeframe": "1Day", "start": start, "adjustment": "split",
+                      "feed": feed, "limit": 10000}
+            if token:
+                params["page_token"] = token
+            try:
+                r = requests.get(f"{DATA_BASE}/v2/stocks/bars", headers=HEADERS, params=params, timeout=30)
+            except requests.RequestException:
+                break
+            if r.status_code != 200:
+                break
+            data = r.json()
+            out += [(str(b["t"])[:10], float(b["c"])) for b in (data.get("bars") or {}).get(symbol, [])]
+            token = data.get("next_page_token")
+            if not token:
+                break
+        if out:
+            return sorted(out)
+    return []
+
+
+def earnings_reactions(filing_dates, daily, spy_daily, after=3):
+    """{filed: reaction} = stock return from the last close BEFORE the filing day to `after`
+    trading days later, minus SPY over the same days (the market's verdict on the report)."""
+    import bisect
+    days = [d for d, _ in daily]
+    px = dict(daily)
+    spy = dict(spy_daily)
+    out = {}
+    for f in filing_dates:
+        i = bisect.bisect_left(days, f) - 1
+        if i < 0 or i + after >= len(days):
+            continue
+        d0, d1 = days[i], days[i + after]
+        if d0 in spy and d1 in spy and px[d0] and spy[d0]:
+            out[f] = (px[d1] / px[d0] - 1) - (spy[d1] / spy[d0] - 1)
+    return out
+
+
+def early_metrics(pit_facts, cutoff, reactions):
+    """(rev_growth_yoy, rev_accel, earn_reaction, earn_age_days) known at `cutoff`.
+    rev_accel = YoY growth of the latest quarter minus YoY growth of the quarter before."""
+    q = secf.quarterly(pit_facts, secf.REVENUE_TAGS, n=12)
+    cut = datetime.date.fromisoformat(cutoff)
+    g0 = g1 = None
+    if q and (cut - q[-1][0]).days <= 200:
+        vals, ends = [v for _, v in q], [e for e, _ in q]
+        g0 = secf._yoy_dated(vals, ends)
+        if len(vals) > 1:
+            g1 = secf._yoy_dated(vals[:-1], ends[:-1])
+    accel = (g0 - g1) if g0 is not None and g1 is not None else None
+    past = [f for f in reactions if f < cutoff]
+    react = age = None
+    if past:
+        f = max(past)
+        age = (cut - datetime.date.fromisoformat(f)).days
+        if age <= 95:
+            react = reactions[f]
+    return g0, accel, react, age
+
+
+def base_score_at(sym, sector, pitf, cutoff, price, adj, m):
+    """The live base-score rubric (base_score.score_symbol) on point-in-time SEC data and
+    month-end prices: what the old selection would have scored at formation date m."""
+    summ, _ = secf.summarize(pitf, today=datetime.date.fromisoformat(cutoff))
+    f = secf.build(summ, price) if summ else {}
+    closes = [adj.get(_shift(m, -k)) for k in range(12, -1, -1)]
+    p = {"ret_3m": ret_back({sym: adj}, sym, m, 3), "ret_6m": ret_back({sym: adj}, sym, m, 6)}
+    known = [c for c in closes if c]
+    if closes[-1] and known:
+        p["drawdown_from_52w_high"] = closes[-1] / max(known) - 1
+    last7 = [c for c in closes[-7:] if c]
+    if len(last7) == 7:
+        mr = [last7[i + 1] / last7[i] - 1 for i in range(6)]
+        p["volatility_63d"] = statistics.pstdev(mr) * math.sqrt(12)   # monthly proxy for the daily 63-day vol
+    pillars, _, _ = bscore.score_symbol(sym, sector, f or {}, p)
+    return sum(bscore.WEIGHTS[k] * pillars[k] for k in bscore.WEIGHTS)
 
 
 def reduce_facts(facts):
@@ -248,7 +334,7 @@ def load_membership():
         return {r["month"]: set(r["tickers"].split(",")) for r in csv.DictReader(f)}
 
 
-def run(month_from, month_to, pit=True):
+def run(month_from, month_to, pit=True, early=False):
     from screener import load_constituents
     from signals import _cik_for, _get
 
@@ -276,6 +362,10 @@ def run(month_from, month_to, pit=True):
 
         # fair value per (month, symbol): (upside_pct, confidence) - only while the stock is a member
         fvres = {m: {} for m in months}
+        # early signals per (month, symbol): (rev_growth_yoy, rev_accel, earn_reaction, earn_age_days)
+        earlyres = {m: {} for m in months}
+        bsres = {m: {} for m in months}      # base score per (month, symbol) - old selection
+        spy_daily = daily_closes("SPY") if early else []
         failed = []
         for i, s in enumerate(universe):
             STATE.update(status="fair value", done=i, of=len(universe), elapsed_min=round((time.time() - t0) / 60, 1))
@@ -287,11 +377,25 @@ def run(month_from, month_to, pit=True):
                     continue
                 red = reduce_facts(_get(f"https://data.sec.gov/api/xbrl/companyfacts/CIK{int(cik):010d}.json", as_json=True))
                 gc.collect()
+                reactions = {}
+                if early:
+                    filed = sorted({r["filed"] for c in red["us-gaap"].values() for rows in c["units"].values()
+                                    for r in rows if str(r.get("form", "")).startswith(("10-Q", "10-K"))
+                                    and r["filed"] >= "2020-06-01"})
+                    reactions = earnings_reactions(filed, daily_closes(s), spy_daily)
                 for m in member_months:
+                    pitf = point_in_time(red, _month_start_after(m))
+                    if early:
+                        earlyres[m][s] = early_metrics(pitf, _month_start_after(m), reactions)
                     price = raw[s].get(m)
                     if not price:
                         continue
-                    ex = fv.extract(point_in_time(red, _month_start_after(m)))
+                    if early and s in adj:
+                        try:
+                            bsres[m][s] = base_score_at(s, sector_of[s], pitf, _month_start_after(m), price, adj[s], m)
+                        except Exception:
+                            pass
+                    ex = fv.extract(pitf)
                     if not ex.get("shares_now"):
                         continue
                     upto = [x for x in raw_lists[s] if x[0] <= datetime.date.fromisoformat(m + "-01")]
@@ -348,6 +452,17 @@ def run(month_from, month_to, pit=True):
             val_pct = dict(zip(rel, [x / max(len(rel) - 1, 1) for x in _ranks(list(rel.values()))])) if rel else {}
             overvalued = {s for s in rel if s in conf_ok and rel[s] < GUARD_REL_UPSIDE}
 
+            em = earlyres.get(m, {})
+            accel = {s: v[1] for s, v in em.items() if v[1] is not None and s in adj}
+            react = {s: v[2] for s, v in em.items() if v[2] is not None and s in adj}
+            mom_top = set(pick(list(mom12), lambda s: mom12[s], sector_of))
+
+            def early_slots(sig, n_early=4):
+                """16 momentum names + the n_early strongest early-signal names NOT already in the momentum top 20"""
+                core = pick(list(mom12), lambda s: mom12[s], sector_of, BASKET_SIZE - n_early)
+                extra = [s for s in sorted(sig, key=lambda s: sig[s], reverse=True) if s not in mom_top][:n_early]
+                return core + extra
+
             baskets = {
                 "momentum": pick(list(mom), lambda s: mom[s], sector_of),
                 "momentum_guard": pick([s for s in mom if s not in overvalued], lambda s: mom[s], sector_of),
@@ -359,11 +474,49 @@ def run(month_from, month_to, pit=True):
                 "value_rising": pick([s for s in rel if mom.get(s, -1) > 0], lambda s: rel[s], sector_of),
                 "equal_all_members": members,
             }
+            if early:
+                bs = {x: v for x, v in bsres.get(m, {}).items() if x in adj}
+
+                def screen35(score):
+                    out, per = [], {}
+                    for x in sorted(score, key=lambda x: score[x], reverse=True):
+                        if per.get(sector_of[x], 0) >= 6:
+                            continue
+                        out.append(x)
+                        per[sector_of[x]] = per.get(sector_of[x], 0) + 1
+                        if len(out) == 35:
+                            break
+                    return out
+                old35 = screen35(mom)        # old screener: 3m/6m within-sector z, top 35, <=6/sector
+                new35 = screen35(mom12)      # live screener since 2026-10-11: 12-1
+                vetoed = {x for x, v in bs.items() if v < 3.0}
+                baskets.update({
+                    # the three ways of picking 20, head to head
+                    "old_flow_basescore": pick([x for x in old35 if x in bs], lambda x: bs[x], sector_of),
+                    "hybrid_12_1_basescore": pick([x for x in new35 if x in bs], lambda x: bs[x], sector_of),
+                    "new_momentum_veto": pick([x for x in new35 if x not in vetoed], lambda x: mom12[x], sector_of),
+                    "rev_accel": pick(list(accel), lambda s: accel[s], sector_of),
+                    "rev_accel_growing": pick([s for s in accel if (em[s][0] or 0) > 0], lambda s: accel[s], sector_of),
+                    "earn_reaction": pick(list(react), lambda s: react[s], sector_of),
+                    "mom16_accel4": early_slots(accel),
+                    "mom16_react4": early_slots(react),
+                    "early_not_in_mom_accel": [s for s in sorted(accel, key=lambda s: accel[s], reverse=True)
+                                               if s not in mom_top][:20],
+                    "early_not_in_mom_react": [s for s in sorted(react, key=lambda s: react[s], reverse=True)
+                                               if s not in mom_top][:20],
+                })
             row = {"month": m, "n_members": len(members_at[m]), "n_priced": len(members), "n_valued": len(vals),
                    "n_mom": len(mom), "spy_3m": ret("SPY", 3), "spy_6m": ret("SPY", 6)}
             for name, b in baskets.items():
                 row[name + "_3m"] = _mean([ret(s, 3) for s in b])
                 row[name + "_6m"] = _mean([ret(s, 6) for s in b])
+            if early and baskets.get("new_momentum_veto"):
+                # the live weighting: strongest 3x the weakest
+                b = baskets["new_momentum_veto"]
+                w = [1 + 2 * (len(b) - 1 - i) / max(len(b) - 1, 1) for i in range(len(b))]
+                for h in (3, 6):
+                    pr = [(wi, ret(s, h)) for wi, s in zip(w, b) if ret(s, h) is not None]
+                    row[f"new_momentum_veto_w31_{h}m"] = (sum(a * r for a, r in pr) / sum(a for a, _ in pr)) if pr else None
             fwd6 = {s: ret(s, 6) for s in members}
             pv = [(rel[s], fwd6[s]) for s in rel if fwd6.get(s) is not None]
             pm = [(mom[s], fwd6[s]) for s in mom if fwd6.get(s) is not None]
@@ -371,6 +524,13 @@ def run(month_from, month_to, pit=True):
             row["ic_value_6m"] = spearman([a for a, _ in pv], [b for _, b in pv])
             row["ic_mom_6m"] = spearman([a for a, _ in pm], [b for _, b in pm])
             row["ic_mom12_6m"] = spearman([a for a, _ in p12], [b for _, b in p12])
+            if early:
+                pb = [(bs[s], fwd6[s]) for s in bs if fwd6.get(s) is not None]
+                row["ic_basescore_6m"] = spearman([a for a, _ in pb], [b for _, b in pb])
+                pa = [(accel[s], fwd6[s]) for s in accel if fwd6.get(s) is not None]
+                pr = [(react[s], fwd6[s]) for s in react if fwd6.get(s) is not None]
+                row["ic_accel_6m"] = spearman([a for a, _ in pa], [b for _, b in pa])
+                row["ic_react_6m"] = spearman([a for a, _ in pr], [b for _, b in pr])
             per_date.append(row)
 
             # per-stock panel for later research (weighting, other baskets) - members only
@@ -378,9 +538,11 @@ def run(month_from, month_to, pit=True):
                 u = vals.get(s)
                 panel.append([m, s, sector_of[s], _r(mom.get(s), 3), _r(r3m.get(s), 4), _r(r6m.get(s), 4),
                               _r(r12_1.get(s), 4), _r(vol.get(s), 4), _r(rel.get(s), 1), _r(u[0] if u else None, 1),
-                              u[1] if u else "", _r(ret(s, 1), 4), _r(ret(s, 3), 4), _r(ret(s, 6), 4)])
+                              u[1] if u else "", _r(ret(s, 1), 4), _r(ret(s, 3), 4), _r(ret(s, 6), 4)]
+                             + ([_r(x, 4) for x in em.get(s, (None, None, None))[:3]] + [em[s][3] if s in em and em[s][3] is not None else ""]
+                                + [_r(bsres[m].get(s), 3)] if early else []))
             panel.append([m, "SPY", "benchmark", "", "", "", "", "", "", "", "", _r(ret("SPY", 1), 4),
-                          _r(ret("SPY", 3), 4), _r(ret("SPY", 6), 4)])
+                          _r(ret("SPY", 3), 4), _r(ret("SPY", 6), 4)] + (["", "", "", "", ""] if early else []))
 
             if m == month_to:
                 detail = {name: [{"symbol": s, "sector": sector_of[s],
@@ -395,7 +557,7 @@ def run(month_from, month_to, pit=True):
         summary = summarise(per_date, names)
         result = {"summary": summary, "per_date": per_date, "latest_baskets": detail, "point_in_time": pit,
                   "universe": len(universe), "failed_symbols": len(failed), "minutes": round((time.time() - t0) / 60, 1)}
-        STATE.update(status="done", result=result, panel=panel)
+        STATE.update(status="done", result=result, panel=panel, early=early)
         _log("RESULT", {"summary": summary, "failed": len(failed), "universe": len(universe),
                         "point_in_time": pit, "minutes": result["minutes"], "panel_rows": len(panel)})
         for name, rows in (detail or {}).items():
@@ -417,6 +579,9 @@ def _r(x, n):
 
 PANEL_COLUMNS = ["month", "symbol", "sector", "momentum_score", "ret_3m_back", "ret_6m_back", "ret_12_1_back",
                  "vol_12m", "rel_upside_pct", "upside_pct", "fv_confidence", "fwd_1m", "fwd_3m", "fwd_6m"]
+
+
+EARLY_COLUMNS = ["rev_growth_yoy", "rev_accel", "earn_reaction", "earn_age_days", "base_score"]
 
 
 def ret_back(adj, s, m, k):
@@ -463,14 +628,16 @@ def backtest_start():
     a = request.args.get("from", "2021-01")
     b = request.args.get("to", "2026-03")
     pit = request.args.get("membership", "pit") != "current"
+    early = request.args.get("early") in ("1", "true")
     with _LOCK:
         if STATE.get("status") not in ("idle", "done", "error"):
             return jsonify({"message": "already running", "state": {k: v for k, v in STATE.items() if k != "result"}})
         STATE.clear()
         STATE.update(status="starting", started=datetime.datetime.utcnow().isoformat(timespec="seconds"), range=[a, b])
-        threading.Thread(target=run, args=(a, b, pit), daemon=True).start()
+        threading.Thread(target=run, args=(a, b, pit, early), daemon=True).start()
     return jsonify({"message": "started - check /backtest/status in ~20-25 minutes", "range": [a, b],
-                    "membership": "point-in-time" if pit else "current constituents"})
+                    "membership": "point-in-time" if pit else "current constituents",
+                    "early_signals": early})
 
 
 @backtest_bp.route("/backtest/status", methods=["GET"])
@@ -494,7 +661,7 @@ def backtest_export():
         return jsonify({"error": "no finished run in memory - start one with /backtest/start"}), 404
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerow(PANEL_COLUMNS)
+    w.writerow(PANEL_COLUMNS + (EARLY_COLUMNS if STATE.get("early") else []))
     w.writerows(panel)
     return Response(buf.getvalue(), mimetype="text/csv",
                     headers={"Content-Disposition": "attachment; filename=backtest_panel.csv"})
