@@ -69,6 +69,28 @@ DEFAULT_BLEND = float(os.environ.get("SELECT_BLEND", 0.5))
 HIGH_AT = float(os.environ.get("SELECT_HIGH_AT", 4.0))
 MEDIUM_AT = float(os.environ.get("SELECT_MEDIUM_AT", 3.2))
 
+# 2026-10-12 (step 7): the 12-1 momentum rank drives selection (the only signal with a
+# tested edge, backtest round 2); base score and LLM committee only VETO entries.
+# SELECT_MODE=score restores the old base-score + overlay selection.
+SELECT_MODE = os.environ.get("SELECT_MODE", "momentum")
+# base score below -> no new entry. Default 0 = off (owner decision 2026-10-12): backtest round 3
+# showed the veto neutral within noise (none +4.6%, 3.0 +4.0%, 3.25 +4.7% 6m vs SPY) and it did not
+# reduce the worst half-year. Set SELECT_QUALITY_FLOOR=3.0 to keep hype rallies without fundamentals out.
+QUALITY_FLOOR = float(os.environ.get("SELECT_QUALITY_FLOOR", 0))
+
+
+def momentum_score(rank, n, basket=None):
+    """Rank (1 = strongest 12-1 momentum) -> score on reconcile's scale:
+    ranks 1..20 -> 5.0..3.5 (clear the entry bar 3.5), ranks 21..n -> 3.5..3.2
+    (above the stay bar 3.2), not ranked -> 2.5 (below the stay bar)."""
+    basket = basket or BASKET_SIZE
+    if rank is None:
+        return 2.5
+    if rank <= basket:
+        return round(5.0 - 1.5 * (rank - 1) / max(basket - 1, 1), 3)
+    return round(3.5 - 0.3 * (rank - basket) / max(n - basket, 1), 3)
+
+
 OVERLAY_MAX = 0.5
 UNCERTAIN_SPREAD = float(os.environ.get("SELECT_UNCERTAIN_SPREAD", 0.75))
 
@@ -314,6 +336,8 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
         if s:
             prev[s] = _to_float(_get(r, "score"))
 
+    shadow = {}   # momentum mode: what the old base-score selection would have scored
+
     # collect each run's reading per symbol
     readings = {}
     for run_no, run in overlay_runs:
@@ -417,10 +441,23 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
         # thesis/evidence from the reading closest to the median
         pick = min(rd, key=lambda x: abs(x["overlay"] - overlay)) if rd else None
         adj, adj_reason = sig.get(s, (0.0, ""))
-        new = min(max(base_score + overlay + adj, 1.0), 5.0)
-        old = prev.get(s)
-        blended = new if old is None else blend * new + (1 - blend) * old
         flags = list(_get(b, "flags", default=[]) or [])
+        no_entry = False
+        if SELECT_MODE == "momentum":
+            # score = momentum rank; base score / LLM / insider signal are information + vetoes
+            mom_rank = cand_rank.get(s)
+            new = momentum_score(mom_rank, len(candidates))
+            old = None
+            blended = new
+            shadow[s] = min(max(base_score + overlay + adj, 1.0), 5.0)   # old selection, logged for comparison
+            if QUALITY_FLOOR > 0 and base_score < QUALITY_FLOOR:
+                no_entry = True
+                flags.append("weak_fundamentals")
+        else:
+            mom_rank = cand_rank.get(s)
+            new = min(max(base_score + overlay + adj, 1.0), 5.0)
+            old = prev.get(s)
+            blended = new if old is None else blend * new + (1 - blend) * old
         if not rd:
             flags.append("no_llm_review")
         if anomaly:
@@ -456,6 +493,9 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
             "runs": len(vals),
             "uncertain": uncertain,
             "red_flag": red_flag,
+            # no new entry (weak fundamentals behind the price move); holdings are not sold for it
+            "no_entry": no_entry or red_flag,
+            "mom_rank": mom_rank,
             # a majority of runs say the code's metrics don't fit this stock (REIT P/E,
             # cyclical peak, near-zero earnings...): reconcile raises its entry bar and
             # lists it for review; it is NOT a sell signal
@@ -471,13 +511,27 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
     for r in ranking:
         if len(proposed) >= BASKET_SIZE:
             break
-        if r["red_flag"] or counts.get(r["sector"], 0) >= MAX_PER_SECTOR:
+        if r["red_flag"] or r.get("no_entry") or counts.get(r["sector"], 0) >= MAX_PER_SECTOR:
             continue
         counts[r["sector"]] = counts.get(r["sector"], 0) + 1
         proposed.append(r)
 
+    # shadow basket: the old base-score selection (red flags and sector cap applied), so the
+    # Runs log can compare both ways of picking over the coming months
+    shadow_basket, sc_counts = [], {}
+    sec_of = {r["symbol"]: r["sector"] for r in ranking}
+    for sym in sorted(shadow, key=lambda x: -shadow[x]):
+        r = next(x for x in ranking if x["symbol"] == sym)
+        if len(shadow_basket) >= BASKET_SIZE:
+            break
+        if r["red_flag"] or sc_counts.get(sec_of[sym], 0) >= MAX_PER_SECTOR:
+            continue
+        sc_counts[sec_of[sym]] = sc_counts.get(sec_of[sym], 0) + 1
+        shadow_basket.append(sym)
     summary = {
-        "mode": "overlay",
+        "mode": "overlay" if SELECT_MODE != "momentum" else "momentum",
+        "shadow_score_basket": shadow_basket,
+        "no_entry": sorted(r["symbol"] for r in ranking if r.get("no_entry")),
         "scored_symbols": len(ranking),
         "proposed": len(proposed),
         "blend": blend,
