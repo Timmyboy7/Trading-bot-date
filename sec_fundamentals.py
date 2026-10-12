@@ -167,9 +167,57 @@ def _align(series, ends):
     return out
 
 
+# Fallbacks when a company files under tags the fixed lists don't know (2026-10-12:
+# BNY, APA had no revenue since 2018/2021; NUE, DE, PSX no operating-income line;
+# PSX no capex tag). Candidates are discovered from the filing itself.
+REV_EXCLUDE = ("Remaining", "Deferred", "Receivable", "Unbilled", "PerformanceObligation", "Cost",
+               "Percentage", "Increase", "Decrease", "Recognized", "Allowance", "Reserve")
+COSTS_CONCEPTS = ("CostsAndExpenses", "OperatingCostsAndExpenses", "BenefitsLossesAndExpenses")
+PRETAX_CONCEPTS = ("IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
+                   "IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments",
+                   "IncomeLossFromContinuingOperationsBeforeIncomeTaxesDomestic")
+
+
+def _concepts(facts):
+    return list(((facts.get("facts") or {}).get("us-gaap") or {}).keys())
+
+
+def _is_revenue_name(n):
+    ok = (n.startswith("Revenue") or "Revenues" in n or n.endswith("Revenue")
+          or n in ("InterestAndNoninterestIncome", "SalesRevenueNet", "SalesRevenueGoodsNet"))
+    return ok and not any(x in n for x in REV_EXCLUDE)
+
+
+def _is_capex_name(n):
+    if n.startswith("PaymentsToAcquire"):
+        return any(x in n for x in ("PropertyPlantAndEquipment", "ProductiveAssets", "OilAndGas"))
+    return n.startswith("PaymentsToExploreAndDevelop") or n in ("PaymentsForCapitalImprovements",
+                                                                "CapitalExpendituresAndInvestments")
+
+
+def best_recent(facts, names):
+    """(series, name) of the concept with the most recent quarter; ties -> larger latest value
+    (a total is at least as big as any of its parts)."""
+    best, best_name = [], None
+    for n in names:
+        q = quarterly(facts, (n,))
+        if len(q) < 2:
+            continue
+        key = (q[-1][0], q[-1][1])
+        if not best or key > (best[-1][0], best[-1][1]):
+            best, best_name = q, n
+    return best, best_name
+
+
 def summarize(facts):
     """Everything /valuation needs from one companyfacts document (no price yet)."""
     rev = quarterly(facts, REVENUE_TAGS)
+    tags = []
+    if len(rev) < 2 or (datetime.date.today() - rev[-1][0]).days > STALE_DAYS:
+        alt, name = best_recent(facts, [n for n in _concepts(facts) if _is_revenue_name(n)])
+        if alt and (not rev or alt[-1][0] > rev[-1][0]):
+            rev = alt
+            tags.append(f"revenue tag {name}")
     if len(rev) < 2:
         return None, "fewer than 2 quarters of revenue in SEC filings (insurer layout, foreign filer or new listing)"
     if (datetime.date.today() - rev[-1][0]).days > STALE_DAYS:
@@ -179,14 +227,32 @@ def summarize(facts):
     if all(v is None for v in gross):
         cost = _align(quarterly(facts, COST_CONCEPTS), ends)
         gross = [(r - c) if c is not None else None for (_, r), c in zip(rev, cost)]
+    op = _align(quarterly(facts, OPINC_CONCEPTS), ends)
+    if all(v is None for v in op):
+        costs = _align(quarterly(facts, COSTS_CONCEPTS), ends)
+        if any(v is not None for v in costs):
+            op = [(r - c) if c is not None else None for (_, r), c in zip(rev, costs)]
+            tags.append("operating income = revenue - total costs")
+        else:
+            pre = _align(quarterly(facts, PRETAX_CONCEPTS), ends)
+            if any(v is not None for v in pre):
+                op = pre
+                tags.append("operating income = pre-tax income")
+    capex = _align(quarterly(facts, CAPEX_CONCEPTS), ends)
+    if all(v is None for v in capex):
+        alt, name = best_recent(facts, [n for n in _concepts(facts) if _is_capex_name(n)])
+        if alt:
+            capex = _align(alt, ends)
+            tags.append(f"capex tag {name}")
     out = {
+        "tags": tags,
         "ends": ends,
         "revenue": [v for _, v in rev],
         "gross": gross,
-        "op_inc": _align(quarterly(facts, OPINC_CONCEPTS), ends),
+        "op_inc": op,
         "net_inc": _align(quarterly(facts, NI_CONCEPTS), ends),
         "ocf": _align(quarterly(facts, OCF_CONCEPTS), ends),
-        "capex": _align(quarterly(facts, CAPEX_CONCEPTS), ends),
+        "capex": capex,
         "eps": _align(quarterly(facts, EPS_CONCEPTS, unit="USD/shares"), ends),
         "debt_to_equity": latest_debt_to_equity(facts),
     }
@@ -313,6 +379,8 @@ def build(s, price):
     else:
         eps_ttm = None if capped else _ttm(s["eps"], ends)
     note = "; one-off gains capped" if capped else ""
+    if s.get("tags"):
+        note += "; " + "; ".join(s["tags"])
     note += "; TTM from annual + year-to-date figures (quarters incomplete)" if used_fallback else ""
     data = {
         "pe_ratio": (price / eps_ttm) if (price and eps_ttm and eps_ttm > 0) else None,
