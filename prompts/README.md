@@ -25,6 +25,7 @@ the economy are the Risk Analyst's job. On the 2026-10-11 data: no avoid (old pr
 | File | Make module (daily scenario) | Model |
 |---|---|---|
 | `deep_dive_analyst_body.json` | Claude News Analyst (reused 53) | claude-sonnet-5-5 |
+| `deep_dive_analyst_gpt_body.json` | GPT News Analyst #2 (OpenRouter, optional) | openai/gpt-6.1-sol |
 | `veto_claude_body.json` | Confirm/Veto – Claude (reused 122) | claude-sonnet-5-5 |
 | `veto_gpt_body.json` | Confirm/Veto – GPT (OpenRouter) | openai/gpt-6.1-sol |
 | `veto_kimi_body.json` | Confirm/Veto – Kimi (OpenRouter) | moonshotai/kimi-k3 |
