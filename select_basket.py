@@ -507,6 +507,7 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
             "cluster": cluster,
             "flags": sorted(set(flags)),
             "pillars": _get(b, "pillars", default={}),
+            "last_price": (_get(b, "facts", default={}) or {}).get("last_price"),
             "conviction": conviction_for(blended),
         })
 
