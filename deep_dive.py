@@ -214,7 +214,19 @@ def build_input(basket_rows, notes, now=None):
 
 # --------------------------------------------------------------------------- cases / decide
 
-def analyst_items(text):
+def analyst_items(text, text2=None):
+    """Merged analyst verdicts. With a second analyst (optional): break if EITHER says break
+    (the committee filters false alarms), wait if either says wait."""
+    a, b = _one_analyst(text), _one_analyst(text2)
+    rank = {"none": 0, "wait": 1, "break": 2}
+    out = dict(a)
+    for s, x in b.items():
+        if s not in out or rank[x["verdict"]] > rank[out[s]["verdict"]]:
+            out[s] = dict(x, reason=x["reason"] + (" [2nd analyst]" if s in a else " [2nd analyst only]"))
+    return out
+
+
+def _one_analyst(text):
     items = llm_json(text, "items") or []
     out = {}
     for x in items:
@@ -226,9 +238,9 @@ def analyst_items(text):
     return out
 
 
-def cases(facts, analyst_text):
+def cases(facts, analyst_text, analyst_text2=None):
     fx = {f["symbol"]: f for f in facts}
-    items = analyst_items(analyst_text)
+    items = analyst_items(analyst_text, analyst_text2)
     out = []
     flagged = [(s, a["reason"], a["evidence"], "analyst") for s, a in items.items() if a["verdict"] == "break"]
     for f in facts:
@@ -252,10 +264,10 @@ def cases(facts, analyst_text):
     return out, hold, items
 
 
-def decide(facts, analyst_text, votes):
+def decide(facts, analyst_text, votes, analyst_text2=None):
     """votes: {model: answer text}. Returns hold/exit lists and a log per name."""
     fx = {f["symbol"]: f for f in facts}
-    case_list, hold, items = cases(facts, analyst_text)
+    case_list, hold, items = cases(facts, analyst_text, analyst_text2)
     parsed, errors = {}, []
     for model, text in votes.items():
         v = llm_json(text, "verdicts")
@@ -324,7 +336,7 @@ def deep_dive_input():
 def deep_dive_cases():
     body = request.get_json(force=True, silent=True) or {}
     facts = _load(body.get("facts"), [])
-    c, hold, items = cases(facts, body.get("analyst"))
+    c, hold, items = cases(facts, body.get("analyst"), body.get("analyst_2"))
     return jsonify({"cases_json": json.dumps(c), "cases_count": len(c), "hold": ",".join(hold),
                     "analyst_readable": llm_json(body.get("analyst"), "items") is not None})
 
@@ -334,4 +346,4 @@ def deep_dive_decide():
     body = request.get_json(force=True, silent=True) or {}
     facts = _load(body.get("facts"), [])
     votes = {m: body.get(f"vote_{m}") for m in ("claude", "gpt", "kimi")}
-    return jsonify(decide(facts, body.get("analyst"), votes))
+    return jsonify(decide(facts, body.get("analyst"), votes, body.get("analyst_2")))
