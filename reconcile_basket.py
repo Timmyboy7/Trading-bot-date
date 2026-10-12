@@ -331,6 +331,9 @@ def watch_note(sc):
         notes.append("no LLM review")
     if "negative_equity" in flags:
         notes.append("negative equity")
+    tp, lp = sc.get("target_price"), sc.get("last_price")
+    if tp and lp and lp > tp:
+        notes.append(f"price {lp:.2f} above the LLM's target {tp:.0f} ({(lp / tp - 1) * 100:+.0f}%)")
     return "; ".join(notes)
 
 
@@ -455,6 +458,7 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             "no_entry": _get(r, "no_entry", default=False) is True,
             "mom_rank": _get(r, "mom_rank"),
             "base_score": _to_float(_get(r, "base_score")),
+            "last_price": _to_float(_get(r, "last_price")),
             "flags": list(_get(r, "flags", default=[]) or []),
         }
     score_mode = bool(scored)
