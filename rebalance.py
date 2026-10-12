@@ -35,6 +35,17 @@ the account match it. v1 written 2026-10-11 (equal weight, hard stop); v2
   Waits only work in the first REBAL_MAX_WAIT_DAYS (3) days after the weekly
   run; after that the buy goes through. Nothing can block a buy for good.
 
+  New money (savings plan, dividends, leftovers): once spare cash above the floor
+  exceeds REBAL_DEPLOY_MIN_PCT (2%) of capital, it goes to the names furthest below
+  their target (never above it, never past the current tranche) and still in a healthy
+  trend (above the 150-day average, no spike, no falling knife) - topping up is the
+  tax-free way to rebalance, and money never goes into a name that is breaking down.
+
+  Savings-plan simulation (Alpaca paper takes no deposits): reset the paper account to
+  a larger balance, set REBAL_PAPER_BALANCE to it and REBAL_MONTHLY_DEPOSIT (e.g. 100).
+  The bot sees only REBAL_START_EQUITY plus one deposit per month since the start; the
+  rest is a hidden reserve. The SPY shadow buys SPY with the same deposits on the same dates.
+
   The LLM can never add a name, size a position or block the sale of a dropped name.
 
 Endpoints:
@@ -94,8 +105,14 @@ HOLD_DAYS = int(_env("RECON_HOLD_DAYS", 182))
 WEIGHT_RATIO = _env("RECON_WEIGHT_RATIO", 3.0)
 MAX_WAIT_DAYS = int(_env("REBAL_MAX_WAIT_DAYS", 3))
 CAPITAL_CAP = os.environ.get("REBAL_CAPITAL_CAP_USD")
-START_EQUITY = _env("REBAL_START_EQUITY", 1000.0)    # for the SPY shadow
+START_EQUITY = _env("REBAL_START_EQUITY", 1000.0)    # first deposit (SPY shadow, savings plan)
 START_DATE = os.environ.get("REBAL_START_DATE")      # else: first fill
+MONTHLY_DEPOSIT = _env("REBAL_MONTHLY_DEPOSIT", 0.0)  # simulated savings plan, e.g. 100
+# Alpaca paper accounts take no deposits. To simulate a savings plan, reset the paper
+# account to a larger balance (e.g. 5000) and set REBAL_PAPER_BALANCE to it: the money
+# not "deposited" yet is held back as a reserve that the bot never sees or spends.
+PAPER_BALANCE = os.environ.get("REBAL_PAPER_BALANCE")
+DEPLOY_MIN_PCT = _env("REBAL_DEPLOY_MIN_PCT", 0.02)   # spare cash above the floor gets invested once > 2%
 WEEKLY_UTC_HOUR = int(_env("REBAL_WEEKLY_UTC_HOUR", 18))
 FILL_WAIT_SEC = _env("REBAL_FILL_WAIT_SEC", 12)
 REBUY_GATED = ("trend", "stop")                      # re-buy needs the buy-back signal
@@ -327,6 +344,7 @@ def plan(basket_rows, account, positions, ind, since, last_orders, hold=(), exit
     stamp = now.strftime("%Y%m%d%H%M%S")
     pos = {p["symbol"]: p for p in positions}
     sells, buys, skipped, notes = [], [], [], {}
+    room = {}   # symbol -> (desired value today, current value), for deploying spare cash
 
     def held_days(s):
         return (today - datetime.date.fromisoformat(since[s])).days if s in since else 0
@@ -380,6 +398,7 @@ def plan(basket_rows, account, positions, ind, since, last_orders, hold=(), exit
 
         frac = tranche_fraction(since.get(sym) if held else None, today)
         desired = target * frac
+        room[sym] = (desired, value)
         if value < desired * (1 - BAND) or not held:
             amount = desired - value
             if amount < MIN_ORDER_USD:
@@ -395,6 +414,11 @@ def plan(basket_rows, account, positions, ind, since, last_orders, hold=(), exit
                 skipped.append({"symbol": sym, "reason": wait + f" - waits at most {MAX_WAIT_DAYS} days after the weekly run"})
                 continue
             in_buildup = not held or held_days(sym) < TRANCHES * TRANCHE_DAYS
+            if not in_buildup and i and i["sma"] and i["close"] < i["sma"]:
+                # a built-up name that sank below target AND its 150-day average gets no top-up
+                notes[sym] = (f"below target ({value:.2f} vs {target:.2f}) but below its {SMA_DAYS}-day average "
+                              "- no top-up until the trend recovers")
+                continue
             kind = "new" if not held else ("tranche" if in_buildup else "drift")
             step = min(TRANCHES, int(round(frac * TRANCHES)))
             reason = (f"tranche {step}/{TRANCHES} of target {target:.2f} ({weights.get(sym, 0):.1%} of the basket)"
@@ -416,9 +440,46 @@ def plan(basket_rows, account, positions, ind, since, last_orders, hold=(), exit
                           "client_order_id": f"tb-trim-{sym}-{stamp}"})
 
     proceeds = sum(s["amount_usd"] for s in sells)
+    # new money only to names in a healthy trend: above the 150-day average, no spike, no falling knife
+    unhealthy = {x for x in room if not ind.get(x) or (ind[x]["sma"] and ind[x]["close"] < ind[x]["sma"])
+                 or (ind[x]["ret10"] is not None and ind[x]["ret10"] <= -KNIFE_PCT)
+                 or (ind[x]["ret5"] is not None and ind[x]["ret5"] >= SPIKE_PCT)}
+    deployed = deploy_spare(buys, room, skipped, cash + proceeds, capital, stamp, unhealthy)
     scale = scale_buys(buys, cash + proceeds, capital)
     return {"capital": round(capital, 2), "investable": round(investable, 2), "weights": weights,
-            "sells": sells, "buys": buys, "skipped": skipped, "notes": notes, "buy_scale": scale}
+            "sells": sells, "buys": buys, "skipped": skipped, "notes": notes, "buy_scale": scale,
+            "deployed_spare": deployed}
+
+
+def deploy_spare(buys, room, skipped, cash_available, capital, stamp, unhealthy=()):
+    """New money (deposits, dividends, leftovers) goes to the names furthest below their
+    target, never above it. Buying the laggards is the tax-free way to rebalance.
+    Only runs when spare cash above the floor exceeds DEPLOY_MIN_PCT of capital. Mutates buys."""
+    planned = {b["symbol"]: b for b in buys}
+    spare = cash_available - sum(b["amount_usd"] for b in buys) - CASH_FLOOR * capital
+    if spare < max(MIN_ORDER_USD, DEPLOY_MIN_PCT * capital):
+        return 0.0
+    waiting = {x["symbol"] for x in skipped} | set(unhealthy)
+    gaps = {s: d - v - (planned[s]["amount_usd"] if s in planned else 0.0)
+            for s, (d, v) in room.items() if s not in waiting}
+    gaps = {s: g for s, g in gaps.items() if g > 0.5}
+    total = sum(gaps.values())
+    if total <= 0:
+        return 0.0
+    use = min(spare, total)
+    done = 0.0
+    for s, g in sorted(gaps.items(), key=lambda x: -x[1]):
+        amt = round(use * g / total, 2)
+        if s in planned:
+            planned[s]["amount_usd"] = round(planned[s]["amount_usd"] + amt, 2)
+            planned[s]["reason"] += f" (+{amt:.2f} new money)"
+            done += amt
+        elif amt >= MIN_ORDER_USD:
+            buys.append({"symbol": s, "side": "buy", "kind": "deploy", "amount_usd": amt,
+                         "reason": f"new money to an underweight name ({room[s][1]:.2f} vs {room[s][0]:.2f})",
+                         "client_order_id": f"tb-buy-{s}-{stamp}"})
+            done += amt
+    return round(done, 2)
 
 
 def scale_buys(buys, cash_available, capital):
@@ -435,18 +496,51 @@ def scale_buys(buys, cash_available, capital):
     return round(scale, 3)
 
 
-def spy_shadow(equity, spy_series, start_date):
-    """What START_EQUITY in SPY since start_date would be worth vs the account."""
-    if not start_date or not spy_series:
+def deposit_schedule(start_date, today):
+    """[(date, amount)]: START_EQUITY on the start date, then MONTHLY_DEPOSIT on the same
+    day of each following month (end of month if that day doesn't exist)."""
+    start = datetime.date.fromisoformat(start_date) if start_date else today
+    out = [(start, START_EQUITY)]
+    if MONTHLY_DEPOSIT <= 0:
+        return out
+    y, m = start.year, start.month
+    while True:
+        m += 1
+        if m > 12:
+            y, m = y + 1, 1
+        day = min(start.day, [31, 29 if y % 4 == 0 and (y % 100 or y % 400 == 0) else 28,
+                              31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1])
+        d = datetime.date(y, m, day)
+        if d > today:
+            return out
+        out.append((d, MONTHLY_DEPOSIT))
+
+
+def virtual_account(account, deposits):
+    """Account as the bot should see it: with REBAL_PAPER_BALANCE set, money not yet
+    'deposited' is a hidden reserve (subtracted from equity and cash)."""
+    if not PAPER_BALANCE:
+        return account, 0.0
+    reserve = max(float(PAPER_BALANCE) - sum(a for _, a in deposits), 0.0)
+    return {"equity": float(account["equity"]) - reserve, "cash": float(account["cash"]) - reserve}, reserve
+
+
+def spy_shadow(equity, spy_series, deposits, started):
+    """The same deposits, on the same dates, put into SPY instead - vs the account."""
+    if not started or not spy_series:
         return {"note": "no trades yet - the shadow starts with the first fill"}
-    base = next((c for d, c in spy_series if d >= start_date), None)
-    if not base:
-        return {"note": f"no SPY price on/after {start_date}"}
-    spy_ret = spy_series[-1][1] / base - 1
-    acc_ret = equity / START_EQUITY - 1
-    return {"start": start_date, "start_equity": START_EQUITY, "spy_value": round(START_EQUITY * (1 + spy_ret), 2),
-            "account_value": round(equity, 2), "spy_return_pct": round(spy_ret * 100, 2),
-            "account_return_pct": round(acc_ret * 100, 2), "excess_pct": round((acc_ret - spy_ret) * 100, 2),
+    units = 0.0
+    for d, amt in deposits:
+        px = next((c for day, c in spy_series if day >= d.isoformat()), spy_series[-1][1])
+        units += amt / px
+    spy_value = units * spy_series[-1][1]
+    paid_in = sum(a for _, a in deposits)
+    return {"start": deposits[0][0].isoformat(), "paid_in": round(paid_in, 2), "deposits": len(deposits),
+            "spy_value": round(spy_value, 2), "account_value": round(equity, 2),
+            "spy_gain_pct": round((spy_value / paid_in - 1) * 100, 2),
+            "account_gain_pct": round((equity / paid_in - 1) * 100, 2),
+            "excess_usd": round(equity - spy_value, 2),
+            "excess_pct": round((equity - spy_value) / paid_in * 100, 2),
             "as_of_close": spy_series[-1][0]}
 
 
@@ -523,8 +617,12 @@ def gather(basket_syms):
 def run(basket_rows, execute=False, hold=(), exits=()):
     now = datetime.datetime.now(datetime.timezone.utc)
     basket = [s for s, _, _ in basket_rows]
-    account, positions, clock, since, last_orders, closes, ind, start, errors = gather(basket)
+    account_real, positions, clock, since, last_orders, closes, ind, start, errors = gather(basket)
     weekly = last_weekly_run(now)
+    deposits = deposit_schedule(start, now.date())
+    account, reserve = virtual_account(account_real, deposits)
+    if account["cash"] < -1:
+        errors.append(f"paper balance too small for the simulated deposits (reserve {reserve:.2f}) - check REBAL_PAPER_BALANCE")
     p = plan(basket_rows, account, positions, ind, since, last_orders,
              hold=set(hold), exits=set(exits), weekly_run=weekly, now=now)
     orders = p["sells"] + p["buys"]
@@ -539,7 +637,7 @@ def run(basket_rows, execute=False, hold=(), exits=()):
         if pending:
             errors.append(f"{len(pending)} sell(s) not filled after {FILL_WAIT_SEC:.0f}s - buys sized from current cash")
         fresh = _get("/v2/account")
-        p["buy_scale"] = scale_buys(p["buys"], float(fresh["cash"]), p["capital"])
+        p["buy_scale"] = scale_buys(p["buys"], float(fresh["cash"]) - reserve, p["capital"])
         _submit(p["buys"], errors)
         orders = p["sells"] + p["buys"]
     for o in orders:
@@ -562,7 +660,7 @@ def run(basket_rows, execute=False, hold=(), exits=()):
             "vs_sma_pct": round((i["close"] / i["sma"] - 1) * 100, 1) if i and i["sma"] else None,
             "note": p["notes"].get(s, ""),
         })
-    shadow = spy_shadow(equity, closes.get("SPY"), start)
+    shadow = spy_shadow(equity, closes.get("SPY"), deposits, bool(start))
     summary = {
         "mode": mode, "basket": len(basket), "positions_before": len(positions),
         "equity": round(equity, 2), "cash": round(float(account["cash"]), 2),
@@ -570,13 +668,15 @@ def run(basket_rows, execute=False, hold=(), exits=()):
         "sells": len(p["sells"]), "buys": len(p["buys"]), "skipped": len(p["skipped"]),
         "sell_usd": round(sum(o["amount_usd"] for o in p["sells"]), 2),
         "buy_usd": round(sum(o["amount_usd"] for o in p["buys"]), 2),
-        "buy_scale": p["buy_scale"], "failed": sum(1 for o in orders if o.get("status") == "failed"),
+        "buy_scale": p["buy_scale"], "deployed_spare": p["deployed_spare"],
+        "paid_in": round(sum(a for _, a in deposits), 2), "hidden_reserve": round(reserve, 2), "failed": sum(1 for o in orders if o.get("status") == "failed"),
         "exits": {k: [o["symbol"] for o in p["sells"] if o["kind"] == k]
                   for k in ("drop", "trend", "stop", "exit", "trim") if any(o["kind"] == k for o in p["sells"])},
         "spy_shadow": shadow, "weekly_run": weekly.isoformat(),
         "settings": {"cash_floor": CASH_FLOOR, "band": BAND, "stop_pct": STOP_PCT, "trend_dd": TREND_DD,
                      "sma_days": SMA_DAYS, "tranches": TRANCHES, "tranche_days": TRANCHE_DAYS,
-                     "hold_days": HOLD_DAYS, "weight_ratio": WEIGHT_RATIO, "spike_pct": SPIKE_PCT,
+                     "hold_days": HOLD_DAYS, "weight_ratio": WEIGHT_RATIO,
+                     "monthly_deposit": MONTHLY_DEPOSIT, "paper_balance": PAPER_BALANCE, "spike_pct": SPIKE_PCT,
                      "knife_pct": KNIFE_PCT, "max_wait_days": MAX_WAIT_DAYS, "capital_cap": CAPITAL_CAP},
     }
     slim = [{k: o.get(k) for k in ("symbol", "side", "kind", "amount_usd", "qty", "status", "reason", "error")
