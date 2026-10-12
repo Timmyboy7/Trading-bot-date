@@ -711,11 +711,33 @@ def rebalance():
 
 @rebalance_bp.route("/holdings", methods=["GET"])
 def holdings():
-    """Current positions with the date each was opened - feeds reconcile-basket's 6-month hold."""
+    """Positions with purchase date, gain and trend, plus names the bot sold by an exit rule
+    and has not bought back - feeds reconcile-basket's 6-month hold, tax-aware sale and
+    exit refill (holdings_json = {"holdings": [...], "exited": [...]})."""
+    errors = []
     try:
         positions = _get("/v2/positions")
         since = holdings_since(fetch_fills(), positions)
     except requests.RequestException as e:
         return jsonify({"error": f"Alpaca request failed: {e}"}), 502
-    rows = [{"symbol": s, "since": d} for s, d in sorted(since.items())]
-    return jsonify({"holdings": rows, "holdings_json": json.dumps(rows), "count": len(rows)})
+    held = {p["symbol"] for p in positions}
+    try:
+        closes = daily_closes(held) if held else {}
+    except requests.RequestException as e:
+        closes, _ = {}, errors.append(f"bars: {e} - below_sma unknown")
+    rows = []
+    for p in sorted(positions, key=lambda x: x["symbol"]):
+        s = p["symbol"]
+        i = indicators(closes.get(s), since.get(s))
+        rows.append({"symbol": s, "since": since.get(s),
+                     "gain_pct": round(float(p.get("unrealized_plpc") or 0) * 100, 2),
+                     "below_sma": bool(i and i["sma"] and i["close"] < i["sma"]) if i else None})
+    try:
+        last = last_own_orders()
+    except requests.RequestException as e:
+        last, _ = {}, errors.append(f"orders: {e} - exited list unknown")
+    exited = [{"symbol": s, "kind": k, "at": at[:10]} for s, (k, side, at) in sorted(last.items())
+              if side == "sell" and k in REBUY_GATED + WEEK_BLOCKED and s not in held]
+    payload = {"holdings": rows, "exited": exited}
+    return jsonify({"holdings": rows, "exited": exited, "holdings_json": json.dumps(payload),
+                    "count": len(rows), "errors": errors})

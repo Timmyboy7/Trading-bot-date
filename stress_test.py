@@ -573,6 +573,7 @@ def stress_test():
         weights = _load(body.get("weights")) if body.get("weights") else None
     except (ValueError, TypeError) as e:
         return jsonify({"error": f"could not parse input: {e}"}), 400
+    cold = not basket
     if not basket:
         basket = universe[:20]   # first run: no Watchlist yet -> stress the top of the ranking
     if not basket:
@@ -580,4 +581,12 @@ def stress_test():
     if weights is not None and not isinstance(weights, dict):
         return jsonify({"error": "weights must be an object like {\"AAA\": 0.05}"}), 400
     out = compute(basket, weights, universe=universe)
+    # Labels (outside review 2026-10-12 read these numbers as a backtest / as the final basket):
+    out["basket_used"] = ("top 20 of the ranking (cold start, no Watchlist yet)" if cold
+                          else "current Watchlist (before this week's changes)") + \
+        " - the FINAL basket's scenario figures are reconcile's risk_after"
+    if isinstance(out.get("history"), dict):
+        out["history"]["note"] = ("hindsight: the past year of these names, which were picked BECAUSE they rose "
+                                  "(momentum) - not a backtest and no evidence of future returns; VaR/drawdown "
+                                  "look benign for the same reason")
     return jsonify(out), (200 if "error" not in out else 502)

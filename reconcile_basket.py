@@ -183,6 +183,10 @@ LEVELS = {"none": 0, "low": 0, "moderate": 1, "medium": 1, "elevated": 1,
           "high": 2, "severe": 2, "acute": 2, "extreme": 2, "critical": 2}
 
 HOLD_DAYS = int(os.environ.get("RECON_HOLD_DAYS", 182))
+# Round 4 backtest (research/ROUND4.md): inside the hold, a name that has left the top 35,
+# is below its 150-day average and is up at most this much (%) is sold - no or little tax
+# is due, and the slot goes to a current leader. +1..3 pts/yr expected.
+TAX_SELL_GAIN_PCT = float(os.environ.get("RECON_TAX_SELL_GAIN_PCT", 2.0))
 WEIGHT_RATIO = float(os.environ.get("RECON_WEIGHT_RATIO", 3.0))
 
 UNRANKED = 10**6
@@ -352,7 +356,8 @@ def _holdings(v, cur_added):
         else:
             v = [x.strip() for x in t.split(",") if x.strip()]
     if isinstance(v, dict):
-        v = next((x for x in v.values() if isinstance(x, list)), [])
+        v = v.get("holdings") if isinstance(v.get("holdings"), list) else \
+            next((x for x in v.values() if isinstance(x, list)), [])
     out = {}
     for x in v:
         if isinstance(x, dict):
@@ -363,6 +368,26 @@ def _holdings(v, cur_added):
         if sym:
             out[sym] = since or cur_added.get(sym)
     return out
+
+
+def _holding_facts(v):
+    """({symbol: {gain_pct, below_sma}}, {symbol: exit kind}) from /holdings' holdings_json
+    ({"holdings": [...], "exited": [...]}); empty for the old list format."""
+    if isinstance(v, str):
+        t = v.strip()
+        if not t.startswith("{"):
+            return {}, {}
+        v = json.loads(t)
+    if not isinstance(v, dict):
+        return {}, {}
+    facts = {}
+    for x in v.get("holdings") or []:
+        if isinstance(x, dict) and _sym(x):
+            facts[_sym(x)] = {"gain_pct": _to_float(_get(x, "gain_pct")),
+                              "below_sma": _get(x, "below_sma") is True}
+    exited = {_sym(x): str(_get(x, "kind", default="exit")) for x in v.get("exited") or []
+              if isinstance(x, dict) and _sym(x)}
+    return facts, exited
 
 
 def reconcile(proposed, current, candidates, today=None, sector_returns=None, stressed_extra=None,
@@ -500,6 +525,7 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
         }
 
     held = _holdings(holdings, {s: c["added_on"] for s, c in cur.items()})
+    hold_facts, exited = _holding_facts(holdings)
 
     def held_days(s):
         if s not in held:
@@ -668,6 +694,21 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
         final[s] = mk_row(base, today, 0, "added")
         log(s, "added", why, rank=rank.get(s), score=score_of(s))
 
+    # --- step B2: names the daily rebalance sold (trend exit, stop, thesis exit) and has
+    # not bought back leave the basket and their slot goes to the best candidate at once
+    # (round 4: refilling beats letting the slot wait in cash for a buy-back).
+    exit_refills = []
+    for s in list(final):
+        if s in cur and s in exited and s not in held:
+            final.pop(s)
+            exit_refills.append(s)
+            log(s, "dropped", f"sold by the daily rebalance ({exited[s]} exit) and not bought back - "
+                "slot refilled now", kind="exit_refill")
+            ch = find_challenger(entry_bar=False)
+            if ch is not None:
+                base, from_micro = ch
+                add_entry(base, f"replaces {s} ({exited[s]} exit); " + describe(base, from_micro))
+
     # --- step C0: cluster cap — if the basket holds more than MAX_PER_CLUSTER names
     # of the same business, the weakest ones beyond the cap become drop candidates.
     over_cluster = set()
@@ -730,6 +771,15 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
                 kind = "low_conviction"
             else:
                 continue
+        f = hold_facts.get(s) or {}
+        if (kind in ("weak_score", "clean") and in_hold(s) and f.get("below_sma")
+                and (held_days(s) or 0) >= MIN_HOLD_DAYS
+                and f.get("gain_pct") is not None and f["gain_pct"] <= TAX_SELL_GAIN_PCT):
+            log(s, "note", f"tax-aware sale inside the hold (day {held_days(s)}): out of the top ranks, below its "
+                f"150-day average and {f['gain_pct']:+.1f}% since purchase - little or no tax, slot goes to a leader",
+                kind="tax_aware")
+            regular.append((s, "tax_aware"))
+            continue
         if kind != "red_flag" and in_hold(s):
             log(s, "kept", f"eligible to drop ({kind}) but in the 6-month hold (day {held_days(s)} of {HOLD_DAYS}) "
                 "— only a red flag, sector stress, a confirmed risk or the daily trend exit sell it now", kind="hold")
@@ -784,6 +834,8 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             "weak_score": f"score {score_of(s) if score_of(s) is None else round(score_of(s), 2)} below stay bar {STAY_MIN:.1f}",
             "red_flag": "a majority of Micro runs reported a thesis-breaking event (see its thesis/evidence)",
             "cluster_cap": f"more than {MAX_PER_CLUSTER} names in cluster '{cluster_of(s)}' — weakest one makes room",
+            "tax_aware": f"tax-aware sale inside the hold: out of the top ranks, below its 150-day average, "
+                         f"{(hold_facts.get(s) or {}).get('gain_pct', 0):+.1f}% since purchase",
         }[kind], kind=kind, score=score_of(s))
         add_entry(base, f"replaces {s}; " + describe(base, from_micro))
 
@@ -933,6 +985,9 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
     summary["hold_days"] = HOLD_DAYS
     summary["holdings_given"] = len(held)
     summary["in_hold"] = sorted(x for x in final if in_hold(x))
+    summary["exit_refills"] = exit_refills
+    summary["tax_aware_drops"] = sorted(a["symbol"] for a in actions if a.get("action") == "dropped"
+                                        and "tax_aware" in str(a.get("kind", "")) )
     summary["weights"] = {x: weights[x] for x in strength}
     summary["vetoed"] = sorted(s for s in scored if scored[s]["no_entry"])
     summary["review"] = sorted(x for x in final if x in scored and scored[x]["data_flag"])
