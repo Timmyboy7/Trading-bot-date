@@ -124,6 +124,9 @@ Step 7/8 (2026-10-12): select's momentum mode scores by 12-1 rank; reconcile add
     upgrade drops; red flags and sector stress still exit. Risk swaps remove, in
     this order: names added this run (not bought yet), names not held or past the
     hold, and names in the hold only when the risk is "high" and market-confirmed.
+  - watch per basket row (+ summary.watch): plain-text warnings the momentum rule
+    overrode - weak fundamentals (base score < 3.0), LLM data flag, LLMs disagree.
+    Log only; used to measure live whether flagged names lag the rest.
   - target_weight per basket row: rank-weighted, strongest 3x the weakest
     (RECON_WEIGHT_RATIO; backtest 6m excess vs SPY: equal +4.6%, 3:1 +5.7%,
     20:1 +6.7% with much larger swings).
@@ -304,6 +307,29 @@ def _sym(row):
 
 # ---------- core logic ----------
 
+def watch_note(sc):
+    """Plain-text warning for a basket row, '' if none. Log only - nothing is
+    blocked by it. Lets the Watchlist/Runs log track whether names the momentum
+    rule takes despite weak fundamentals or LLM doubts do worse than the rest
+    (the evidence needed before ever turning a veto on)."""
+    if not sc:
+        return ""
+    notes = []
+    flags = sc.get("flags") or []
+    bs = sc.get("base_score")
+    if "would_veto" in flags or "weak_fundamentals" in flags:
+        notes.append("weak fundamentals" + (f" (base score {bs:.1f})" if bs is not None else ""))
+    if sc.get("data_flag"):
+        notes.append("review: LLMs say the metrics misread this stock (one-offs, cycle peak, ...)")
+    if sc.get("uncertain"):
+        notes.append("LLMs disagree")
+    if "no_llm_review" in flags:
+        notes.append("no LLM review")
+    if "negative_equity" in flags:
+        notes.append("negative equity")
+    return "; ".join(notes)
+
+
 def target_weights(symbols_by_strength, ratio=None):
     """Linear rank weights: strongest gets `ratio` x the weakest; sums to 1."""
     ratio = WEIGHT_RATIO if ratio is None else ratio
@@ -403,6 +429,8 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
                           or "llm_data_anomaly" in (_get(r, "flags", default=[]) or [])),
             "no_entry": _get(r, "no_entry", default=False) is True,
             "mom_rank": _get(r, "mom_rank"),
+            "base_score": _to_float(_get(r, "base_score")),
+            "flags": list(_get(r, "flags", default=[]) or []),
         }
     score_mode = bool(scored)
     avoid = set(macro_avoid(macro_view))
@@ -888,6 +916,7 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             if (spy <= -0.5 and m < spy * EXPOSURE_NOTE_MULT) or (spy > -0.5 and m <= -10):
                 notes.append(f"{scn} {m:.0f}% (SPY {spy:.0f}%)")
         row["risk_exposure"] = "; ".join(notes)
+        row["watch"] = watch_note(scored.get(x))
     basket = sorted(final.values(), key=lambda r: (r["sector"], rank_of(r["symbol"])))
     summary = {
         "basket_size": len(basket),
@@ -907,6 +936,8 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
     summary["weights"] = {x: weights[x] for x in strength}
     summary["vetoed"] = sorted(s for s in scored if scored[s]["no_entry"])
     summary["review"] = sorted(x for x in final if x in scored and scored[x]["data_flag"])
+    # names kept despite a warning, so flagged vs unflagged returns can be compared live
+    summary["watch"] = {x: final[x]["watch"] for x in strength if final[x]["watch"]}
     if risk_before is not None:
         summary["risk_swaps"] = risk_swaps
         summary["risk_levels"] = {k: ("low", "elevated", "high")[v] +
