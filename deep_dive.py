@@ -16,6 +16,9 @@ Facts are code, judgment is LLM, decisions are code:
         3 of 3 say broken (the market may not have caught up yet).
     Otherwise the name is put on hold (no new buying) and logged.
   - With fewer than 3 readable votes an exit always needs the market confirmation and 2 yes.
+  - Price-shock trigger (code): a HELD name with news that fell >= DD_SHOCK_5D_PCT (10%) in 5 days
+    or >= DD_SHOCK_VS_SPY_PTS (8) points vs SPY since the news also goes to the committee, even if
+    the News Analyst missed it - the committee reads the raw news itself. Same exit rule.
   - Missing or failed LLM output never blocks trading: empty hold / exit, code rules still run.
 
 Endpoints (POST, JSON):
@@ -42,6 +45,10 @@ deep_dive_bp = Blueprint("deep_dive", __name__)
 DD_CONFIRM_DROP_PCT = float(os.environ.get("DD_CONFIRM_DROP_PCT", 8.0))
 DD_CONFIRM_VS_SPY_PTS = float(os.environ.get("DD_CONFIRM_VS_SPY_PTS", 5.0))
 NEWS_PER_NAME = int(os.environ.get("DD_NEWS_PER_NAME", 6))
+# Price-shock trigger: a held name with news that fell this much goes to the committee even if
+# the News Analyst saw no break (the committee reads the raw news itself).
+DD_SHOCK_5D_PCT = float(os.environ.get("DD_SHOCK_5D_PCT", 10.0))
+DD_SHOCK_VS_SPY_PTS = float(os.environ.get("DD_SHOCK_VS_SPY_PTS", 8.0))
 
 
 # --------------------------------------------------------------------------- parsing
@@ -223,12 +230,21 @@ def cases(facts, analyst_text):
     fx = {f["symbol"]: f for f in facts}
     items = analyst_items(analyst_text)
     out = []
-    for s, a in items.items():
-        if a["verdict"] == "break" and s in fx:
+    flagged = [(s, a["reason"], a["evidence"], "analyst") for s, a in items.items() if a["verdict"] == "break"]
+    for f in facts:
+        s = f["symbol"]
+        if s in items and items[s]["verdict"] == "break" or not f.get("held") or not f.get("news"):
+            continue
+        r5, rel = f.get("ret_5d_pct"), f.get("vs_spy_since_first_news_pts")
+        if (r5 is not None and r5 <= -DD_SHOCK_5D_PCT) or (rel is not None and rel <= -DD_SHOCK_VS_SPY_PTS):
+            flagged.append((s, f"price shock ({r5}% in 5 days, {rel} pts vs SPY since the news) - the News Analyst "
+                               "saw no break; judge the raw news yourself", "", "price_shock"))
+    for s, reason, evidence, source in flagged:
+        if s in fx:
             f = fx[s]
-            out.append({"symbol": s, "status": f["status"], "thesis": f["thesis"],
+            out.append({"symbol": s, "flagged_by": source, "status": f["status"], "thesis": f["thesis"],
                         "risk_exposure": f["risk_exposure"], "news": f["news"],
-                        "analyst_reason": a["reason"], "analyst_evidence": a["evidence"],
+                        "analyst_reason": reason, "analyst_evidence": evidence,
                         "move_since_first_news_pct": f["move_since_first_news_pct"],
                         "vs_spy_since_first_news_pts": f["vs_spy_since_first_news_pts"],
                         "gain_since_purchase_pct": f["gain_since_purchase_pct"]})
@@ -269,7 +285,7 @@ def decide(facts, analyst_text, votes):
         elif action == "hold":
             extra_hold.append(s)
         decisions.append({
-            "symbol": s, "action": action, "why": why, "analyst_reason": c["analyst_reason"],
+            "symbol": s, "action": action, "why": why, "flagged_by": c["flagged_by"], "analyst_reason": c["analyst_reason"],
             "evidence": c["analyst_evidence"], "move_since_news_pct": mv, "vs_spy_pts": rel,
             "votes": {m: {"broken": _truthy(v.get(s, {}).get("broken")) if s in v else None,
                           "reason": str(v.get(s, {}).get("reason") or "")[:200]} for m, v in parsed.items()},
