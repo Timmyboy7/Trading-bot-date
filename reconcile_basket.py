@@ -419,6 +419,12 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
         vals = [moves[x][scn] for x in syms if x in moves and scn in moves[x]]
         return sum(vals) / len(vals) if vals else None
 
+    def padded_move(scn, syms):
+        """basket move with empty slots (up to BASKET_SIZE) counted as SPY"""
+        vals = [moves[x][scn] for x in syms if x in moves and scn in moves[x]]
+        pad = max(BASKET_SIZE - len(vals), 0)
+        return (sum(vals) + pad * spy_moves.get(scn, 0.0)) / max(len(vals) + pad, 1)
+
     def limit_for(scn):
         lvl = levels.get(scn, 0)
         spy = spy_moves.get(scn, 0.0)
@@ -610,10 +616,13 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             if risk_ok is not None and not risk_ok(s):
                 continue
             if risk_ok is None and moves and spy_moves and s in moves:
-                # never let a new entry create or deepen a risk-limit breach
+                # never let a new entry create or deepen a risk-limit breach. Judged on a FULL
+                # basket: empty slots count as behaving like SPY, so on a cold start the first
+                # (strongest) names are not rejected for breaching a limit on their own.
                 now = list(final)
-                worse = [scn for scn, bm2, _ in breaches(now + [s])
-                         if basket_move(scn, now) is None or basket_move(scn, now + [s]) < basket_move(scn, now) - 1e-9]
+                worse = [scn for scn in spy_moves
+                         if padded_move(scn, now + [s]) < limit_for(scn)
+                         and padded_move(scn, now + [s]) < padded_move(scn, now) - 1e-9]
                 if worse:
                     continue
             return base, from_micro
