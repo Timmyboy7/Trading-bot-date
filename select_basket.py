@@ -77,6 +77,7 @@ SELECT_MODE = os.environ.get("SELECT_MODE", "momentum")
 # showed the veto neutral within noise (none +4.6%, 3.0 +4.0%, 3.25 +4.7% 6m vs SPY) and it did not
 # reduce the worst half-year. Set SELECT_QUALITY_FLOOR=3.0 to keep hype rallies without fundamentals out.
 QUALITY_FLOOR = float(os.environ.get("SELECT_QUALITY_FLOOR", 0))
+VETO_WATCH = 3.0   # with the veto off, names below this are flagged "would_veto" (log only)
 
 
 def momentum_score(rank, n, basket=None):
@@ -453,6 +454,9 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
             if QUALITY_FLOOR > 0 and base_score < QUALITY_FLOOR:
                 no_entry = True
                 flags.append("weak_fundamentals")
+            elif base_score < VETO_WATCH:
+                # veto is off, but log who it WOULD have stopped, so its value can be measured live
+                flags.append("would_veto")
         else:
             mom_rank = cand_rank.get(s)
             new = min(max(base_score + overlay + adj, 1.0), 5.0)
@@ -532,6 +536,7 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
         "mode": "overlay" if SELECT_MODE != "momentum" else "momentum",
         "shadow_score_basket": shadow_basket,
         "no_entry": sorted(r["symbol"] for r in ranking if r.get("no_entry")),
+        "would_veto": sorted(r["symbol"] for r in ranking if "would_veto" in r.get("flags", [])),
         "scored_symbols": len(ranking),
         "proposed": len(proposed),
         "blend": blend,
