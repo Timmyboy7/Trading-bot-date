@@ -456,6 +456,10 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
             "runs": len(vals),
             "uncertain": uncertain,
             "red_flag": red_flag,
+            # a majority of runs say the code's metrics don't fit this stock (REIT P/E,
+            # cyclical peak, near-zero earnings...): reconcile raises its entry bar and
+            # lists it for review; it is NOT a sell signal
+            "data_flag": anomaly,
             "cluster": cluster,
             "flags": sorted(set(flags)),
             "pillars": _get(b, "pillars", default={}),
@@ -481,6 +485,7 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
         "reviewed_by_llm": sum(1 for r in ranking if r["runs"]),
         "uncertain": sorted(r["symbol"] for r in ranking if r["uncertain"]),
         "red_flags": sorted(r["symbol"] for r in ranking if r["red_flag"]),
+        "data_flags": sorted(r["symbol"] for r in ranking if r["data_flag"]),
         "overlay_nonzero": sorted(f"{r['symbol']} {r['overlay']:+.2f}" for r in ranking if r["overlay"]),
         "sector_counts": counts,
     }

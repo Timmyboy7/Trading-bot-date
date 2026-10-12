@@ -21,8 +21,12 @@ What it answers, every week:
   3. History: what this exact basket would actually have done over the last
      year: volatility, max drawdown, worst month, 95% one-month VaR, vs SPY.
 
-Pipeline position (weekly Discovery scenario):
-    ... -> select (Render 5) -> reconcile (Render 4) -> THIS -> Runs log
+Pipeline position (weekly Discovery scenario), since 2026-10-11:
+    ... -> select (Render 5) -> THIS -> Risk Analyst -> reconcile (Render 4) -> Watchlist
+The basket here is the CURRENT Watchlist (what we hold going into the week);
+`universe` adds every name select scored, so reconcile knows how each possible
+replacement would behave in every scenario and can enforce risk limits
+(scenario_moves_json). Before 2026-10-11 this ran after reconcile and only logged.
 
 Endpoint:
     POST /stress-test
@@ -30,6 +34,9 @@ Endpoint:
       {
         "basket":  "AAA,BBB,..."   // Render 4 basket_symbols (csv or JSON list)
         "weights": {"AAA": 0.05}   // optional; default equal weight
+        "universe": "CCC,DDD,..."  // optional: more names (csv, JSON list, or select's ranking_json)
+                                   // that only get per-stock scenario moves, for reconcile.
+                                   // If basket is empty (first run), the first 20 of universe are used.
       }
 
 Response:
@@ -45,6 +52,8 @@ Response:
       "stress_json": "...",     // compact string for the Runs log (one cell)
       "risk_input_json": "...", // everything the Risk Analyst LLM needs, one mapping
       "summary_json": "...",
+      "scenario_moves_json": "...", // {"spy": {scenario: pct}, "symbols": {SYM: {scenario: pct}}}
+                                    // for basket + universe -> reconcile's risk limits
       "errors": [...]
     }
 
@@ -311,12 +320,65 @@ def market_context(closes):
     return ctx
 
 
+def market_confirmation(ctx):
+    """Has the market itself started to move toward a scenario? Code-only check; reconcile
+    tightens a risk limit only when the Risk Analyst says "high" AND this is true
+    (headlines alone never tighten). Thresholds are 1-month moves of the factor ETFs."""
+    def g(label, key):
+        return (ctx.get(label) or {}).get(key)
+    spy1m, smh1m = g("market", "ret_1m_pct"), g("ai", "ret_1m_pct")
+    uso1m, tlt1m, mtum1m = g("oil", "ret_1m_pct"), g("rates_tlt", "ret_1m_pct"), g("momentum", "ret_1m_pct")
+    high = g("market", "from_1y_high_pct")
+    ok = lambda *v: all(x is not None for x in v)
+    return {
+        "market_crash": bool((ok(spy1m) and spy1m <= -7) or (ok(high) and high <= -10)),
+        "ai_bust": bool((ok(smh1m) and smh1m <= -10) or (ok(smh1m, spy1m) and smh1m - spy1m <= -8)),
+        "oil_spike": bool(ok(uso1m) and uso1m >= 15),
+        "oil_crash": bool(ok(uso1m) and uso1m <= -15),
+        "rate_shock": bool(ok(tlt1m) and tlt1m <= -5),
+        "momentum_reversal": bool(ok(mtum1m, spy1m) and mtum1m - spy1m <= -5),
+    }
+
+
+CONFIRM_RULES = ("1-month moves: market_crash SPY <= -7% or >= 10% below 1y high; ai_bust SMH <= -10% "
+                 "or 8 points worse than SPY; oil_spike USO >= +15%; oil_crash USO <= -15%; "
+                 "rate_shock TLT <= -5%; momentum_reversal MTUM 5 points worse than SPY")
+
+
 # --------------------------------------------------------------------------- core
 
-def compute(basket, weights=None, closes=None, news=None):
+def scenario_moves(closes, symbols, factor_dates):
+    """Per-stock estimated move (in %) in every scenario, each stock on its OWN
+    calendar (so one young listing can't shorten everyone's history)."""
+    spy = {n: round(sh["market"] * 100, 2) for n, _, sh in SCENARIOS}
+    spy[AI_SCENARIO[0]] = round(AI_SCENARIO[2]["market"] * 100, 2)
+    out, skipped = {}, []
+    for s in symbols:
+        dates = sorted(factor_dates & set(closes.get(s, {})))
+        if len(dates) < MIN_DAYS:
+            skipped.append(s)
+            continue
+        r = {x: _returns(closes[x], dates) for x in [s] + list(FACTOR_ETFS)}
+        fac = {"market": r["SPY"], "oil": r["USO"], "rates_tlt": r["TLT"],
+               "momentum": [m - q for m, q in zip(r["MTUM"], r["SPY"])]}
+        b, _ = ols(r[s], [fac[f] for f in FACTORS])
+        if b is None:
+            skipped.append(s)
+            continue
+        by = dict(zip(FACTORS, b))
+        ab, _ = ols(r[s], [fac["market"], [a - q for a, q in zip(r["SMH"], r["SPY"])]])
+        mv = {n: round(sum(by[f] * sh[f] for f in FACTORS) * 100, 2) for n, _, sh in SCENARIOS}
+        n, _, sh = AI_SCENARIO
+        mv[n] = round(((ab[0] * sh["market"] + ab[1] * sh["ai"]) if ab else 0.0) * 100, 2)
+        out[s] = mv
+    return {"spy": spy, "symbols": out, "skipped": skipped}
+
+
+def compute(basket, weights=None, closes=None, news=None, universe=None):
     errors = []
+    universe = [u for u in (universe or []) if u not in basket]
     if closes is None:
-        closes, errors = fetch_dated_closes(basket + list(FACTOR_ETFS))
+        closes, errors = fetch_dated_closes(basket + universe + list(FACTOR_ETFS))
     if news is None:
         news, news_errors = fetch_theme_news()
         errors += news_errors
@@ -462,7 +524,13 @@ def compute(basket, weights=None, closes=None, news=None):
         "worst_scenario": min(scenarios, key=lambda x: x["basket_pct"])["name"],
         "warnings": len(warnings),
     }
+    moves = scenario_moves(closes, basket + universe, factor_dates)
+    moves["confirmed"] = market_confirmation(ctx)
+    moves["confirm_rules"] = CONFIRM_RULES
+    if moves["skipped"]:
+        errors.append(f"no scenario moves (short history): {','.join(moves['skipped'][:15])}")
     return {
+        "scenario_moves_json": json.dumps(moves, separators=(",", ":")),
         "as_of": compact["as_of"], "weights": wmode, "days": len(dates) - 1,
         "exposures": exposures, "scenarios": scenarios, "history": history,
         "per_symbol": per, "warnings": warnings,
@@ -479,12 +547,15 @@ def stress_test():
     body = request.get_json(force=True, silent=True) or {}
     try:
         basket = _symbols(body.get("basket"))
+        universe = _symbols(body.get("universe"))
         weights = _load(body.get("weights")) if body.get("weights") else None
     except (ValueError, TypeError) as e:
         return jsonify({"error": f"could not parse input: {e}"}), 400
     if not basket:
+        basket = universe[:20]   # first run: no Watchlist yet -> stress the top of the ranking
+    if not basket:
         return jsonify({"error": "basket is empty"}), 400
     if weights is not None and not isinstance(weights, dict):
         return jsonify({"error": "weights must be an object like {\"AAA\": 0.05}"}), 400
-    out = compute(basket, weights)
+    out = compute(basket, weights, universe=universe)
     return jsonify(out), (200 if "error" not in out else 502)

@@ -32,7 +32,8 @@ from fair_value import (CAPEX_CONCEPTS, NI_CONCEPTS, OCF_CONCEPTS, OPINC_CONCEPT
 
 # banks (e.g. JPM) stopped tagging "Revenues" years ago and report net revenue instead
 REVENUE_TAGS = tuple(REVENUE_CONCEPTS) + ("RevenuesNetOfInterestExpense",)
-STALE_DAYS = 200            # newest quarter older than this -> tags not recognised, report no data
+STALE_DAYS = 200
+MIN_BASE_MARGIN = 0.02      # earnings growth only from a year-ago net margin of at least 2%            # newest quarter older than this -> tags not recognised, report no data
 
 TREND_QUARTERS = 4          # quarters shown in the trend strings / q_* lists (oldest -> newest)
 HISTORY_QUARTERS = 8        # quarters kept so year-on-year growth can be computed
@@ -236,6 +237,20 @@ def _yoy_dated(vals, ends):
     return None
 
 
+def _earnings_growth(ni, rev, ends):
+    """Year-on-year profit growth, but only when last year's quarter was a real profit
+    (net margin >= MIN_BASE_MARGIN). From a near-zero or loss base the percentage
+    explodes (SNDK +29,000%) and means nothing, so it is left out (null)."""
+    if not ni or ni[-1] is None:
+        return None
+    for v, r, e in zip(ni, rev, ends):
+        if 340 <= (ends[-1] - e).days <= 390:
+            if v is None or r in (None, 0) or v <= 0 or v / r < MIN_BASE_MARGIN:
+                return None
+            return (ni[-1] - v) / v
+    return None
+
+
 def _cap_one_offs(ni, op):
     """Net profit above after-tax operating profit (+20%) is a one-off gain (e.g. investment
     gains at Alphabet/NVIDIA) - cap it, same rule as fair_value."""
@@ -304,7 +319,7 @@ def build(s, price):
         "forward_pe": None,
         "peg_ratio": None,
         "revenue_growth_yoy": _yoy_dated(rev, ends),
-        "earnings_growth_yoy": _yoy_dated(ni, ends),
+        "earnings_growth_yoy": _earnings_growth(ni, rev, ends),
         "gross_margin": _ratio(gross_ttm, rev_ttm),
         "operating_margin": _ratio(op_ttm, rev_ttm),
         "profit_margin": _ratio(ni_ttm, rev_ttm),

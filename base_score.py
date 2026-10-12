@@ -257,7 +257,11 @@ def score_symbol(sym, sector, f, p):
             comp["t_fundamentals_confirm"] = 3 if rev_g > 0.10 else 2 if rev_g >= 0 else 1
 
     # RISK (5 = low risk): leverage, volatility, drawdown
-    if sector not in NO_DEBT_SCORE and de is not None:
+    if sector not in NO_DEBT_SCORE and de is not None and de < 0:
+        # negative equity (debt-funded buybacks or losses): leverage is extreme, not low
+        comp["r_debt_to_equity"] = 1
+        flags.append("negative_equity")
+    elif sector not in NO_DEBT_SCORE and de is not None:
         comp["r_debt_to_equity"] = 5 if de < 50 else 4 if de < 100 else 3 if de < 200 else 2 if de < 400 else 1
     vol = _f(p.get("volatility_63d"))
     if vol is not None:
