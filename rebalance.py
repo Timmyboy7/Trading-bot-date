@@ -37,8 +37,9 @@ the account match it. v1 written 2026-10-11 (equal weight, hard stop); v2
 
   New money (savings plan, dividends, leftovers): once spare cash above the floor
   exceeds REBAL_DEPLOY_MIN_PCT (2%) of capital, it goes to the names furthest below
-  their target (never above it, never past the current tranche) - buying laggards is
-  the tax-free way to rebalance.
+  their target (never above it, never past the current tranche) and still in a healthy
+  trend (above the 150-day average, no spike, no falling knife) - topping up is the
+  tax-free way to rebalance, and money never goes into a name that is breaking down.
 
   Savings-plan simulation (Alpaca paper takes no deposits): reset the paper account to
   a larger balance, set REBAL_PAPER_BALANCE to it and REBAL_MONTHLY_DEPOSIT (e.g. 100).
@@ -413,6 +414,11 @@ def plan(basket_rows, account, positions, ind, since, last_orders, hold=(), exit
                 skipped.append({"symbol": sym, "reason": wait + f" - waits at most {MAX_WAIT_DAYS} days after the weekly run"})
                 continue
             in_buildup = not held or held_days(sym) < TRANCHES * TRANCHE_DAYS
+            if not in_buildup and i and i["sma"] and i["close"] < i["sma"]:
+                # a built-up name that sank below target AND its 150-day average gets no top-up
+                notes[sym] = (f"below target ({value:.2f} vs {target:.2f}) but below its {SMA_DAYS}-day average "
+                              "- no top-up until the trend recovers")
+                continue
             kind = "new" if not held else ("tranche" if in_buildup else "drift")
             step = min(TRANCHES, int(round(frac * TRANCHES)))
             reason = (f"tranche {step}/{TRANCHES} of target {target:.2f} ({weights.get(sym, 0):.1%} of the basket)"
@@ -434,14 +440,18 @@ def plan(basket_rows, account, positions, ind, since, last_orders, hold=(), exit
                           "client_order_id": f"tb-trim-{sym}-{stamp}"})
 
     proceeds = sum(s["amount_usd"] for s in sells)
-    deployed = deploy_spare(buys, room, skipped, cash + proceeds, capital, stamp)
+    # new money only to names in a healthy trend: above the 150-day average, no spike, no falling knife
+    unhealthy = {x for x in room if not ind.get(x) or (ind[x]["sma"] and ind[x]["close"] < ind[x]["sma"])
+                 or (ind[x]["ret10"] is not None and ind[x]["ret10"] <= -KNIFE_PCT)
+                 or (ind[x]["ret5"] is not None and ind[x]["ret5"] >= SPIKE_PCT)}
+    deployed = deploy_spare(buys, room, skipped, cash + proceeds, capital, stamp, unhealthy)
     scale = scale_buys(buys, cash + proceeds, capital)
     return {"capital": round(capital, 2), "investable": round(investable, 2), "weights": weights,
             "sells": sells, "buys": buys, "skipped": skipped, "notes": notes, "buy_scale": scale,
             "deployed_spare": deployed}
 
 
-def deploy_spare(buys, room, skipped, cash_available, capital, stamp):
+def deploy_spare(buys, room, skipped, cash_available, capital, stamp, unhealthy=()):
     """New money (deposits, dividends, leftovers) goes to the names furthest below their
     target, never above it. Buying the laggards is the tax-free way to rebalance.
     Only runs when spare cash above the floor exceeds DEPLOY_MIN_PCT of capital. Mutates buys."""
@@ -449,7 +459,7 @@ def deploy_spare(buys, room, skipped, cash_available, capital, stamp):
     spare = cash_available - sum(b["amount_usd"] for b in buys) - CASH_FLOOR * capital
     if spare < max(MIN_ORDER_USD, DEPLOY_MIN_PCT * capital):
         return 0.0
-    waiting = {x["symbol"] for x in skipped}
+    waiting = {x["symbol"] for x in skipped} | set(unhealthy)
     gaps = {s: d - v - (planned[s]["amount_usd"] if s in planned else 0.0)
             for s, (d, v) in room.items() if s not in waiting}
     gaps = {s: g for s, g in gaps.items() if g > 0.5}
