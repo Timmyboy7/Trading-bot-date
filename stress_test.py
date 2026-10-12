@@ -134,9 +134,13 @@ def _load(v):
 
 def _symbols(v):
     v = _load(v) or []
+    if isinstance(v, dict):   # Make aggregators may wrap the rows: {"array": [...]} / {"rows": [...]}
+        v = next((x for x in v.values() if isinstance(x, list)), [])
     out = []
     for x in v:
-        s = x.get("symbol") if isinstance(x, dict) else x
+        if isinstance(x, dict):   # sheet rows: "Symbol", "symbol", "SYMBOL" ...
+            x = next((val for k, val in x.items() if str(k).strip().lower() == "symbol"), None)
+        s = x
         s = str(s or "").strip().upper()
         if s and s not in out:
             out.append(s)
