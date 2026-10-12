@@ -73,7 +73,10 @@ MEDIUM_AT = float(os.environ.get("SELECT_MEDIUM_AT", 3.2))
 # tested edge, backtest round 2); base score and LLM committee only VETO entries.
 # SELECT_MODE=score restores the old base-score + overlay selection.
 SELECT_MODE = os.environ.get("SELECT_MODE", "momentum")
-QUALITY_FLOOR = float(os.environ.get("SELECT_QUALITY_FLOOR", 3.0))   # base score below -> no new entry
+# base score below -> no new entry. Default 0 = off (owner decision 2026-10-12): backtest round 3
+# showed the veto neutral within noise (none +4.6%, 3.0 +4.0%, 3.25 +4.7% 6m vs SPY) and it did not
+# reduce the worst half-year. Set SELECT_QUALITY_FLOOR=3.0 to keep hype rallies without fundamentals out.
+QUALITY_FLOOR = float(os.environ.get("SELECT_QUALITY_FLOOR", 0))
 
 
 def momentum_score(rank, n, basket=None):
@@ -447,7 +450,7 @@ def select_overlay(base, overlay_runs, previous, candidates, blend=DEFAULT_BLEND
             old = None
             blended = new
             shadow[s] = min(max(base_score + overlay + adj, 1.0), 5.0)   # old selection, logged for comparison
-            if base_score < QUALITY_FLOOR:
+            if QUALITY_FLOOR > 0 and base_score < QUALITY_FLOOR:
                 no_entry = True
                 flags.append("weak_fundamentals")
         else:
