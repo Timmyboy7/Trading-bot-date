@@ -67,6 +67,7 @@ Never uses margin.
 """
 import datetime
 import json
+import re
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -123,12 +124,21 @@ LOOKBACK_DAYS = 420
 # --------------------------------------------------------------------------- input
 
 def _parse(v):
+    """List of rows/strings from JSON (list or wrapped), or a csv like "SNDK:5,MU:4.84" / "SNDK,MU".
+    Malformed JSON (e.g. a Make text aggregator that did not render) falls back to a regex
+    over "symbol"/"score" pairs, then to the csv reading."""
     if isinstance(v, str):
         s = v.strip()
         if s.startswith("[") or s.startswith("{"):
-            v = json.loads(s)
+            try:
+                v = json.loads(s)
+            except ValueError:
+                pairs = re.findall(r'"?symbol"?\s*:\s*"?([A-Za-z.\-]+)"?\s*,\s*"?score"?\s*:\s*"?([0-9.,]*)"?', s)
+                if pairs:
+                    return [{"symbol": a, "score": b} for a, b in pairs]
+                v = [x for x in re.split(r"[,;\s]+", s.strip("[]{} ")) if x]
         else:
-            v = [x for x in s.split(",")]
+            v = [x for x in re.split(r"[;,\n]+", s) if x.strip()]
     if isinstance(v, dict):
         v = next((x for x in v.values() if isinstance(x, list)), [])
     return v or []
@@ -156,8 +166,9 @@ def parse_basket(v):
         if isinstance(x, dict):
             s, sc, w = _key(x, "symbol"), _num(_key(x, "score")), _num(_key(x, "target_weight"))
         else:
-            s, sc, w = x, None, None
-        s = str(s or "").strip().upper()
+            s, sc, w = (str(x).split(":", 1) + [None])[:2] + [None]
+            sc = _num(sc)
+        s = str(s or "").strip().strip('"').upper()
         if s and s not in seen:
             seen.add(s)
             out.append((s, sc, w))
