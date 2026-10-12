@@ -123,10 +123,16 @@ def valuation():
         # answer now; stragglers keep running in the background and land in the cache
         pool.shutdown(wait=False)
 
-    return jsonify(
-        {
-            "as_of": datetime.date.today().isoformat(),
-            "fundamentals": json.dumps(fundamentals),
-            "errors": errors,
-        }
-    )
+    out = {
+        "as_of": datetime.date.today().isoformat(),
+        "fundamentals": json.dumps(fundamentals),
+        "errors": errors,
+    }
+    if request.args.get("debug"):
+        # which SEC tags each company actually files (recent periods, largest first)
+        for sym in symbols:
+            if sym not in sec._INVENTORY:
+                sec._CACHE.pop(sym, None)
+                sec.summary_for(sym)
+        out["tag_inventory"] = {sym: sec._INVENTORY.get(sym) for sym in symbols}
+    return jsonify(out)

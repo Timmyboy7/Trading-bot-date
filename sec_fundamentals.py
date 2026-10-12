@@ -53,6 +53,7 @@ DEBT_GROUPS = (
 )
 
 _CACHE = {}  # sym -> (ts, (facts_summary, error))
+_INVENTORY = {}  # sym -> recent tags (for /valuation?debug=1)
 
 
 # --------------------------------------------------------------------------- pure parsing
@@ -195,6 +196,32 @@ def _is_capex_name(n):
                                                                 "CapitalExpendituresAndInvestments")
 
 
+def _gaps(vals, k=4):
+    """True if any of the latest k values is missing."""
+    return any(v is None for v in vals[-k:])
+
+
+def _fill(vals, alt):
+    """keep known values, fill the missing ones from alt"""
+    return [v if v is not None else a for v, a in zip(vals, alt)]
+
+
+def tag_inventory(facts, days=400):
+    """Debug: every us-gaap USD concept with a period ending in the last `days` days,
+    latest value first. Shows which tags a company really uses."""
+    today = datetime.date.today()
+    out = []
+    for n in _concepts(facts):
+        rows = [r for r in _rows(facts, n) if r.get("end") and r.get("val") is not None]
+        if not rows:
+            continue
+        r = max(rows, key=lambda r: (r["end"], r.get("filed", "")))
+        if (today - _date(r["end"])).days <= days:
+            out.append({"tag": n, "start": r.get("start"), "end": r["end"], "val": r["val"], "form": r.get("form")})
+    out.sort(key=lambda x: -abs(float(x["val"])))
+    return out
+
+
 def best_recent(facts, names):
     """(series, name) of the concept with the most recent quarter; ties -> larger latest value
     (a total is at least as big as any of its parts)."""
@@ -218,6 +245,14 @@ def summarize(facts):
         if alt and (not rev or alt[-1][0] > rev[-1][0]):
             rev = alt
             tags.append(f"revenue tag {name}")
+    if len(rev) < 2 or (datetime.date.today() - rev[-1][0]).days > STALE_DAYS:
+        # banks: revenue = net interest income + non-interest income
+        nii = quarterly(facts, ("InterestIncomeExpenseNet", "InterestIncomeExpenseAfterProvisionForLoanLoss"))
+        fees = dict(quarterly(facts, ("NoninterestIncome",)))
+        bank = [(e, v + fees[e]) for e, v in nii if e in fees]
+        if len(bank) >= 2 and (not rev or bank[-1][0] > rev[-1][0]):
+            rev = bank
+            tags.append("revenue = net interest income + non-interest income")
     if len(rev) < 2:
         return None, "fewer than 2 quarters of revenue in SEC filings (insurer layout, foreign filer or new listing)"
     if (datetime.date.today() - rev[-1][0]).days > STALE_DAYS:
@@ -228,22 +263,26 @@ def summarize(facts):
         cost = _align(quarterly(facts, COST_CONCEPTS), ends)
         gross = [(r - c) if c is not None else None for (_, r), c in zip(rev, cost)]
     op = _align(quarterly(facts, OPINC_CONCEPTS), ends)
-    if all(v is None for v in op):
+    if _gaps(op):   # missing in recent quarters (older filings may still have the line)
         costs = _align(quarterly(facts, COSTS_CONCEPTS), ends)
-        if any(v is not None for v in costs):
-            op = [(r - c) if c is not None else None for (_, r), c in zip(rev, costs)]
-            tags.append("operating income = revenue - total costs")
-        else:
-            pre = _align(quarterly(facts, PRETAX_CONCEPTS), ends)
-            if any(v is not None for v in pre):
-                op = pre
-                tags.append("operating income = pre-tax income")
+        alt = [(r - c) if c is not None else None for (_, r), c in zip(rev, costs)]
+        how = "revenue - total costs"
+        if _gaps(alt):
+            alt = _fill(alt, _align(quarterly(facts, PRETAX_CONCEPTS), ends))
+            how = "revenue - total costs / pre-tax income"
+        if not _gaps(_fill(op, alt)) or sum(v is not None for v in _fill(op, alt)[-4:]) > sum(v is not None for v in op[-4:]):
+            op = _fill(op, alt)
+            tags.append(f"operating income = {how} where not reported")
     capex = _align(quarterly(facts, CAPEX_CONCEPTS), ends)
-    if all(v is None for v in capex):
-        alt, name = best_recent(facts, [n for n in _concepts(facts) if _is_capex_name(n)])
+    if _gaps(capex):
+        cands = [n for n in _concepts(facts) if _is_capex_name(n) and n not in CAPEX_CONCEPTS]
+        alt, name = best_recent(facts, cands)
         if alt:
-            capex = _align(alt, ends)
-            tags.append(f"capex tag {name}")
+            filled = _fill(capex, _align(alt, ends))
+            if sum(v is not None for v in filled[-4:]) > sum(v is not None for v in capex[-4:]):
+                capex = filled
+                tags.append(f"capex tag {name}")
+    ocf = _align(quarterly(facts, OCF_CONCEPTS), ends)
     out = {
         "tags": tags,
         "ends": ends,
@@ -251,7 +290,7 @@ def summarize(facts):
         "gross": gross,
         "op_inc": op,
         "net_inc": _align(quarterly(facts, NI_CONCEPTS), ends),
-        "ocf": _align(quarterly(facts, OCF_CONCEPTS), ends),
+        "ocf": ocf,
         "capex": capex,
         "eps": _align(quarterly(facts, EPS_CONCEPTS, unit="USD/shares"), ends),
         "debt_to_equity": latest_debt_to_equity(facts),
@@ -437,6 +476,7 @@ def summary_for(sym):
         else:
             facts = _get(f"https://data.sec.gov/api/xbrl/companyfacts/CIK{int(cik):010d}.json", as_json=True)
             res = summarize(facts)
+            _INVENTORY[sym] = tag_inventory(facts)[:60]
     except Exception as e:   # network errors are not cached for long
         res = (None, f"SEC fetch failed: {e}")
         _CACHE[sym] = (time.time() - CACHE_TTL_SEC + 300, res)
