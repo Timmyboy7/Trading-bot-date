@@ -223,6 +223,8 @@ def analyst_items(text, text2=None):
     for s, x in b.items():
         if s not in out or rank[x["verdict"]] > rank[out[s]["verdict"]]:
             out[s] = dict(x, reason=x["reason"] + (" [2nd analyst]" if s in a else " [2nd analyst only]"))
+    for s in out:
+        out[s]["any_wait"] = (a.get(s, {}).get("verdict") == "wait") or (b.get(s, {}).get("verdict") == "wait")
     return out
 
 
@@ -260,7 +262,7 @@ def cases(facts, analyst_text, analyst_text2=None):
                         "move_since_first_news_pct": f["move_since_first_news_pct"],
                         "vs_spy_since_first_news_pts": f["vs_spy_since_first_news_pts"],
                         "gain_since_purchase_pct": f["gain_since_purchase_pct"]})
-    hold = sorted(s for s, a in items.items() if a["verdict"] == "wait")
+    hold = sorted(s for s, a in items.items() if a["verdict"] == "wait" or a.get("any_wait"))
     return out, hold, items
 
 
