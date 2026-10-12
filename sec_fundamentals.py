@@ -244,7 +244,7 @@ def summarize(facts):
         alt, name = best_recent(facts, [n for n in _concepts(facts) if _is_revenue_name(n)])
         if alt and (not rev or alt[-1][0] > rev[-1][0]):
             rev = alt
-            tags.append(f"revenue tag {name}")
+            tags = [f"revenue tag {name}"]
     if len(rev) < 2 or (datetime.date.today() - rev[-1][0]).days > STALE_DAYS:
         # banks: revenue = net interest income + non-interest income
         nii = quarterly(facts, ("InterestIncomeExpenseNet", "InterestIncomeExpenseAfterProvisionForLoanLoss"))
@@ -252,7 +252,16 @@ def summarize(facts):
         bank = [(e, v + fees[e]) for e, v in nii if e in fees]
         if len(bank) >= 2 and (not rev or bank[-1][0] > rev[-1][0]):
             rev = bank
-            tags.append("revenue = net interest income + non-interest income")
+            tags = ["revenue = net interest income + non-interest income"]
+    if len(rev) < 2 or (datetime.date.today() - rev[-1][0]).days > STALE_DAYS:
+        # no revenue line in standard tags (e.g. APA files it under its own tag):
+        # pre-tax income = revenue - total costs and expenses  ->  revenue = pre-tax + costs
+        pre = dict(quarterly(facts, PRETAX_CONCEPTS))
+        costs = quarterly(facts, ("CostsAndExpenses",))
+        derived = [(e, c + pre[e]) for e, c in costs if e in pre and c + pre[e] > 0]
+        if len(derived) >= 2 and (not rev or derived[-1][0] > rev[-1][0]):
+            rev = derived
+            tags = ["revenue = pre-tax income + total costs (no revenue tag filed)"]
     if len(rev) < 2:
         return None, "fewer than 2 quarters of revenue in SEC filings (insurer layout, foreign filer or new listing)"
     if (datetime.date.today() - rev[-1][0]).days > STALE_DAYS:
