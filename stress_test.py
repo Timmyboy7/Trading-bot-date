@@ -324,6 +324,23 @@ def market_context(closes):
     return ctx
 
 
+MOVE_CAP_PCT = 75.0   # no single stock is assumed to lose (or gain) more than this in one scenario
+
+
+def winsorize(xs, q=0.01):
+    """Clip a return series at its 1st/99th percentile, so a few extreme days (e.g. MRNA's
+    +236% rally) cannot dominate a regression and produce absurd betas."""
+    if len(xs) < 50:
+        return xs
+    srt = sorted(xs)
+    lo, hi = srt[int(q * (len(srt) - 1))], srt[int((1 - q) * (len(srt) - 1))]
+    return [min(max(x, lo), hi) for x in xs]
+
+
+def _cap(move_pct):
+    return max(min(move_pct, MOVE_CAP_PCT), -MOVE_CAP_PCT)
+
+
 def market_confirmation(ctx):
     """Has the market itself started to move toward a scenario? Code-only check; reconcile
     tightens a risk limit only when the Risk Analyst says "high" AND this is true
@@ -365,15 +382,16 @@ def scenario_moves(closes, symbols, factor_dates):
         r = {x: _returns(closes[x], dates) for x in [s] + list(FACTOR_ETFS)}
         fac = {"market": r["SPY"], "oil": r["USO"], "rates_tlt": r["TLT"],
                "momentum": [m - q for m, q in zip(r["MTUM"], r["SPY"])]}
-        b, _ = ols(r[s], [fac[f] for f in FACTORS])
+        ys = winsorize(r[s])
+        b, _ = ols(ys, [fac[f] for f in FACTORS])
         if b is None:
             skipped.append(s)
             continue
         by = dict(zip(FACTORS, b))
-        ab, _ = ols(r[s], [fac["market"], [a - q for a, q in zip(r["SMH"], r["SPY"])]])
-        mv = {n: round(sum(by[f] * sh[f] for f in FACTORS) * 100, 2) for n, _, sh in SCENARIOS}
+        ab, _ = ols(ys, [fac["market"], [a - q for a, q in zip(r["SMH"], r["SPY"])]])
+        mv = {n: round(_cap(sum(by[f] * sh[f] for f in FACTORS) * 100), 2) for n, _, sh in SCENARIOS}
         n, _, sh = AI_SCENARIO
-        mv[n] = round(((ab[0] * sh["market"] + ab[1] * sh["ai"]) if ab else 0.0) * 100, 2)
+        mv[n] = round(_cap(((ab[0] * sh["market"] + ab[1] * sh["ai"]) if ab else 0.0) * 100), 2)
         out[s] = mv
     return {"spy": spy, "symbols": out, "skipped": skipped}
 
@@ -427,11 +445,11 @@ def compute(basket, weights=None, closes=None, news=None, universe=None):
 
     per = []
     for s in usable:
-        b, r2 = ols(r[s], cols)
+        b, r2 = ols(winsorize(r[s]), cols)
         if b is None:
             errors.append(f"{s}: regression failed")
             b, r2 = [0.0] * len(FACTORS), 0.0
-        ab, _ = ols(r[s], [fac["market"], ai_fac])
+        ab, _ = ols(winsorize(r[s]), [fac["market"], ai_fac])
         ai_beta = round(ab[1], 2) if ab else 0.0
         ai_mkt = round(ab[0], 2) if ab else 0.0
         vs = _cov(r["SPY"], r["SPY"])
