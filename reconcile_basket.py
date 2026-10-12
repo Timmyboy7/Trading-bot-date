@@ -96,7 +96,10 @@ Risk, macro and data flags (added 2026-10-11). Optional body fields:
     where SPY itself barely moves (momentum reversal) use absolute floors
     (-5% / -5% / -3%). On a breach, the stock that loses most in that scenario
     is swapped for the best-scoring candidate (entry bar applies) that lowers the
-    loss without breaching another limit. At most MAX_RISK_SWAPS (2) per run;
+    loss without breaching another limit — among the 5 most exposed names, the one
+    with the LOWEST score whose single swap cures the breach goes first (keeps the
+    strongest momentum names); if no single swap cures it, the most exposed name
+    goes first. At most MAX_RISK_SWAPS (2) per run;
     like stress exits they ignore minimum hold and the swap cap.
     Timing (when to get out of a still-trending name) is the daily deep dive's
     job, not this weekly step: each basket row carries `risk_exposure` (the
@@ -717,7 +720,12 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             scn, bm, lim = min(br, key=lambda t: t[1] - t[2])     # deepest breach first
             already = {b[0] for b in br}
             done = False
-            for out in sorted((x for x in final if x in moves and scn in moves[x]), key=lambda x: moves[x][scn])[:5]:
+            exposed = sorted((x for x in final if x in moves and scn in moves[x]), key=lambda x: moves[x][scn])[:5]
+            # Prefer the WEAKEST of the most exposed names whose swap cures the breach on its own
+            # (keeps strong momentum names, e.g. not SNDK when MRVL would do); if no single swap
+            # cures it, fall back to the most exposed name first.
+            plans = []
+            for out in exposed:
                 row = final.pop(out)
 
                 def ok(sym, scn=scn, bm=bm, already=already):
@@ -727,18 +735,24 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
                     return basket_move(scn, test) > bm and all(b[0] in already for b in breaches(test))
 
                 ch = find_challenger(entry_bar=True, risk_ok=ok)
+                final[out] = row
                 if ch is None:
-                    final[out] = row
                     continue
-                base, from_micro = ch
+                after = basket_move(scn, [x for x in final if x != out] + [ch[0]["symbol"]])
+                plans.append((after >= lim, out, ch))
+            curing = sorted((p for p in plans if p[0]), key=lambda p: score_of(p[1]) if score_of(p[1]) is not None else 0)
+            pick = curing[0] if curing else (plans[0] if plans else None)
+            if pick is not None:
+                _, out, (base, from_micro) = pick
+                final.pop(out)
                 risk_swaps += 1
                 log(out, "dropped", f"risk limit: {scn} basket {bm:.1f}% vs limit {lim:.1f}% "
                     f"(SPY {spy_moves[scn]:.1f}%, risk level {('low', 'elevated', 'high')[levels.get(scn, 0)]}); "
-                    f"{out} alone {moves[out][scn]:.1f}%", kind="risk_limit", score=score_of(out))
+                    f"{out} alone {moves[out][scn]:.1f}%" + (" — weakest exposed name that cures the breach" if curing else ""),
+                    kind="risk_limit", score=score_of(out))
                 add_entry(base, f"replaces {out}; " + describe(base, from_micro) +
                           f"; {scn} {moves[base['symbol']][scn]:.1f}%")
                 done = True
-                break
             if not done:
                 log("*", "note", f"risk limit {scn} breached ({bm:.1f}% vs {lim:.1f}%) but no candidate lowers it "
                     "without breaching another limit", kind="risk_limit")
