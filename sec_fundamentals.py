@@ -236,16 +236,18 @@ def best_recent(facts, names):
     return best, best_name
 
 
-def summarize(facts):
-    """Everything /valuation needs from one companyfacts document (no price yet)."""
+def summarize(facts, today=None):
+    """Everything /valuation needs from one companyfacts document (no price yet).
+    `today` = reference date for staleness (backtests pass the formation date)."""
+    ref = today or datetime.date.today()
     rev = quarterly(facts, REVENUE_TAGS)
     tags = []
-    if len(rev) < 2 or (datetime.date.today() - rev[-1][0]).days > STALE_DAYS:
+    if len(rev) < 2 or (ref - rev[-1][0]).days > STALE_DAYS:
         alt, name = best_recent(facts, [n for n in _concepts(facts) if _is_revenue_name(n)])
         if alt and (not rev or alt[-1][0] > rev[-1][0]):
             rev = alt
             tags = [f"revenue tag {name}"]
-    if len(rev) < 2 or (datetime.date.today() - rev[-1][0]).days > STALE_DAYS:
+    if len(rev) < 2 or (ref - rev[-1][0]).days > STALE_DAYS:
         # banks: revenue = net interest income + non-interest income
         nii = quarterly(facts, ("InterestIncomeExpenseNet", "InterestIncomeExpenseAfterProvisionForLoanLoss"))
         fees = dict(quarterly(facts, ("NoninterestIncome",)))
@@ -253,7 +255,7 @@ def summarize(facts):
         if len(bank) >= 2 and (not rev or bank[-1][0] > rev[-1][0]):
             rev = bank
             tags = ["revenue = net interest income + non-interest income"]
-    if len(rev) < 2 or (datetime.date.today() - rev[-1][0]).days > STALE_DAYS:
+    if len(rev) < 2 or (ref - rev[-1][0]).days > STALE_DAYS:
         # no revenue line in standard tags (e.g. APA files it under its own tag):
         # pre-tax income = revenue - total costs and expenses  ->  revenue = pre-tax + costs
         pre = dict(quarterly(facts, PRETAX_CONCEPTS))
@@ -264,7 +266,7 @@ def summarize(facts):
             tags = ["revenue = pre-tax income + total costs (no revenue tag filed)"]
     if len(rev) < 2:
         return None, "fewer than 2 quarters of revenue in SEC filings (insurer layout, foreign filer or new listing)"
-    if (datetime.date.today() - rev[-1][0]).days > STALE_DAYS:
+    if (ref - rev[-1][0]).days > STALE_DAYS:
         return None, f"newest revenue figure in SEC filings is from {rev[-1][0].isoformat()} - revenue tag not recognised"
     ends = [e for e, _ in rev]
     gross = _align(quarterly(facts, GROSS_CONCEPTS), ends)
