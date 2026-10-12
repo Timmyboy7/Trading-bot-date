@@ -113,6 +113,21 @@ Risk, macro and data flags (added 2026-10-11). Optional body fields:
     the stock): new entries need DATA_FLAG_BAR (0.3) more score; flagged holdings
     are listed in summary.review for a human look, not sold.
 
+Step 7/8 (2026-10-12): select's momentum mode scores by 12-1 rank; reconcile adds
+  - no_entry veto (select's no_entry: red flag or weak fundamentals): never added,
+    also not on refill; holdings are not sold for it.
+  - 6-month hold (tax: Luxembourg gains on shares held > 6 months are generally
+    tax-free for private investors). Needs "holdings" = what the account REALLY
+    holds ([{symbol, since}] or csv; since = first purchase date, else added_on).
+    Without holdings nothing counts as held (no purchases yet) and only the old
+    MIN_HOLD_DAYS applies. Held < RECON_HOLD_DAYS (182): no weak-score, cluster or
+    upgrade drops; red flags and sector stress still exit. Risk swaps remove, in
+    this order: names added this run (not bought yet), names not held or past the
+    hold, and names in the hold only when the risk is "high" and market-confirmed.
+  - target_weight per basket row: rank-weighted, strongest 3x the weakest
+    (RECON_WEIGHT_RATIO; backtest 6m excess vs SPY: equal +4.6%, 3:1 +5.7%,
+    20:1 +6.7% with much larger swings).
+
 Extra optional body fields: "sector_returns" (array or JSON string of
 {sector, median_ret_1m, median_ret_1w}) and "stressed_sectors" (array or
 comma-separated string).
@@ -163,6 +178,9 @@ MACRO_AVOID_BAR = float(os.environ.get("RECON_MACRO_AVOID_BAR", 0.3))
 DATA_FLAG_BAR = float(os.environ.get("RECON_DATA_FLAG_BAR", 0.3))
 LEVELS = {"none": 0, "low": 0, "moderate": 1, "medium": 1, "elevated": 1,
           "high": 2, "severe": 2, "acute": 2, "extreme": 2, "critical": 2}
+
+HOLD_DAYS = int(os.environ.get("RECON_HOLD_DAYS", 182))
+WEIGHT_RATIO = float(os.environ.get("RECON_WEIGHT_RATIO", 3.0))
 
 UNRANKED = 10**6
 
@@ -286,8 +304,43 @@ def _sym(row):
 
 # ---------- core logic ----------
 
+def target_weights(symbols_by_strength, ratio=None):
+    """Linear rank weights: strongest gets `ratio` x the weakest; sums to 1."""
+    ratio = WEIGHT_RATIO if ratio is None else ratio
+    n = len(symbols_by_strength)
+    if not n:
+        return {}
+    raw = [1 + (ratio - 1) * (n - 1 - i) / max(n - 1, 1) for i in range(n)]
+    tot = sum(raw)
+    return {s: round(w / tot, 4) for s, w in zip(symbols_by_strength, raw)}
+
+
+def _holdings(v, cur_added):
+    """{symbol: since_date} from [{symbol, since}] / csv / JSON string; since falls back to added_on."""
+    if v is None or v == "":
+        return {}
+    if isinstance(v, str):
+        t = v.strip()
+        if t.startswith("[") or t.startswith("{"):
+            v = json.loads(t)
+        else:
+            v = [x.strip() for x in t.split(",") if x.strip()]
+    if isinstance(v, dict):
+        v = next((x for x in v.values() if isinstance(x, list)), [])
+    out = {}
+    for x in v:
+        if isinstance(x, dict):
+            sym = _sym(x)
+            since = _parse_date(_get(x, "since", "bought_on", "added_on", "date"))
+        else:
+            sym, since = str(x).strip().upper(), None
+        if sym:
+            out[sym] = since or cur_added.get(sym)
+    return out
+
+
 def reconcile(proposed, current, candidates, today=None, sector_returns=None, stressed_extra=None,
-              ranking=None, scenario_moves=None, risk_view=None, macro_view=None):
+              ranking=None, scenario_moves=None, risk_view=None, macro_view=None, holdings=None):
     today = today or datetime.date.today()
     actions = []
 
@@ -348,6 +401,8 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             "cluster": str(_get(r, "cluster", default="") or "").strip().lower(),
             "data_flag": (_get(r, "data_flag", default=False) is True
                           or "llm_data_anomaly" in (_get(r, "flags", default=[]) or [])),
+            "no_entry": _get(r, "no_entry", default=False) is True,
+            "mom_rank": _get(r, "mom_rank"),
         }
     score_mode = bool(scored)
     avoid = set(macro_avoid(macro_view))
@@ -359,6 +414,28 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
     raw_levels = dict(levels)
     # "high" without market confirmation counts as elevated (= watch only)
     levels = {k: (1 if v == 2 and not confirmed.get(k) else v) for k, v in levels.items()}
+
+    def basket_move(scn, syms):
+        vals = [moves[x][scn] for x in syms if x in moves and scn in moves[x]]
+        return sum(vals) / len(vals) if vals else None
+
+    def limit_for(scn):
+        lvl = levels.get(scn, 0)
+        spy = spy_moves.get(scn, 0.0)
+        return spy * RISK_MULT[lvl] if spy <= -0.5 else RISK_ABS_FLOOR[lvl]
+
+    def breaches(syms):
+        out = []
+        for scn in spy_moves:
+            bm = basket_move(scn, syms)
+            if bm is not None and bm < limit_for(scn):
+                out.append((scn, bm, limit_for(scn)))
+        return out
+
+    def risk_table(syms):
+        return {scn: {"basket_pct": None if basket_move(scn, syms) is None else round(basket_move(scn, syms), 1),
+                      "spy_pct": spy_moves[scn], "limit_pct": round(limit_for(scn), 1),
+                      "level": ("low", "elevated", "high")[levels.get(scn, 0)]} for scn in spy_moves}
 
     def extra_bar(s, sector):
         """extra score a NEW entry needs: macro 'avoid' sector and/or LLM data flag"""
@@ -387,6 +464,17 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             "last_reviewed": _parse_date(_get(r, "last_reviewed", "lastreviewed")),
             "score": _to_float(_get(r, "score")),
         }
+
+    held = _holdings(holdings, {s: c["added_on"] for s, c in cur.items()})
+
+    def held_days(s):
+        if s not in held:
+            return None
+        return (today - held[s]).days if held[s] else 0
+
+    def in_hold(s):
+        d = held_days(s)
+        return d is not None and d < HOLD_DAYS
 
     final = {}      # symbol -> output row (without 'status' yet decided)
     status = {}
@@ -506,6 +594,8 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
             c = cluster_of(s)
             if MAX_PER_CLUSTER and c and ccounts.get(c, 0) - (1 if c == freed_cluster else 0) >= MAX_PER_CLUSTER:
                 continue   # would make one business bet too big
+            if s in scored and scored[s]["no_entry"]:
+                continue   # vetoed (red flag or weak fundamentals behind the price move)
             if score_mode:
                 sc = score_of(s)
                 if s in scored and (scored[s]["red_flag"] or scored[s]["uncertain"]):
@@ -519,6 +609,13 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
                 continue
             if risk_ok is not None and not risk_ok(s):
                 continue
+            if risk_ok is None and moves and spy_moves and s in moves:
+                # never let a new entry create or deepen a risk-limit breach
+                now = list(final)
+                worse = [scn for scn, bm2, _ in breaches(now + [s])
+                         if basket_move(scn, now) is None or basket_move(scn, now + [s]) < basket_move(scn, now) - 1e-9]
+                if worse:
+                    continue
             return base, from_micro
         return None
 
@@ -596,7 +693,11 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
                 kind = "low_conviction"
             else:
                 continue
-        if i["age"] is not None and i["age"] < MIN_HOLD_DAYS:
+        if kind != "red_flag" and in_hold(s):
+            log(s, "kept", f"eligible to drop ({kind}) but in the 6-month hold (day {held_days(s)} of {HOLD_DAYS}) "
+                "— only a red flag, sector stress, a confirmed risk or the daily trend exit sell it now", kind="hold")
+            continue
+        if kind != "red_flag" and i["age"] is not None and i["age"] < MIN_HOLD_DAYS:
             log(s, "kept", f"eligible to drop ({kind}) but held only {i['age']} of {MIN_HOLD_DAYS} minimum days")
             continue
         regular.append((s, kind))
@@ -654,6 +755,7 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
     if score_mode:
         while swaps < MAX_SWAPS:
             pool = [x for x in final if x in cur and x in scored and not scored[x]["uncertain"]
+                    and not in_hold(x)
                     and (info[x]["age"] is None or info[x]["age"] >= MIN_HOLD_DAYS)]
             if not pool:
                 break
@@ -688,28 +790,6 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
 
     # --- step E: risk limits (needs /stress-test's scenario moves). Runs on the
     # finished basket; swaps here ignore minimum hold and the regular swap cap.
-    def basket_move(scn, syms):
-        vals = [moves[x][scn] for x in syms if x in moves and scn in moves[x]]
-        return sum(vals) / len(vals) if vals else None
-
-    def limit_for(scn):
-        lvl = levels.get(scn, 0)
-        spy = spy_moves.get(scn, 0.0)
-        return spy * RISK_MULT[lvl] if spy <= -0.5 else RISK_ABS_FLOOR[lvl]
-
-    def breaches(syms):
-        out = []
-        for scn in spy_moves:
-            bm = basket_move(scn, syms)
-            if bm is not None and bm < limit_for(scn):
-                out.append((scn, bm, limit_for(scn)))
-        return out
-
-    def risk_table(syms):
-        return {scn: {"basket_pct": None if basket_move(scn, syms) is None else round(basket_move(scn, syms), 1),
-                      "spy_pct": spy_moves[scn], "limit_pct": round(limit_for(scn), 1),
-                      "level": ("low", "elevated", "high")[levels.get(scn, 0)]} for scn in spy_moves}
-
     risk_swaps = 0
     risk_before = risk_table(list(final)) if moves and spy_moves else None
     if moves and spy_moves and score_mode:
@@ -740,7 +820,17 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
                     continue
                 after = basket_move(scn, [x for x in final if x != out] + [ch[0]["symbol"]])
                 plans.append((after >= lim, out, ch))
-            curing = sorted((p for p in plans if p[0]), key=lambda p: score_of(p[1]) if score_of(p[1]) is not None else 0)
+            def group(x, scn=scn):
+                if x not in cur:
+                    return 0          # added this run, not bought yet: costs nothing
+                if not in_hold(x):
+                    return 1          # not held, or past the 6-month hold: tax-free
+                return 2 if levels.get(scn, 0) == 2 else None   # in hold: only on a confirmed "high"
+            held_back = [p[1] for p in plans if group(p[1]) is None]
+            plans = [p for p in plans if group(p[1]) is not None]
+            curing = sorted((p for p in plans if p[0]),
+                            key=lambda p: (group(p[1]), score_of(p[1]) if score_of(p[1]) is not None else 0))
+            plans.sort(key=lambda p: group(p[1]))   # stable: keeps most-exposed-first inside a group
             pick = curing[0] if curing else (plans[0] if plans else None)
             if pick is not None:
                 _, out, (base, from_micro) = pick
@@ -754,8 +844,13 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
                           f"; {scn} {moves[base['symbol']][scn]:.1f}%")
                 done = True
             if not done:
-                log("*", "note", f"risk limit {scn} breached ({bm:.1f}% vs {lim:.1f}%) but no candidate lowers it "
-                    "without breaching another limit", kind="risk_limit")
+                if held_back:
+                    log("*", "note", f"risk limit {scn} breached ({bm:.1f}% vs {lim:.1f}%); the exposed names "
+                        f"({', '.join(held_back)}) are in the 6-month hold — they are only sold on a market-confirmed "
+                        "'high' risk or by the daily trend exit; no new exposed names are added", kind="risk_limit")
+                else:
+                    log("*", "note", f"risk limit {scn} breached ({bm:.1f}% vs {lim:.1f}%) but no candidate lowers it "
+                        "without breaching another limit", kind="risk_limit")
                 break
 
     # --- trim if somehow oversize (e.g. current sheet had extra rows): drop weakest rank, not a swap
@@ -764,6 +859,13 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
         final.pop(worst)
         log(worst, "dropped", f"basket above {BASKET_SIZE} names — trimmed weakest rank", kind="trim")
 
+    strength = sorted(final, key=lambda x: (-(score_of(x) or 0), rank_of(x)))
+    weights = target_weights(strength)
+    for x, row in final.items():
+        row["target_weight"] = weights.get(x)
+        row["mom_rank"] = scored[x]["mom_rank"] if x in scored else None
+        row["hold"] = ("in hold, day %d of %d" % (held_days(x), HOLD_DAYS) if in_hold(x)
+                       else "held, past hold" if x in held else "not held yet")
     for x, row in final.items():
         notes = []
         for scn, spy in spy_moves.items():
@@ -786,6 +888,11 @@ def reconcile(proposed, current, candidates, today=None, sector_returns=None, st
         "mode": "score" if score_mode else "rank",
     }
     summary["macro_avoid"] = sorted(avoid)
+    summary["hold_days"] = HOLD_DAYS
+    summary["holdings_given"] = len(held)
+    summary["in_hold"] = sorted(x for x in final if in_hold(x))
+    summary["weights"] = {x: weights[x] for x in strength}
+    summary["vetoed"] = sorted(s for s in scored if scored[s]["no_entry"])
     summary["review"] = sorted(x for x in final if x in scored and scored[x]["data_flag"])
     if risk_before is not None:
         summary["risk_swaps"] = risk_swaps
@@ -839,4 +946,4 @@ def reconcile_basket():
     today = _parse_date(body.get("today")) or datetime.date.today()
     return jsonify(reconcile(proposed, current, candidates, today, sector_returns, stressed_extra, ranking,
                              scenario_moves=body.get("scenario_moves"), risk_view=body.get("risk_view"),
-                             macro_view=body.get("macro_view")))
+                             macro_view=body.get("macro_view"), holdings=body.get("holdings")))
