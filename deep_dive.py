@@ -47,6 +47,11 @@ DD_CONFIRM_VS_SPY_PTS = float(os.environ.get("DD_CONFIRM_VS_SPY_PTS", 5.0))
 NEWS_PER_NAME = int(os.environ.get("DD_NEWS_PER_NAME", 6))
 # Price-shock trigger: a held name with news that fell this much goes to the committee even if
 # the News Analyst saw no break (the committee reads the raw news itself).
+# Research desk (weekly scheduled Claude task writes research/desk/latest.json): kill criteria,
+# next earnings date and catalysts per name, cycle view per cluster. A new buy waits when
+# earnings are this many calendar days away or closer (code, not LLM).
+DESK_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "research", "desk", "latest.json")
+DD_EARNINGS_WAIT_DAYS = int(os.environ.get("DD_EARNINGS_WAIT_DAYS", 4))
 DD_SHOCK_5D_PCT = float(os.environ.get("DD_SHOCK_5D_PCT", 10.0))
 DD_SHOCK_VS_SPY_PTS = float(os.environ.get("DD_SHOCK_VS_SPY_PTS", 8.0))
 
@@ -104,6 +109,56 @@ def _load(v, default):
         except ValueError:
             return default
     return v if v is not None else default
+
+
+# --------------------------------------------------------------------------- research desk
+
+def load_desk(path=None):
+    """The research desk's notes ({} if missing or unreadable). Read on every call, so a new
+    commit is picked up after Render's redeploy without code changes."""
+    try:
+        with open(path or DESK_FILE) as f:
+            d = json.load(f)
+        return d if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def desk_view(desk, sym, today):
+    """Per-name research facts for the LLM input and for code rules."""
+    n = (desk.get("names") or {}).get(sym) or {}
+    out = {}
+    if n.get("kill_criteria"):
+        out["kill_criteria"] = n["kill_criteria"][:6]
+    ne = n.get("next_earnings")
+    if ne:
+        try:
+            days = (datetime.date.fromisoformat(str(ne)[:10]) - today).days
+        except ValueError:
+            days = None
+        out["next_earnings"] = str(ne)[:10] + ("" if n.get("earnings_confirmed") else " (estimated)")
+        out["days_to_earnings"] = days
+    cats = []
+    for c in n.get("catalysts") or []:
+        try:
+            d = (datetime.date.fromisoformat(str(c.get("date"))[:10]) - today).days
+        except (ValueError, AttributeError):
+            continue
+        if -1 <= d <= 21:
+            cats.append({"date": str(c.get("date"))[:10], "event": str(c.get("event") or "")[:160]})
+    if cats:
+        out["catalysts_next_3_weeks"] = cats
+    cl = n.get("cluster")
+    cv = (desk.get("clusters") or {}).get(cl) if cl else None
+    if cv:
+        out["cluster"] = cl
+        out["cluster_view"] = str(cv.get("verdict") or "")[:300]
+        fired = [x.get("signal") for x in cv.get("signals") or [] if str(x.get("status")).lower() == "fired"]
+        if fired:
+            out["cluster_signals_fired"] = fired[:5]
+    if n.get("researched_on"):
+        out["researched_on"] = n["researched_on"]
+    return out
 
 
 # --------------------------------------------------------------------------- input
@@ -170,6 +225,9 @@ def build_input(basket_rows, notes, now=None):
     except requests.RequestException as e:
         news, _ = {s: [] for s in syms}, errors.append(f"news: {e} - no news today, nothing for the LLMs")
     today = now.date()
+    desk = load_desk()
+    if not desk:
+        errors.append("research desk notes missing - no kill criteria or earnings dates today")
     facts = []
     for s in syms:
         i = rb.indicators(closes.get(s), since.get(s))
@@ -200,6 +258,7 @@ def build_input(basket_rows, notes, now=None):
             "news_since": weekly.date().isoformat(), "news": items,
             "move_since_first_news_pct": mv,
             "vs_spy_since_first_news_pts": round(mv - spy_mv, 1) if mv is not None and spy_mv is not None else None,
+            **desk_view(desk, s, today),
         })
     with_news = [f for f in facts if f["news"]]
     return {
@@ -208,6 +267,7 @@ def build_input(basket_rows, notes, now=None):
         "llm_input_json": json.dumps(with_news),
         "news_names": ",".join(f["symbol"] for f in with_news),
         "news_count": sum(len(f["news"]) for f in facts),
+        "desk_as_of": desk.get("as_of"),
         "errors": errors,
     }
 
@@ -308,9 +368,16 @@ def decide(facts, analyst_text, votes, analyst_text2=None):
     for s in hold:
         decisions.append({"symbol": s, "action": "wait", "why": "News Analyst: wait (timing)",
                           "analyst_reason": items[s]["reason"], "evidence": items[s]["evidence"]})
-    hold_all = sorted(set(hold) | set(extra_hold))
+    earn_hold = []
+    for f in facts:
+        d = f.get("days_to_earnings")
+        if d is not None and 0 <= d <= DD_EARNINGS_WAIT_DAYS and f["symbol"] not in exits:
+            earn_hold.append(f["symbol"])
+            decisions.append({"symbol": f["symbol"], "action": "wait",
+                              "why": f"earnings on {f.get('next_earnings')} ({d} days) - no new buying before the report (code)"})
+    hold_all = sorted(set(hold) | set(extra_hold) | set(earn_hold))
     summary = {"names_with_news": sum(1 for f in facts if f["news"]), "analyst_items": len(items),
-               "wait": len(hold), "break_cases": len(case_list), "votes_readable": len(parsed),
+               "wait": len(hold), "earnings_wait": sorted(earn_hold), "break_cases": len(case_list), "votes_readable": len(parsed),
                "exits": exits, "hold": hold_all,
                "rule": f"exit = 2 of 3 broken + market (<= -{DD_CONFIRM_DROP_PCT:g}% or <= -{DD_CONFIRM_VS_SPY_PTS:g} pts vs SPY), or 3 of 3"}
     if analyst_text not in (None, "") and llm_json(analyst_text, "items") is None:
@@ -321,6 +388,17 @@ def decide(facts, analyst_text, votes, analyst_text2=None):
 
 
 # --------------------------------------------------------------------------- routes
+
+@deep_dive_bp.route("/research-desk", methods=["GET"])
+def research_desk():
+    """What the deep dive currently knows from the research desk (for checking a new commit)."""
+    d = load_desk()
+    today = datetime.date.today()
+    names = d.get("names") or {}
+    return jsonify({"as_of": d.get("as_of"), "names": len(names), "clusters": sorted((d.get("clusters") or {})),
+                    "next_earnings": {s: desk_view(d, s, today).get("next_earnings") for s in sorted(names)},
+                    "loaded": bool(d)})
+
 
 @deep_dive_bp.route("/deep-dive-input", methods=["POST"])
 def deep_dive_input():
