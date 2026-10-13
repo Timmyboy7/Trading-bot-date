@@ -19,3 +19,18 @@ Macro (step 9): judges sector TREND BREAKDOWN only, with fixed counting rules (a
 than half with ret_3m <= -10% AND >= 20% below their 1-year high; favor = more than half up over 3 months and within
 10% of the high; else neutral). 'avoid' only raises the entry bar for new names (reconcile); no sells. News, rates and
 the economy are the Risk Analyst's job. On the 2026-10-11 data: no avoid (old prompt: 4 sectors avoided).
+
+## Daily deep dive (step 12, 2026-10-12)
+
+| File | Make module (daily scenario) | Model |
+|---|---|---|
+| `deep_dive_analyst_body.json` | Claude News Analyst (reused 53) | claude-sonnet-5-5 |
+| `deep_dive_analyst_gpt_body.json` | GPT News Analyst #2 (OpenRouter, optional) | openai/gpt-6.1-sol |
+| `veto_claude_body.json` | Confirm/Veto – Claude (reused 122) | claude-sonnet-5-5 |
+| `veto_gpt_body.json` | Confirm/Veto – GPT (OpenRouter) | openai/gpt-6.1-sol |
+| `veto_kimi_body.json` | Confirm/Veto – Kimi (OpenRouter) | moonshotai/kimi-k3 |
+
+Replace `INPUT` with the module number of Render 12 (`/deep-dive-input`) and `CASES` with Render 13
+(`/deep-dive-cases`). The analyst answers none/wait/break per stock (only wait/break are listed); the committee
+votes broken true/false per case. Code (`/deep-dive-decide`) applies the rule: exit = 2 of 3 broken AND the market
+confirms (<= -8% since the news or <= -5 points vs SPY), or 3 of 3; otherwise hold (no new buying).

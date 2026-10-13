@@ -395,6 +395,10 @@ def plan(basket_rows, account, positions, ind, since, last_orders, hold=(), exit
         held = sym in pos
         lo = last_orders.get(sym)
 
+        if not held and sym in exits:
+            skipped.append({"symbol": sym, "reason": "thesis break confirmed by the deep dive - no buy until the next weekly run"})
+            continue
+
         # re-buy gates (only for names we are out of)
         if not held and lo and lo[1] == "sell":
             if lo[0] in WEEK_BLOCKED and lo[2] >= weekly_run.isoformat():

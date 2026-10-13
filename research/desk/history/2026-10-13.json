@@ -1,0 +1,200 @@
+{
+ "as_of": "2026-10-13",
+ "note": "Seeded by hand from the 2026-10-13 memory sector overview; the weekly research desk task refreshes and extends it.",
+ "names": {
+  "SNDK": {
+   "cluster": "memory",
+   "researched_on": "2026-10-13",
+   "thesis_short": "NAND/SSD supplier on allocation; enterprise SSD for AI inference; record margins.",
+   "kill_criteria": [
+    "NAND or enterprise SSD contract prices fall quarter on quarter (TrendForce or company commentary)",
+    "SanDisk says NAND is no longer on allocation, or guides revenue or gross margin below the prior quarter",
+    "A large cloud provider cuts or flattens its 2027 capex plan",
+    "Samsung, SK hynix or Kioxia pull new NAND fab output forward into 1H27",
+    "PC or phone makers report rising NAND inventory or cut SSD content further"
+   ],
+   "next_earnings": "2026-10-29",
+   "earnings_confirmed": false,
+   "catalysts": [
+    {
+     "date": "2026-10-28",
+     "event": "Seagate results (storage demand read-across)"
+    },
+    {
+     "date": "2026-10-29",
+     "event": "SanDisk fiscal Q1 2027 results"
+    }
+   ],
+   "sources": [
+    "https://www.trendforce.com/presscenter/news/20260730-13158.html",
+    "https://247wallst.com/investing/2026/10/12/sandisk-drops-6-in-memory-selloff-despite-making-no-dram-seagate-slides-4/"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Cloud providers (AI inference storage)",
+     "ticker": "MSFT",
+     "why": "enterprise SSD demand"
+    },
+    {
+     "name": "Kioxia (joint venture partner)",
+     "ticker": "",
+     "why": "shared NAND fabs and capacity decisions"
+    },
+    {
+     "name": "PC and phone makers",
+     "ticker": "AAPL",
+     "why": "client SSD and mobile NAND demand"
+    },
+    {
+     "name": "Samsung / SK hynix",
+     "ticker": "",
+     "why": "competing NAND supply"
+    }
+   ]
+  },
+  "MU": {
+   "cluster": "memory",
+   "researched_on": "2026-10-13",
+   "thesis_short": "DRAM + HBM leader; supply tight through 2028; 87% gross margin; 2027 HBM largely sold.",
+   "kill_criteria": [
+    "DRAM contract prices flat or down quarter on quarter",
+    "Micron guides gross margin down or revenue below consensus",
+    "A large cloud provider cuts or flattens its 2027 capex plan",
+    "CXMT qualifies HBM at a major customer or starts discounting DRAM",
+    "Samsung or SK hynix bring large new DRAM capacity forward from 2028 into 2027",
+    "HBM long-term agreements renegotiated or volumes cut"
+   ],
+   "next_earnings": "2026-12-23",
+   "earnings_confirmed": false,
+   "catalysts": [
+    {
+     "date": "2026-10-22",
+     "event": "Western Digital results"
+    },
+    {
+     "date": "2026-10-29",
+     "event": "SanDisk results (NAND read-across)"
+    }
+   ],
+   "sources": [
+    "https://cranberryjournal.com/technology/micron-record-quarter-stock-flat/",
+    "https://www.techtimes.com/articles/326440/20260903/cxmt-hits-10-dram-market-share-oligopoly-falls-below-90-two-years-early.htm"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Nvidia",
+     "ticker": "NVDA",
+     "why": "largest HBM customer (AI accelerators)"
+    },
+    {
+     "name": "Microsoft, Alphabet, Amazon, Meta",
+     "ticker": "MSFT",
+     "why": "cloud capex drives server DRAM and HBM demand"
+    },
+    {
+     "name": "SK hynix / Samsung",
+     "ticker": "",
+     "why": "competing DRAM/HBM supply and capacity decisions"
+    },
+    {
+     "name": "CXMT",
+     "ticker": "",
+     "why": "Chinese DRAM competitor gaining share"
+    }
+   ]
+  },
+  "STX": {
+   "cluster": "storage_hdd",
+   "researched_on": "2026-10-13",
+   "thesis_short": "Nearline HDD for AI data centres; HAMR ramp; disciplined supply; margins rising 13 quarters.",
+   "kill_criteria": [
+    "Seagate guides revenue or margin down, or says nearline lead times are shortening",
+    "HAMR / Mozaic ramp delayed or qualification problems at a large customer",
+    "A large cloud provider cuts or flattens its 2027 capex plan",
+    "Western Digital or Seagate announce meaningful HDD capacity additions (supply discipline breaks)"
+   ],
+   "next_earnings": "2026-10-28",
+   "earnings_confirmed": false,
+   "catalysts": [
+    {
+     "date": "2026-10-22",
+     "event": "Western Digital results (HDD read-across)"
+    },
+    {
+     "date": "2026-10-28",
+     "event": "Seagate fiscal Q1 2027 results"
+    }
+   ],
+   "sources": [
+    "https://www.tikr.com/blog/seagate-technology-q4-earnings-13th-straight-quarter-of-margin-gains"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Cloud providers (nearline storage)",
+     "ticker": "AMZN",
+     "why": "most of Seagate's exabyte demand"
+    },
+    {
+     "name": "Western Digital",
+     "ticker": "WDC",
+     "why": "only major HDD competitor; supply discipline"
+    },
+    {
+     "name": "Meta / Microsoft",
+     "ticker": "META",
+     "why": "large nearline buyers"
+    }
+   ]
+  }
+ },
+ "clusters": {
+  "memory": {
+   "updated": "2026-10-13",
+   "verdict": "Peak earnings, not yet peak pricing: Q4 2026 contract prices still rising (DRAM +10-15%, NAND +15-20%). 2027 split: DRAM stays short, NAND supply catches up from 2H27. Stocks are volatile and have sold off three times since July without fundamental change.",
+   "signals": [
+    {
+     "signal": "Contract prices turn negative quarter on quarter",
+     "status": "ok"
+    },
+    {
+     "signal": "Cloud provider cuts 2027 capex",
+     "status": "watch"
+    },
+    {
+     "signal": "Competitors pull new capacity forward",
+     "status": "watch"
+    },
+    {
+     "signal": "Micron guides margin down",
+     "status": "ok"
+    },
+    {
+     "signal": "SanDisk ends allocation / enterprise SSD prices fall",
+     "status": "ok"
+    },
+    {
+     "signal": "CXMT HBM qualified at a major customer or price cuts",
+     "status": "watch"
+    },
+    {
+     "signal": "Consumer OEM inventory build",
+     "status": "watch"
+    }
+   ]
+  },
+  "storage_hdd": {
+   "updated": "2026-10-13",
+   "verdict": "Different cycle from memory: few suppliers, slow capacity additions, AI bulk-storage demand reported locked in through 2028. Main risk is a slowdown in data-centre spending.",
+   "signals": [
+    {
+     "signal": "HDD lead times shorten",
+     "status": "ok"
+    },
+    {
+     "signal": "HAMR ramp slips",
+     "status": "ok"
+    }
+   ]
+  }
+ }
+}
