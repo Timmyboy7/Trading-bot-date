@@ -158,6 +158,27 @@ def desk_view(desk, sym, today):
             out["cluster_signals_fired"] = fired[:5]
     if n.get("researched_on"):
         out["researched_on"] = n["researched_on"]
+    hits = []
+    for h in n.get("kill_criteria_hit") or []:
+        try:
+            if (today - datetime.date.fromisoformat(str(h.get("date"))[:10])).days <= 10:
+                hits.append({"criterion": str(h.get("criterion") or "")[:200], "date": str(h.get("date"))[:10],
+                             "source": str(h.get("source") or "")[:200]})
+        except (ValueError, AttributeError):
+            continue
+    if hits:
+        out["kill_criteria_hit"] = hits
+    er = n.get("earnings_review")
+    if isinstance(er, dict) and er.get("date"):
+        try:
+            age = (today - datetime.date.fromisoformat(str(er["date"])[:10])).days
+        except ValueError:
+            age = None
+        if age is not None and age <= 21:
+            out["earnings_review"] = {"date": str(er["date"])[:10], "verdict": str(er.get("verdict") or ""),
+                                      "summary": str(er.get("summary") or "")[:400]}
+    if n.get("earnings_preview") and out.get("days_to_earnings") is not None and 0 <= out["days_to_earnings"] <= 10:
+        out["earnings_preview"] = str(n["earnings_preview"])[:400]
     return out
 
 
@@ -307,7 +328,15 @@ def cases(facts, analyst_text, analyst_text2=None):
     flagged = [(s, a["reason"], a["evidence"], "analyst") for s, a in items.items() if a["verdict"] == "break"]
     for f in facts:
         s = f["symbol"]
-        if s in items and items[s]["verdict"] == "break" or not f.get("held") or not f.get("news"):
+        if s in items and items[s]["verdict"] == "break" or not f.get("held"):
+            continue
+        if not f.get("news") and not (f.get("kill_criteria_hit") or (f.get("earnings_review") or {}).get("verdict") == "broken"):
+            continue
+        desk_flag = f.get("kill_criteria_hit") or (f.get("earnings_review") or {}).get("verdict") == "broken"
+        if desk_flag:
+            why = "; ".join(h["criterion"] + " (" + h["date"] + ")" for h in f.get("kill_criteria_hit") or []) \
+                or "earnings review: " + (f.get("earnings_review") or {}).get("summary", "")
+            flagged.append((s, "research desk: kill criterion hit / earnings review says broken - " + why, "", "research_desk"))
             continue
         r5, rel = f.get("ret_5d_pct"), f.get("vs_spy_since_first_news_pts")
         if (r5 is not None and r5 <= -DD_SHOCK_5D_PCT) or (rel is not None and rel <= -DD_SHOCK_VS_SPY_PTS):
