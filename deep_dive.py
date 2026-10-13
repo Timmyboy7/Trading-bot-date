@@ -158,6 +158,10 @@ def desk_view(desk, sym, today):
             out["cluster_signals_fired"] = fired[:5]
     if n.get("researched_on"):
         out["researched_on"] = n["researched_on"]
+    deps = [{"name": str(d.get("name") or "")[:60], "ticker": str(d.get("ticker") or "").upper()[:8],
+             "why": str(d.get("why") or "")[:140]} for d in (n.get("key_dependencies") or []) if isinstance(d, dict)]
+    if deps:
+        out["key_dependencies"] = deps[:6]
     hits = []
     for h in n.get("kill_criteria_hit") or []:
         try:
@@ -247,6 +251,23 @@ def build_input(basket_rows, notes, now=None):
         news, _ = {s: [] for s in syms}, errors.append(f"news: {e} - no news today, nothing for the LLMs")
     today = now.date()
     desk = load_desk()
+    # news about each stock's key dependencies (customers, suppliers, competitors) with a listed ticker
+    dep_of = {}
+    for s in syms:
+        for d in ((desk.get("names") or {}).get(s) or {}).get("key_dependencies") or []:
+            t = str((d or {}).get("ticker") or "").upper().strip()
+            if re.fullmatch(r"[A-Z.\-]{1,6}", t) and t != s:
+                dep_of.setdefault(t, []).append(s)
+    related = {}
+    if dep_of:
+        try:
+            dep_news = fetch_news(sorted(dep_of), weekly)
+            for t, owners in dep_of.items():
+                for s in owners:
+                    for x in dep_news.get(t, [])[:3]:
+                        related.setdefault(s, []).append(dict(x, about=t))
+        except requests.RequestException as e:
+            errors.append(f"dependency news: {e}")
     if not desk:
         errors.append("research desk notes missing - no kill criteria or earnings dates today")
     facts = []
@@ -265,6 +286,7 @@ def build_input(basket_rows, notes, now=None):
         if s not in basket:
             status += " - NOT in this week's basket (being sold)"
         items = news.get(s, [])
+        rel = related.get(s, [])[:6]
         first_day = min((x["time"][:10] for x in items), default=None)
         mv, spy_mv = move_since(closes.get(s), first_day), move_since(closes.get("SPY"), first_day)
         n = notes.get(s, {})
@@ -279,9 +301,10 @@ def build_input(basket_rows, notes, now=None):
             "news_since": weekly.date().isoformat(), "news": items,
             "move_since_first_news_pct": mv,
             "vs_spy_since_first_news_pts": round(mv - spy_mv, 1) if mv is not None and spy_mv is not None else None,
+            "related_news": rel,
             **desk_view(desk, s, today),
         })
-    with_news = [f for f in facts if f["news"]]
+    with_news = [f for f in facts if f["news"] or f["related_news"]]
     return {
         "as_of": now.isoformat(timespec="seconds"),
         "facts": facts, "facts_json": json.dumps(facts),
@@ -330,7 +353,7 @@ def cases(facts, analyst_text, analyst_text2=None):
         s = f["symbol"]
         if s in items and items[s]["verdict"] == "break" or not f.get("held"):
             continue
-        if not f.get("news") and not (f.get("kill_criteria_hit") or (f.get("earnings_review") or {}).get("verdict") == "broken"):
+        if not (f.get("news") or f.get("related_news")) and not (f.get("kill_criteria_hit") or (f.get("earnings_review") or {}).get("verdict") == "broken"):
             continue
         desk_flag = f.get("kill_criteria_hit") or (f.get("earnings_review") or {}).get("verdict") == "broken"
         if desk_flag:
@@ -350,7 +373,10 @@ def cases(facts, analyst_text, analyst_text2=None):
                         "analyst_reason": reason, "analyst_evidence": evidence,
                         "move_since_first_news_pct": f["move_since_first_news_pct"],
                         "vs_spy_since_first_news_pts": f["vs_spy_since_first_news_pts"],
-                        "gain_since_purchase_pct": f["gain_since_purchase_pct"]})
+                        "gain_since_purchase_pct": f["gain_since_purchase_pct"],
+                        "kill_criteria": f.get("kill_criteria", []), "key_dependencies": f.get("key_dependencies", []),
+                        "related_news": f.get("related_news", []), "earnings_review": f.get("earnings_review"),
+                        "kill_criteria_hit": f.get("kill_criteria_hit", [])})
     hold = sorted(s for s, a in items.items() if a["verdict"] == "wait" or a.get("any_wait"))
     return out, hold, items
 

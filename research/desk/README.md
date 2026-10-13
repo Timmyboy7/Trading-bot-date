@@ -25,6 +25,7 @@ Nothing here can buy or sell by itself. Check what the server loaded: `GET /rese
       "next_earnings": "YYYY-MM-DD", "earnings_confirmed": true|false,
       "catalysts": [{"date": "YYYY-MM-DD", "event": "..."}],
       "sources": ["https://..."],
+      "key_dependencies": [{"name": "Nvidia", "ticker": "NVDA", "why": "largest HBM customer"}],  // 3-6: customers, suppliers, inputs, competitors; ticker if listed in the US (news is fetched for it daily)
       "earnings_preview": "before a report: what in THIS report would break the case (thresholds)",
       "earnings_review": {"date": "YYYY-MM-DD", "verdict": "intact|weakened|broken", "summary": "..."},
       "kill_criteria_hit": [{"criterion": "...", "date": "YYYY-MM-DD", "source": "https://..."}]

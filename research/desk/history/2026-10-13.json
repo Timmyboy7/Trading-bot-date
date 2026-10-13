@@ -28,6 +28,28 @@
    "sources": [
     "https://www.trendforce.com/presscenter/news/20260730-13158.html",
     "https://247wallst.com/investing/2026/10/12/sandisk-drops-6-in-memory-selloff-despite-making-no-dram-seagate-slides-4/"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Cloud providers (AI inference storage)",
+     "ticker": "MSFT",
+     "why": "enterprise SSD demand"
+    },
+    {
+     "name": "Kioxia (joint venture partner)",
+     "ticker": "",
+     "why": "shared NAND fabs and capacity decisions"
+    },
+    {
+     "name": "PC and phone makers",
+     "ticker": "AAPL",
+     "why": "client SSD and mobile NAND demand"
+    },
+    {
+     "name": "Samsung / SK hynix",
+     "ticker": "",
+     "why": "competing NAND supply"
+    }
    ]
   },
   "MU": {
@@ -57,6 +79,28 @@
    "sources": [
     "https://cranberryjournal.com/technology/micron-record-quarter-stock-flat/",
     "https://www.techtimes.com/articles/326440/20260903/cxmt-hits-10-dram-market-share-oligopoly-falls-below-90-two-years-early.htm"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Nvidia",
+     "ticker": "NVDA",
+     "why": "largest HBM customer (AI accelerators)"
+    },
+    {
+     "name": "Microsoft, Alphabet, Amazon, Meta",
+     "ticker": "MSFT",
+     "why": "cloud capex drives server DRAM and HBM demand"
+    },
+    {
+     "name": "SK hynix / Samsung",
+     "ticker": "",
+     "why": "competing DRAM/HBM supply and capacity decisions"
+    },
+    {
+     "name": "CXMT",
+     "ticker": "",
+     "why": "Chinese DRAM competitor gaining share"
+    }
    ]
   },
   "STX": {
@@ -83,6 +127,23 @@
    ],
    "sources": [
     "https://www.tikr.com/blog/seagate-technology-q4-earnings-13th-straight-quarter-of-margin-gains"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Cloud providers (nearline storage)",
+     "ticker": "AMZN",
+     "why": "most of Seagate's exabyte demand"
+    },
+    {
+     "name": "Western Digital",
+     "ticker": "WDC",
+     "why": "only major HDD competitor; supply discipline"
+    },
+    {
+     "name": "Meta / Microsoft",
+     "ticker": "META",
+     "why": "large nearline buyers"
+    }
    ]
   }
  },
