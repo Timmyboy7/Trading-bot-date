@@ -22,7 +22,9 @@ Facts are code, judgment is LLM, decisions are code:
   - Missing or failed LLM output never blocks trading: empty hold / exit, code rules still run.
 
 Endpoints (POST, JSON):
-  /deep-dive-input   {"basket": "SNDK:5,MU:4.8,...", "notes": "SYM|thesis|risk_exposure\\n..."}
+  /deep-dive-input   {"rows": "SNDK:5|thesis|risk_exposure\\nMU:4.8|...|..."}   (one aggregator; or the older
+                     {"basket": "SNDK:5,MU:4.8,...", "notes": "SYM|thesis|risk_exposure\\n..."})
+      -> also basket_csv ("SNDK:5,MU:4.8,...") to pass straight to /rebalance
       -> facts_json (all names), llm_input_json (names with news), news_names, news_count
   /deep-dive-cases   {"facts": facts_json, "analyst": <analyst text>}
       -> cases_json (possible breaks, for the committee), cases_count, hold
@@ -59,13 +61,17 @@ DD_SHOCK_VS_SPY_PTS = float(os.environ.get("DD_SHOCK_VS_SPY_PTS", 8.0))
 # --------------------------------------------------------------------------- parsing
 
 def parse_notes(text):
-    """{symbol: {thesis, risk_exposure}} from lines 'SYM|thesis|risk_exposure'."""
+    """{symbol: {thesis, risk_exposure, score}} from lines 'SYM|thesis|risk_exposure' or
+    'SYM:score|thesis|risk_exposure' (one Make text aggregator, row separator New row)."""
     out = {}
     for line in re.split(r"[\r\n]+", str(text or "")):
         parts = [p.strip() for p in line.split("|")]
-        if parts and re.fullmatch(r"[A-Za-z.\-]{1,6}", parts[0] or ""):
-            out[parts[0].upper()] = {"thesis": parts[1] if len(parts) > 1 else "",
-                                     "risk_exposure": parts[2] if len(parts) > 2 else ""}
+        head = (parts[0] if parts else "").split(":", 1)
+        sym = head[0].strip()
+        if sym and re.fullmatch(r"[A-Za-z.\-]{1,6}", sym):
+            out[sym.upper()] = {"thesis": parts[1] if len(parts) > 1 else "",
+                                "risk_exposure": parts[2] if len(parts) > 2 else "",
+                                "score": rb._num(head[1]) if len(head) > 1 else None}
     return out
 
 
@@ -458,11 +464,20 @@ def research_desk():
 @deep_dive_bp.route("/deep-dive-input", methods=["POST"])
 def deep_dive_input():
     body = request.get_json(force=True, silent=True) or {}
-    rows = rb.parse_basket(body.get("basket"))
+    if body.get("rows"):
+        # one aggregator: lines 'SYM:score|thesis|risk_exposure'
+        notes = parse_notes(body.get("rows"))
+        rows = [(s, n["score"], None) for s, n in notes.items()]
+    else:
+        rows = rb.parse_basket(body.get("basket"))
+        notes = parse_notes(body.get("notes"))
     if len(rows) < 5:
         return jsonify({"error": f"basket has {len(rows)} names - expected about 20"}), 400
     try:
-        return jsonify(build_input(rows, parse_notes(body.get("notes"))))
+        out = build_input(rows, notes)
+        # clean 'SYM:score,...' for /rebalance, so Make needs only one aggregator
+        out["basket_csv"] = ",".join(f"{s}:{sc}" if sc is not None else s for s, sc, _ in rows)
+        return jsonify(out)
     except requests.RequestException as e:
         return jsonify({"error": f"Alpaca request failed: {e}"}), 502
 
