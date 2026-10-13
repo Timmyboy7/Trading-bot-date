@@ -43,7 +43,10 @@
     "https://www.trendforce.com/presscenter/news/20260930-13258.html",
     "https://www.ibtimes.com.au/sandisk-shares-ai-data-centre-nand-memory-boom-1876396",
     "https://www.westerndigital.com/en-ae/company/newsroom/press-releases/2026/2026-10-08-wd-to-announce-first-quarter-fiscal-year-2027-financial-results",
-    "https://www.smartcalendars.ai/en/feeds/hyperscaler-capex-earnings-calendar"
+    "https://www.smartcalendars.ai/en/feeds/hyperscaler-capex-earnings-calendar",
+    "https://www.sec.gov/Archives/edgar/data/0002023554/000162828026053346/sndkq4-26ex991xpressrelease.htm",
+    "https://finance.yahoo.com/markets/stocks/article/sandisk-stock-sinks-as-revenue-forecast-falls-short-of-expectations-163703465.html",
+    "https://www.marketbeat.com/instant-alerts/sandisk-nasdaqsndk-releases-q1-2027-earnings-guidance-2026-08-05/"
    ],
    "key_dependencies": [
     {
@@ -66,7 +69,8 @@
      "ticker": "",
      "why": "competing NAND supply"
     }
-   ]
+   ],
+   "earnings_preview": "SanDisk guided fiscal Q1 revenue to $10.3-10.8B, non-GAAP gross margin to 83.0-85.0% and non-GAAP EPS to $44-46. Before the guide, consensus was $11.16B revenue and $45.58 EPS; MarketBeat now lists $10.4B and $41.45. Fiscal Q4 was $8.97B revenue, 84.6% gross margin and $39.25 EPS. Revenue below $10.3B, gross margin below 83%, or a fiscal Q2 guide with revenue or margin below fiscal Q1 would break the case, as would comments that NAND is no longer on allocation or that enterprise SSD prices are falling."
   },
   "MU": {
    "cluster": "memory",
@@ -165,7 +169,10 @@
     "https://www.storagenewsletter.com/2026/07/31/seagate-technology-fiscal-4q26-and-fy26-financial-results/",
     "https://www.tikr.com/blog/seagate-sinks-12-western-digital-down-10-as-toshiba-plans-to-double-hard-disk-output",
     "https://www.blocksandfiles.com/disk/2026/10/06/distant-third-hdd-maker-toshiba-spending-380-million-to-catch-up/5301322",
-    "https://www.westerndigital.com/en-ae/company/newsroom/press-releases/2026/2026-10-08-wd-to-announce-first-quarter-fiscal-year-2027-financial-results"
+    "https://www.westerndigital.com/en-ae/company/newsroom/press-releases/2026/2026-10-08-wd-to-announce-first-quarter-fiscal-year-2027-financial-results",
+    "https://www.stocktitan.net/sec-filings/STX/8-k-seagate-technology-holdings-plc-reports-material-event-cc26f1efc96e.html",
+    "https://www.marketbeat.com/stocks/NASDAQ/STX/earnings/",
+    "https://www.businesswire.com/news/home/20251014411342/en/Seagate-Technology-to-Report-Fiscal-First-Quarter-2026-Financial-Results-on-October-28-2025"
    ],
    "key_dependencies": [
     {
@@ -183,7 +190,8 @@
      "ticker": "META",
      "why": "large nearline buyers"
     }
-   ]
+   ],
+   "earnings_preview": "Seagate guided fiscal Q1 revenue to $4.1B +/- $0.1B and non-GAAP EPS to $7.30 +/- $0.20 (TipRanks consensus $7.39), up from $3.63B and $5.71 in fiscal Q4, when non-GAAP gross margin was 52.7%. Revenue below $4.0B, EPS below $7.10, a first quarter-on-quarter fall in gross margin, or a fiscal Q2 guide below about $4.1B, or any comment that nearline lead times are shortening or that HAMR qualifications are slipping, would break the case."
   },
   "MRNA": {
    "cluster": "mrna_vaccines",
@@ -738,11 +746,56 @@
     {
      "date": "2026-11-03",
      "event": "Expeditors Q3 2026 results before open (third-party date; consensus EPS $2.24, revenue $3.62B)"
+    },
+    {
+     "date": "2026-10-06",
+     "event": "Past: CBP CAPE IEEPA refund Phase Three opened (narrow eligibility)"
     }
    ],
    "sources": [
     "https://beta.earningswhispers.com/go/w/EXPD",
-    "https://finviz.com/news/395167/union-pacific-corporation-announces-third-quarter-2026-earnings-release-date"
+    "https://finviz.com/news/395167/union-pacific-corporation-announces-third-quarter-2026-earnings-release-date",
+    "https://investor.expeditors.com/press-releases/2026/08-04-2026-133112164",
+    "https://theloadstar.com/wall-street-cant-agree-on-whether-expeditors-boom-is-the-new-baseline/",
+    "https://dimerco.com/news-press/asia-pac-freight-report-october-2026/",
+    "https://www.barnesdennig.com/section-122-tariffs-ieepa-refunds-update/",
+    "https://www.hellenicshippingnews.com/drewry-world-container-index-3/"
+   ],
+   "researched_on": "2026-10-13",
+   "thesis_short": "Asset-light forwarder riding a boom in airfreight (Q2 tonnage +14%, AI-hyperscaler demand) and tariff-driven customs complexity (Q2 EPS $2.03, +51%; revenue $3.5B, +32%), with the open question whether IEEPA-refund filings and elevated air rates are temporary.",
+   "kill_criteria": [
+    "Expeditors reports Q3 airfreight tonnage flat or down year on year, or management says AI-hyperscaler air demand is slowing",
+    "Customs brokerage revenue falls sequentially as IEEPA refund filings (CAPE) wind down without replacement tariff work",
+    "US-China tariff truce (to 2027-01-10) collapses into a trade shutdown that cuts transpacific volumes",
+    "Air buy/sell rate spread compresses sharply (e.g. airfreight gross margin per kilo falls quarter on quarter)",
+    "Large hyperscaler or tech shipper moves logistics in-house or to a competitor (e.g. DSV, Kuehne+Nagel) at scale"
+   ],
+   "key_dependencies": [
+    {
+     "name": "AI hyperscalers / server makers",
+     "ticker": "",
+     "why": "driver of airfreight tonnage (+14% in Q2) from Taiwan/Korea/SE Asia"
+    },
+    {
+     "name": "Airlines and air cargo capacity",
+     "ticker": "",
+     "why": "buy-rate inputs; tight Asia-US capacity supports margins"
+    },
+    {
+     "name": "Ocean carriers",
+     "ticker": "ZIM",
+     "why": "transpacific rates (Drewry Shanghai-LA $6,802/FEU on Aug 20) and blank sailings"
+    },
+    {
+     "name": "US Customs / trade policy",
+     "ticker": "",
+     "why": "IEEPA refunds, Section 122/301/232 tariffs drive customs brokerage volume and pricing"
+    },
+    {
+     "name": "C.H. Robinson / DSV / Kuehne+Nagel",
+     "ticker": "CHRW",
+     "why": "competing forwarders and brokers"
+    }
    ]
   },
   "CAT": {
@@ -756,13 +809,54 @@
     },
     {
      "date": "2026-10-29",
-     "event": "Caterpillar Q3 2026 results before open (third-party date; consensus EPS $6.95, revenue $20.17B); backlog was a record after Q2"
+     "event": "Caterpillar Q3 2026 results before open (third-party date, not yet announced by Caterpillar; last year it reported Oct 29); consensus EPS $6.95, revenue $20.17B; Q3 tariff costs guided ~$600M"
     }
    ],
    "sources": [
     "https://beta.earningswhispers.com/go/w/CAT",
     "https://www.marketbeat.com/instant-alerts/caterpillar-q2-earnings-call-highlights-2026-08-04/",
-    "https://www.gevernova.com/investors/events/3rd-quarter-2026-earnings-webcast"
+    "https://www.gevernova.com/investors/events/3rd-quarter-2026-earnings-webcast",
+    "https://manufacturingdive.com/news/caterpillar-sales-surpass-20b-growing-data-center-demand-q2-2026/827068",
+    "https://www.manufacturingdive.com/news/caterpillar-triple-power-generation-capacity-raises-2030-targets-q1-2026-earnings/819078/",
+    "https://www.caterpillar.com/en/news/corporate-press-releases/h.html",
+    "https://investors.caterpillar.com/news/news-details/2025/Caterpillar-Inc--to-Announce-Third-Quarter-2025-Financial-Results-Oct--29/default.aspx"
+   ],
+   "researched_on": "2026-10-13",
+   "thesis_short": "Record $72B backlog with Power & Energy (power-generation sales +72% in Q2) riding data-centre power demand, construction sales +35% and mining +20%, partly offset by about $2.2B of 2026 tariff costs.",
+   "kill_criteria": [
+    "Caterpillar reports a backlog decline from the record $72B or data-centre customers cancel or defer generator-set and turbine orders",
+    "Caterpillar cuts its 2026 sales outlook below the mid-to-high-teens growth range or guides 2026 tariff costs above the $2.2B estimate",
+    "Large cloud providers cut or flatten 2027 capex plans",
+    "The 1.5 GW medium-speed gas engine restart or the plan to reach 65 GW of power capacity by 2030 slips",
+    "North American construction dealer inventory reduction in Q4 well above the usual >$1B, signalling weaker end demand",
+    "Mining customers cut capex as copper or gold prices fall sharply"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Microsoft, Alphabet, Amazon, Meta (hyperscalers)",
+     "ticker": "MSFT",
+     "why": "data-centre buildout drives gen-set and turbine orders, some reaching 2030"
+    },
+    {
+     "name": "GE Vernova",
+     "ticker": "GEV",
+     "why": "gas turbine competitor and data-centre power read-across"
+    },
+    {
+     "name": "Cummins",
+     "ticker": "CMI",
+     "why": "competitor in large generator sets for data centres"
+    },
+    {
+     "name": "Komatsu",
+     "ticker": "",
+     "why": "main competitor in construction and mining equipment"
+    },
+    {
+     "name": "US tariff policy (steel, Section 232, IEEPA refunds)",
+     "ticker": "",
+     "why": "about $2.2B of 2026 tariff costs; $392M IEEPA recovery booked in Q2"
+    }
    ]
   },
   "GM": {
@@ -772,15 +866,59 @@
    "catalysts": [
     {
      "date": "2026-10-20",
-     "event": "GM Q3 2026 results before open, 6:30 am ET (third-party date; GM release not found)"
+     "event": "GM Q3 2026 results before open, 6:30 am ET (Earnings Whispers lists as confirmed; GM's own announcement not reachable)"
     }
    ],
    "sources": [
     "https://beta.earningswhispers.com/go/w/GM",
     "https://www.sec.gov/Archives/edgar/data/0001467858/000146785826000049/gmq22026pressreleaseandfin.htm",
-    "https://nasdaq.com/articles/general-motors-raises-2026-adj-ebit-adj-eps-guidance"
+    "https://nasdaq.com/articles/general-motors-raises-2026-adj-ebit-adj-eps-guidance",
+    "https://www.marklines.com/en/news/351827",
+    "https://driveteslacanada.ca/?p=124522"
    ],
-   "earnings_preview": "Consensus for Q3 is EPS $3.52 on revenue $48.33B (Q2 was $3.57 on $48.0B). Any cut to 2026 guidance would weaken the case. GM raised that guidance in July to EBIT-adjusted $14.0-16.0B, EPS-adjusted $12.00-14.00 and adjusted auto free cash flow $9.5-11.5B. Gross tariff costs above the $2.5-3.5B range given in April would also weaken it."
+   "earnings_preview": "Consensus for Q3 is EPS $3.52 on revenue $48.33B (Q2 was $3.57 on $48.0B). The case weakens if GM cuts 2026 guidance (raised in July to EBIT-adj $14.0-16.0B, EPS-adj $12.00-14.00, adj. auto FCF $9.5-11.5B), if GMNA margin falls well below Q2's 8.6%, or if gross tariff costs are raised above the $2.5-3.5B range; Q3 US sales were already -5.5% y/y with EVs -61.7%, so watch for more EV charges after $3.4B in H1.",
+   "researched_on": "2026-10-13",
+   "thesis_short": "Truck/SUV-heavy profit engine (Q2 2026 EBIT-adj $3.9B, GMNA margin 8.6%) funding heavy buybacks while EV losses are being cut back, with 2026 guidance raised twice to EBIT-adj $14-16B.",
+   "kill_criteria": [
+    "GM cuts 2026 EBIT-adjusted guidance below the $14.0-16.0B range or adjusted automotive free cash flow below $9.5-11.5B",
+    "GM North America EBIT-adjusted margin falls below 6% in a reported quarter (Q2 2026 was 8.6%)",
+    "GM raises its gross tariff cost estimate above the $2.5-3.5B range or new US auto/parts tariffs are imposed that GM says it cannot offset",
+    "GM announces further EV strategic realignment charges beyond the $3.4B booked in H1 2026, or new cash-costly EV restructuring",
+    "GM suspends or materially slows share repurchases ($2.8B in H1 2026)",
+    "GM US quarterly sales fall more than 10% y/y on a full-size truck/SUV decline (Q3 2026 was -5.5%, driven mainly by EVs)"
+   ],
+   "key_dependencies": [
+    {
+     "name": "US full-size pickup/SUV demand",
+     "ticker": "",
+     "why": "bulk of GMNA profit; Q3 2026 US sales 670,974 units, -5.5% y/y"
+    },
+    {
+     "name": "US tariff policy on imported vehicles and parts",
+     "ticker": "",
+     "why": "GM guided $2.5-3.5B gross tariff cost; changes move EBIT directly"
+    },
+    {
+     "name": "US EV demand after tax-credit expiry (Sept 30, 2025)",
+     "ticker": "",
+     "why": "GM Q3 2026 EV sales 25,473, -61.7% y/y; drives further realignment charges ($2.3B in Q2 2026)"
+    },
+    {
+     "name": "Ford",
+     "ticker": "F",
+     "why": "main Detroit competitor in trucks; pricing and incentive read-across"
+    },
+    {
+     "name": "GM Financial / US auto credit",
+     "ticker": "",
+     "why": "captive finance EBT-adj $605M in Q2 2026, -14% y/y"
+    },
+    {
+     "name": "China JV (SAIC-GM)",
+     "ticker": "",
+     "why": "equity income $83M in Q2 2026; China share 6.6%"
+    }
+   ]
   },
   "NUE": {
    "cluster": "us_steel",
@@ -789,7 +927,11 @@
    "catalysts": [
     {
      "date": "2026-10-19",
-     "event": "Steel Dynamics Q3 results after close (peer read-across)"
+     "event": "Cleveland-Cliffs Q3 results before the open (integrated peer; USW contract status)"
+    },
+    {
+     "date": "2026-10-19",
+     "event": "Steel Dynamics Q3 results after close (guided EPS $5.34-5.38; peer read-across)"
     },
     {
      "date": "2026-10-20",
@@ -797,14 +939,70 @@
     },
     {
      "date": "2026-10-26",
-     "event": "Nucor Q3 2026 results after close; call Oct 27 10:00 am ET. Guided EPS $5.55-5.65 vs $6.17 consensus at the time; Q2 had a $130M one-off raw-materials refund"
+     "event": "Nucor Q3 2026 results after close; call Oct 27 10:00 am ET. Guided EPS $5.55-5.65 (Q2 adj. $4.84); Q2 had a $130M one-off raw-materials refund that does not recur"
+    },
+    {
+     "date": "2026-10-27",
+     "event": "Nucor Q3 earnings call: Q4 outlook, backlog, West Virginia mill commissioning"
     }
    ],
    "sources": [
     "https://finviz.com/news/393374/nucor-announces-guidance-for-the-third-quarter-of-2026-earnings",
     "https://www.tikr.com/blog/nucor-stock-estimates-bake-in-a-60-earnings-rebound-but-q3-guidance-just-missed",
-    "https://finviz.com/news/400568/steel-dynamics-announces-third-quarter-2026-earnings-conference-call-and-webcast"
-   ]
+    "https://finviz.com/news/400568/steel-dynamics-announces-third-quarter-2026-earnings-conference-call-and-webcast",
+    "https://s202.q4cdn.com/531038915/files/doc_news/Nucor-Announces-Guidance-for-the-Third-Quarter-of-2026-Earnings-2026.pdf",
+    "https://www.sec.gov/Archives/edgar/data/0000073309/000119312526318190/d468854dex992.htm",
+    "https://www.aaii.com/investingideas/article/520373-what-you-need-to-know-about-nucor-corporations-q3-earnings",
+    "https://www.steelmarketupdate.com/",
+    "https://www.kallanish.com/en/news/steel/market-reports/article-details/nucor-hikes-hrc-spot-prices-another-dollar10st-1026/",
+    "https://www.scrapmonster.com/news/steel/u.s.-steel-imports-rise-3.4-in-august-2026-9-28/100118",
+    "https://www.everycrsreport.com/reports/IN12519.html",
+    "https://www.spglobal.com/energy/en/news-research/latest-news/metals/061226-canada-mexico-push-for-steel-tariff-relief-amid-usmca-negotiations",
+    "https://finviz.com/news/398070/cleveland-cliffs-to-announce-third-quarter-2026-earnings-results-and-host-conference-call-on-october-19"
+   ],
+   "researched_on": "2026-10-13",
+   "thesis_short": "Largest US electric-arc steelmaker running at 91% mill utilization with record shipments and a 5.6M-ton backlog, as 50% Section 232 tariffs cut finished-import share to about 16% and push hot-rolled prices to $1,240/st.",
+   "kill_criteria": [
+    "Nucor's Q3 EPS (Oct 26) comes in below its $5.55-5.65 guide, or it guides Q4 steel mills earnings down on lower realized prices or volumes",
+    "Steel mills backlog falls quarter on quarter from 5.6 million tons, or mill utilization drops below 85% (Q2: 91%)",
+    "The US cuts the 50% Section 232 steel tariff or exempts Canada/Mexico in the USMCA review",
+    "Finished-steel import share rises back above 20% for two months running (AISI; 2026 YTD about 16%, August 17.5%)",
+    "Nucor cuts its weekly hot-rolled CSP for several weeks in a row (Oct 12: $1,240/st, still rising)",
+    "West Virginia sheet mill start-up slips out of 2027 or runs over budget"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Section 232 steel tariffs (50%) / USMCA review",
+     "ticker": "",
+     "why": "Tariffs cut finished-import share to about 16%; Canada and Mexico are pushing for relief"
+    },
+    {
+     "name": "Ferrous scrap and pig iron/pellets",
+     "ticker": "",
+     "why": "Main input for electric-arc furnaces; the metal spread drives mill margins"
+    },
+    {
+     "name": "Non-residential construction and data centres",
+     "ticker": "",
+     "why": "Main demand for plate, beam, rebar, joists and towers"
+    },
+    {
+     "name": "General Motors / Ford",
+     "ticker": "GM",
+     "why": "Auto sheet demand"
+    },
+    {
+     "name": "Steel Dynamics",
+     "ticker": "STLD",
+     "why": "Closest EAF competitor in sheet; adds capacity and drives price signals"
+    },
+    {
+     "name": "Cleveland-Cliffs / U.S. Steel",
+     "ticker": "CLF",
+     "why": "Integrated sheet competitors; their USW contract talks affect supply"
+    }
+   ],
+   "earnings_preview": "Nucor guided Q3 EPS to $5.55-5.65; the AAII-listed consensus is $5.83 (8 analysts), Q2 adjusted EPS was $4.84 and Q2 revenue was about $10.4B. EPS below $5.55 would weaken the case. So would a Q4 outlook for lower steel mills earnings, a steel mills backlog below Q2's 5.6M tons, or utilization well below Q2's 91%."
   },
   "STLD": {
    "cluster": "us_steel",
@@ -813,7 +1011,15 @@
    "catalysts": [
     {
      "date": "2026-10-19",
+     "event": "Cleveland-Cliffs Q3 results before the open (sheet peer read-across)"
+    },
+    {
+     "date": "2026-10-19",
      "event": "Steel Dynamics Q3 2026 results after close; call Oct 20 11:00 am ET"
+    },
+    {
+     "date": "2026-10-20",
+     "event": "GM Q3 results (auto sheet and aluminum demand)"
     },
     {
      "date": "2026-10-26",
@@ -824,9 +1030,58 @@
     "https://finviz.com/news/400568/steel-dynamics-announces-third-quarter-2026-earnings-conference-call-and-webcast",
     "https://finviz.com/news/393373/steel-dynamics-provides-third-quarter-2026-earnings-guidance",
     "https://www.tickerreport.com/?p=13588280",
-    "https://tradersunion.com/news/stocks/show/3390538-steel-dynamics-slides-4-74percent-to/"
+    "https://tradersunion.com/news/stocks/show/3390538-steel-dynamics-slides-4-74percent-to/",
+    "https://www.sec.gov/Archives/edgar/data/0001022671/000110465926108777/tm2625690d1_ex99-1.htm",
+    "https://ir.steeldynamics.com/steel-dynamics-reports-second-quarter-2026-results/",
+    "https://www.aaii.com/investingideas/article/516803-what-you-need-to-know-about-steel-dynamics-incs-q3-earnings",
+    "https://www.steelmarketupdate.com/",
+    "https://www.scrapmonster.com/news/steel/u.s.-steel-imports-rise-3.4-in-august-2026-9-28/100118",
+    "https://www.everycrsreport.com/reports/IN12519.html",
+    "https://finviz.com/news/398070/cleveland-cliffs-to-announce-third-quarter-2026-earnings-results-and-host-conference-call-on-october-19"
    ],
-   "earnings_preview": "On Sept 17 Steel Dynamics guided Q3 EPS to $5.34-5.38, below the $5.66 consensus at the time; Q2 was $3.69 on revenue $6.09B. Actual EPS below $5.34 would weaken the case. So would a Q4 outlook of lower steel margins or shipments, or a further slip in Columbus aluminum, whose first coated (CASH) line is due to ship commercially in Q4."
+   "earnings_preview": "Steel Dynamics guided Q3 EPS to $5.34-5.38, versus the AAII-listed consensus of $5.40 (8 analysts) and Q2's $3.69 on revenue of $6.09B; EPS below $5.34 would weaken the case. Other negatives would be a Q4 outlook of lower steel shipments or metal margins (Q2 shipments were a record 3.7M tons), Columbus aluminum still losing money or pushing its first CASH line's commercial shipments past Q4, or a fabrication backlog no longer about 50% above last year.",
+   "researched_on": "2026-10-13",
+   "thesis_short": "Low-cost EAF flat-roll producer with record steel shipments (3.7M tons in Q2), a fabrication backlog about 50% above last year, and a Columbus aluminum mill moving from losses toward profit as the 50% tariff keeps imports low.",
+   "kill_criteria": [
+    "Steel Dynamics reports Q3 EPS (Oct 19) below its $5.34-5.38 guide, or guides Q4 steel shipments or metal margins lower",
+    "Columbus aluminum first CASH line fails to ship commercial material in Q4 2026, or aluminum operating losses widen again (Q2: -$33M)",
+    "Steel fabrication backlog falls year on year (currently about 50% higher, extending into Q1 2027)",
+    "The US cuts the 50% Section 232 steel tariff or exempts Canada/Mexico in the USMCA review",
+    "Finished-steel import share rises back above 20% for two months running (AISI; 2026 YTD about 16%)",
+    "Nucor and other mills cut hot-rolled spot prices for several weeks in a row (Nucor CSP Oct 12: $1,240/st, still rising)"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Section 232 steel and aluminum tariffs (50%)",
+     "ticker": "",
+     "why": "Keeps sheet imports low; Columbus aluminum also benefits from the aluminum tariff"
+    },
+    {
+     "name": "Ferrous scrap (own OmniSource recycling)",
+     "ticker": "",
+     "why": "Main input and a segment; lower scrap widened Q3 metal margins but cut recycling earnings"
+    },
+    {
+     "name": "Automotive and beverage-can makers",
+     "ticker": "GM",
+     "why": "Customers for flat-rolled steel and new Columbus aluminum sheet; auto aluminum sales due to start by end-2026"
+    },
+    {
+     "name": "Non-residential construction and data centres",
+     "ticker": "",
+     "why": "Drive the joist/deck fabrication backlog"
+    },
+    {
+     "name": "Nucor",
+     "ticker": "NUE",
+     "why": "Largest EAF competitor; its weekly CSP sets the sheet price signal"
+    },
+    {
+     "name": "Cleveland-Cliffs / U.S. Steel",
+     "ticker": "CLF",
+     "why": "Integrated sheet competitors; their USW contracts run on rolling extensions"
+    }
+   ]
   },
   "DE": {
    "cluster": "ag_equipment",
@@ -840,7 +1095,50 @@
    ],
    "sources": [
     "https://unusualwhales.com/stock/DE/earnings",
-    "https://beta.earningswhispers.com/go/w/CAT"
+    "https://beta.earningswhispers.com/go/w/CAT",
+    "https://www.sec.gov/Archives/edgar/data/0000315189/000110465926098904/de-20260820xex99d1.htm",
+    "https://app.sentisense.ai/stories/deere-q3-2026-beats-expectations-raises-fy26-outlook-as-sales-surge-08202026",
+    "https://www.trefis.com/articles/612960/deeres-ag-cycle-is-turning-but-can-profitability-follow/2026-08-26",
+    "https://www.fb.org/market-intel/usda-revises-farm-income-higher-but-costs-still-bite",
+    "https://www.spglobal.com/energy/en/news-research/latest-news/agriculture/100126-chinas-tariff-cut-plans-skip-soybeans-spurring-hopes-for-higher-buys-of-other-us-farm-goods",
+    "https://www.axios.com/2025/11/26/trump-tariffs-farmers-deere"
+   ],
+   "researched_on": "2026-10-13",
+   "thesis_short": "Largest farm-equipment maker; management calls 2026 the ag-cycle bottom (FY26 net income guided $4.75-5.0B, US/Canada large ag down 15-20%) with early 2027 orders up mid-single digits, while construction carries results and tariff recoveries roll off in 2027.",
+   "kill_criteria": [
+    "Deere guides FY2027 net income below FY2026 ($4.75-5.0B) or says the large-ag recovery is delayed",
+    "Deere's final early-order program update shows 2027 orders flat or down versus last year",
+    "USDA cuts its 2026 or 2027 net farm income forecast further below the $158.4B Sept 2026 estimate",
+    "China keeps soybeans excluded from tariff cuts or halts US soybean purchases into the 2026 harvest",
+    "New US tariffs or loss of tariff recoveries raise Deere's net tariff cost materially above the ~$750M FY26 level",
+    "Deere reports rising dealer used-equipment inventory or production cuts in large ag for FY2027"
+   ],
+   "key_dependencies": [
+    {
+     "name": "US row-crop farmers (corn/soy)",
+     "ticker": "",
+     "why": "farm income (USDA: $158.4B in 2026, incl. $47.4B government payments) drives large-ag demand"
+    },
+    {
+     "name": "China soybean demand",
+     "ticker": "",
+     "why": "China excluded soybeans from Sept 2026 tariff-cut plan; exports drive soy prices and farmer cash flow"
+    },
+    {
+     "name": "US tariff policy / steel inputs",
+     "ticker": "",
+     "why": "~$1.1B FY26 direct tariff expense; $382M recoveries roll off in FY2027"
+    },
+    {
+     "name": "CNH Industrial / AGCO",
+     "ticker": "CNH",
+     "why": "competing ag-equipment makers; their order and inventory data are read-across"
+    },
+    {
+     "name": "Caterpillar",
+     "ticker": "CAT",
+     "why": "construction equipment competitor; Deere C&F sales rose 18% in FQ3"
+    }
    ]
   },
   "PWR": {
@@ -850,16 +1148,61 @@
    "catalysts": [
     {
      "date": "2026-10-28",
-     "event": "GE Vernova Q3 results (grid/electrification orders read-across)"
+     "event": "GE Vernova Q3 2026 results (grid/electrification orders read-across)"
     },
     {
      "date": "2026-10-29",
-     "event": "Quanta Q3 2026 results before open (MarketBeat estimate based on prior-year timing; Q3 consensus EPS $3.38 from 5 analysts)"
+     "event": "Caterpillar Q3 results (power-generation/data-center engine read-across)"
+    },
+    {
+     "date": "2026-10-29",
+     "event": "Quanta Q3 2026 results (estimated; prior-year Q3 was reported Oct 30, 2025; company has not yet announced the date). Consensus EPS ~$3.38-3.64, revenue ~$10.9B"
     }
    ],
    "sources": [
     "https://www.marketbeat.com/stocks/NYSE/PWR/earnings/",
-    "https://www.gevernova.com/investors/events/3rd-quarter-2026-earnings-webcast"
+    "https://www.gevernova.com/investors/events/3rd-quarter-2026-earnings-webcast",
+    "https://www.sec.gov/Archives/edgar/data/0001050915/000119312526324855/d56853dex991.htm",
+    "https://www.marketbeat.com/instant-alerts/quanta-services-q2-earnings-call-highlights-2026-07-31/",
+    "https://www.marketscreener.com/quote/stock/QUANTA-SERVICES-INC-14157/calendar/",
+    "https://investors.quantaservices.com/_assets/_9eccff34e31db30cc23004d12e8dfbea/quantaservices/news/2025-10-14_Quanta_Services_Announces_Third_Quarter_2025_384.pdf"
+   ],
+   "researched_on": "2026-10-13",
+   "thesis_short": "Largest US electric-grid and power-infrastructure contractor with a record $53.4B backlog (Q2 2026) and 2026 guidance raised to $39.3-39.7B revenue and $16.45-16.95 adjusted EPS on utility, generation and data-center demand.",
+   "kill_criteria": [
+    "Quanta reports total backlog falling quarter on quarter from the $53.4B Q2 2026 record",
+    "Quanta lowers 2026 revenue guidance below $39.3B or adjusted EPS guidance below $16.45",
+    "A major hyperscaler or utility customer publicly cuts or delays its 2027 capex plan",
+    "Large transmission or generation programs Quanta expects to book in late 2026 are cancelled or pushed beyond 2027",
+    "Quanta discloses a material loss or charge on a fixed-price generation/combined-cycle project",
+    "Electric segment margins guided below the prior range instead of toward the 10-12% management target"
+   ],
+   "key_dependencies": [
+    {
+     "name": "US investor-owned utilities",
+     "ticker": "",
+     "why": "transmission/distribution capex programs are the core of Quanta's electric backlog"
+    },
+    {
+     "name": "Microsoft, Alphabet, Amazon, Meta",
+     "ticker": "MSFT",
+     "why": "hyperscaler data-center buildouts; technology work is ~15-20% of the business"
+    },
+    {
+     "name": "GE Vernova",
+     "ticker": "GEV",
+     "why": "gas-turbine and grid-equipment supply timing gates generation and substation projects Quanta builds"
+    },
+    {
+     "name": "Skilled craft labor",
+     "ticker": "",
+     "why": "lineworker/electrician availability caps growth and margins"
+    },
+    {
+     "name": "MasTec",
+     "ticker": "MTZ",
+     "why": "main competitor for utility and power construction work"
+    }
    ]
   },
   "GEV": {
@@ -869,17 +1212,58 @@
    "catalysts": [
     {
      "date": "2026-10-28",
-     "event": "GE Vernova Q3 2026 results; webcast 7:30 am EDT. In July 2026 guidance was raised to revenue $45.5-46.5B and free cash flow $11.5-12.5B, with at least 125 GW of gas equipment under contract by year-end (116 GW at Q2)"
+     "event": "GE Vernova Q3 2026 results; webcast 7:30 am EDT. July guidance: revenue $45.5-46.5B, FCF $11.5-12.5B, at least 125 GW of gas equipment under contract by year-end (116 GW at Q2)"
     },
     {
      "date": "2026-10-29",
      "event": "Quanta Q3 results (estimated date; grid construction read-across)"
+    },
+    {
+     "date": "2026-10-29",
+     "event": "Caterpillar Q3 results (competing gas-power/reciprocating-engine demand read-across)"
     }
    ],
    "sources": [
     "https://www.gevernova.com/investors/events/3rd-quarter-2026-earnings-webcast",
     "https://www.sec.gov/Archives/edgar/data/0001996810/000199681026000147/gevpressrelease2q26.htm",
     "https://beta.earningswhispers.com/epsdetails/GEV"
+   ],
+   "researched_on": "2026-10-13",
+   "thesis_short": "Gas-turbine and grid-equipment leader with $176B backlog (Q2 2026), 116 GW of gas backlog plus slot reservations, and 2026 guidance raised to $45.5-46.5B revenue and $11.5-12.5B free cash flow, partly offset by Wind losses.",
+   "kill_criteria": [
+    "GE Vernova reports gas backlog plus slot reservations below the 125 GW year-end 2026 target, or a quarterly decline from 116 GW",
+    "GE Vernova cuts 2026 revenue guidance below $45.5B or free cash flow guidance below $11.5B",
+    "Slot reservation agreements cancelled or converted to orders at lower pricing",
+    "A large cloud provider cuts or flattens its 2027 capex plan",
+    "Wind segment losses guided well above the ~$400M 2026 EBITDA loss, or a new offshore wind charge",
+    "Electrification orders fall with book-to-bill dropping below 1.0"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Microsoft, Alphabet, Amazon, Meta",
+     "ticker": "MSFT",
+     "why": "data-center power demand drives gas-turbine slot reservations and grid orders"
+    },
+    {
+     "name": "US utilities and IPPs",
+     "ticker": "",
+     "why": "main buyers of gas turbines and grid equipment"
+    },
+    {
+     "name": "Siemens Energy / Mitsubishi Heavy",
+     "ticker": "",
+     "why": "competing heavy-duty gas-turbine supply and pricing"
+    },
+    {
+     "name": "Prolec GE",
+     "ticker": "",
+     "why": "acquired transformer business adding ~$3.1B 2026 revenue; transformer capacity is a bottleneck"
+    },
+    {
+     "name": "Offshore/onshore wind customers",
+     "ticker": "",
+     "why": "Wind segment loss-making; project costs and order weakness drag earnings"
+    }
    ]
   },
   "VRT": {
@@ -889,7 +1273,7 @@
    "catalysts": [
     {
      "date": "2026-10-28",
-     "event": "Vertiv Q3 2026 results (third-party date, not confirmed by Vertiv; prior-year Q3 was reported Oct 22). Guided EPS $1.77-1.83 and revenue $3.7-3.9B; full-year 2026 EPS $6.65-6.75"
+     "event": "Vertiv Q3 2026 results (third-party date from Bullstory, not confirmed by Vertiv; MarketScreener shows no date; prior-year Q3 was reported Oct 22). Guided EPS $1.77-1.83 and revenue $3.65-3.85B"
     },
     {
      "date": "2026-10-28",
@@ -899,7 +1283,47 @@
    "sources": [
     "https://bullstory.io/en/stocks/vrt/earnings/2026-q3",
     "https://www.marketbeat.com/instant-alerts/vertiv-nysevrt-updates-q3-2026-earnings-guidance-2026-07-29/",
-    "https://www.marketscreener.com/quote/stock/VERTIV-HOLDINGS-CO-45109447/calendar/"
+    "https://www.marketscreener.com/quote/stock/VERTIV-HOLDINGS-CO-45109447/calendar/",
+    "https://www.sec.gov/Archives/edgar/data/0001674101/000162828026050323/q22026exhibit991vrt07292026.htm",
+    "https://www.nasdaq.com/articles/vertiv-q2-earnings-call-highlights",
+    "https://www.trefis.com/stock/vrt/articles/617134/should-you-think-about-vertiv-differently-now/2026-09-30"
+   ],
+   "researched_on": "2026-10-13",
+   "thesis_short": "Leading AI data-centre power and thermal supplier guiding 2026 sales of $13.8-14.2B (+30-32% organic) and Q3 organic growth of 34-36%, with content per MW rising as 800V DC and liquid cooling roll out from 2027.",
+   "kill_criteria": [
+    "Vertiv cuts 2026 guidance below net sales $13.8B or adjusted EPS $6.65",
+    "Vertiv Q3 2026 net sales below the $3.65B low end of guidance or adjusted operating margin below 24.0%, blamed on project timing or supply congestion again",
+    "A top hyperscaler (Microsoft, Alphabet, Amazon, Meta) cuts or flattens its 2027 capex plan",
+    "Vertiv discloses order declines or backlog shrinkage, or stops giving any order/backlog commentary",
+    "Nvidia's 800V DC partner architecture moves to a competitor (Schneider, Eaton) as primary supplier, or Vertiv's 2027 MVAC/800V DC deployment slips",
+    "Vertiv cuts 2026 adjusted free cash flow guidance below $2.4B"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Microsoft, Alphabet, Amazon, Meta",
+     "ticker": "MSFT",
+     "why": "hyperscaler data-centre capex drives power/thermal orders"
+    },
+    {
+     "name": "Nvidia",
+     "ticker": "NVDA",
+     "why": "GB300/Vera Rubin rack designs and 800V DC architecture partner set content per MW"
+    },
+    {
+     "name": "Schneider Electric",
+     "ticker": "",
+     "why": "main competitor in power and cooling"
+    },
+    {
+     "name": "Eaton",
+     "ticker": "ETN",
+     "why": "competitor in electrical power distribution / 800V DC"
+    },
+    {
+     "name": "Component supply chain",
+     "ticker": "",
+     "why": "Q2 2026 revenue slipped on temporary supply congestion and multi-phase project timing"
+    }
    ]
   },
   "TRGP": {
@@ -910,12 +1334,56 @@
     {
      "date": "2026-11-06",
      "event": "Targa Q3 2026 results (estimated; consensus EPS $2.66, revenue $5.12B); 2026 adj. EBITDA guided toward top of $5.7-5.9B"
+    },
+    {
+     "date": "2026-10-27",
+     "event": "ONEOK Q3 results after close (NGL/Permian read-across; call 2026-10-28)"
     }
    ],
    "sources": [
     "https://beta.earningswhispers.com/go/w/TRGP",
     "https://www.sec.gov/Archives/edgar/data/0001389170/000119312526336525/trgp-ex99_1.htm",
-    "https://www.autobound.ai/companies/targa-resources/news"
+    "https://www.autobound.ai/companies/targa-resources/news",
+    "https://www.quiverquant.com/news/Targa+Resources+Announces+Expanded+Long-Term+Midstream+Agreements+with+ExxonMobil+in+the+Permian+Basin",
+    "https://pulse2.com/targa-resources-ngl-fractionation-jumps-24-to-record-1-2-million-barrels-per-day-as-4-5-billion-expansion-advances/",
+    "https://finviz.com/news/398900/oneok-schedules-third-quarter-2026-conference-call-and-webcast"
+   ],
+   "researched_on": "2026-10-13",
+   "thesis_short": "Permian gas/NGL volume growth (Q2 inlet 7.19 Bcf/d +14%, fractionation +24%) drove adj. EBITDA +38% to $1.60B, FY26 guided to top of $5.7-5.9B, backed by new 20-year ExxonMobil dedications and a $5.0B 2026 build-out.",
+   "kill_criteria": [
+    "Targa guides 2026 adj. EBITDA below $5.7B or gives a 2027 outlook implying no growth",
+    "Permian producers (e.g. ExxonMobil, Diamondback, Oxy) announce rig/completion cuts or 2027 Permian production declines",
+    "Targa reports sequential decline in Permian inlet volumes or NGL production",
+    "Negative Waha gas prices force extended producer shut-ins that cut Targa throughput",
+    "Major project delays or cost overruns (Speedway NGL pipeline, Trains 12-13, Delaware plants) or a further growth-capex raise above $5.0B without matching contracts",
+    "Targa cuts or freezes dividend growth or leverage rises enough for a credit downgrade"
+   ],
+   "key_dependencies": [
+    {
+     "name": "ExxonMobil",
+     "ticker": "XOM",
+     "why": "20-year Delaware/Midland G&P and NGL dedications (Aug 2026); anchor for 3 new plants by 1H28"
+    },
+    {
+     "name": "Permian E&Ps",
+     "ticker": "FANG",
+     "why": "drilling activity sets gas and NGL volumes through Targa plants"
+    },
+    {
+     "name": "Waha hub gas prices / takeaway",
+     "ticker": "",
+     "why": "negative Waha prices caused producer curtailments in 2026"
+    },
+    {
+     "name": "NGL export demand (LPG, China/Asia)",
+     "ticker": "",
+     "why": "exports 487 MBbl/d; GPMT LPG export expansion under construction"
+    },
+    {
+     "name": "ONEOK / Enterprise Products",
+     "ticker": "OKE",
+     "why": "competing NGL pipelines, fractionation and export capacity"
+    }
    ]
   },
   "CNC": {
@@ -924,14 +1392,69 @@
    "earnings_confirmed": false,
    "catalysts": [
     {
+     "date": "2026-10-21",
+     "event": "Elevance Health Q3 2026 results before the open (Medicaid/ACA peer read-across)"
+    },
+    {
+     "date": "2026-10-21",
+     "event": "Molina Q3 2026 results after the close, call 2026-10-22 8:00 a.m. ET (closest Medicaid/Marketplace peer)"
+    },
+    {
      "date": "2026-10-27",
-     "event": "Centene Q3 2026 results (estimated date); 2026 EPS guided to at least $4.80; management to update 2027 ACA marketplace positioning with Q3"
+     "event": "Centene Q3 2026 results (estimated date, not yet announced by Centene); management guided Q3 to slightly above break-even and 2026 adjusted EPS to more than $4.80; 2027 Marketplace positioning update expected"
     }
    ],
    "sources": [
     "https://bullstory.io/en/stocks/cnc/earnings/2026-q3",
     "https://www.fiercehealthcare.com/payers/centene-boosts-2026-guidance-it-posts-11b-q2-profit",
-    "https://www.sec.gov/Archives/edgar/data/0001071739/000107173926000154/a20260728ex991pressrelease.htm"
+    "https://www.sec.gov/Archives/edgar/data/0001071739/000107173926000154/a20260728ex991pressrelease.htm",
+    "https://www.marketbeat.com/instant-alerts/centene-q2-earnings-call-highlights-2026-07-28/",
+    "https://www.healthsystemtracker.org/brief/how-much-and-why-aca-marketplace-premiums-are-going-up-in-2027",
+    "https://www.fiercehealthcare.com/payers/humana-rebounds-aetna-slips-winners-and-losers-2027-ma-star-ratings",
+    "https://molinahealthcare.gcs-web.com/node/24966",
+    "https://beta.earningswhispers.com/go/w/ELV"
+   ],
+   "researched_on": "2026-10-13",
+   "thesis_short": "Largest Medicaid and ACA Marketplace insurer recovering margins after the 2025 risk-pool shock: Q2 2026 adjusted EPS $2.51, 2026 guidance raised to more than $4.80, Marketplace pre-tax margin guided 4.5-5% and Medicaid HBR about 93.5%, with the case resting on 2027 Marketplace repricing and Medicaid rates keeping pace with acuity as redeterminations and OB3 eligibility changes shrink enrollment.",
+   "kill_criteria": [
+    "Centene lowers 2026 adjusted EPS guidance below $4.80, or the Q3 2026 report shows a loss (management guided to slightly above break-even)",
+    "Centene raises its 2026 Medicaid HBR outlook above about 93.5% or reports Medicaid rate increases (about 5%) falling behind medical trend (mid-4%)",
+    "Wakely data or the CMS summary report on 2026 risk adjustment transfers shows Centene owing a payable instead of the 'meaningful receivable' it expects",
+    "Centene says 2027 Marketplace pricing does not restore margins, or reports 2027 Marketplace morbidity or enrollment materially worse than priced (median proposed 2027 premium increase is 15%)",
+    "Centene withdraws from or loses a large state Medicaid contract, or cuts Medicaid membership guidance beyond the 8-9% 2026 decline",
+    "Centene guides 2027 Medicare Advantage below break-even (it targeted break-even or better)"
+   ],
+   "key_dependencies": [
+    {
+     "name": "State Medicaid agencies",
+     "ticker": "",
+     "why": "set capitation rates (about 5% 2026 rate impact) and run redeterminations; Medicaid membership guided down 8-9% in 2026"
+    },
+    {
+     "name": "CMS (ACA Marketplace and Medicare)",
+     "ticker": "",
+     "why": "risk adjustment transfers, 2027 NBPP and Marketplace Integrity rule, MA star ratings (9% of Centene members in 4+ star plans for 2027)"
+    },
+    {
+     "name": "Express Scripts (Cigna)",
+     "ticker": "CI",
+     "why": "PBM partner for the roughly $25B-premium Part D/PDP business"
+    },
+    {
+     "name": "Molina Healthcare",
+     "ticker": "MOH",
+     "why": "closest Medicaid/Marketplace competitor; reports 2026-10-21"
+    },
+    {
+     "name": "Elevance Health",
+     "ticker": "ELV",
+     "why": "Medicaid and ACA competitor; reports 2026-10-21"
+    },
+    {
+     "name": "Congress / OB3 (H.R. 1) implementation",
+     "ticker": "",
+     "why": "enhanced ACA subsidies expired end-2025 and Medicaid eligibility changes reshape the risk pool"
+    }
    ]
   },
   "TGT": {
@@ -941,7 +1464,54 @@
    "sources": [
     "https://beta.earningswhispers.com/go/x/TGT",
     "https://www.sec.gov/Archives/edgar/data/0000027419/000002741926000034/a2026q2ex-99.htm",
-    "https://www.autobound.ai/companies/target/news"
+    "https://www.autobound.ai/companies/target/news",
+    "https://www.insidermonkey.com/news/can-targets-tgt-turnaround-justify-the-60-ytd-rally-1847123/",
+    "https://www.fortune.com/2026/08/20/target-tariff-refund-turnaround-earnings/",
+    "https://www.aol.com/articles/33-target-rally-buyout-still-160502537.html",
+    "https://www.marketbeat.com/articles/target-has-surged-in-2026-why-wall-street-may-be-ready-to-hit-pause/"
+   ],
+   "researched_on": "2026-10-13",
+   "thesis_short": "Turnaround under new CEO Fiddelke is showing up in traffic: Q2 comps +3.8% (transactions +3.6%, digital +8.7%), FY26 sales guide raised to ~5% and ex-refund EPS midpoint lifted $0.75; shares up ~60% YTD at ~15.6x forward earnings.",
+   "kill_criteria": [
+    "Target reports Q3 comparable sales negative or comparable transactions falling (Q2 was +3.8% comps, +3.6% traffic)",
+    "Target cuts FY2026 net sales growth guide below ~5% or ex-tariff-refund EPS guide below the $8.25-9.25 implied range",
+    "Gross margin ex tariff refunds contracts year over year as price cuts (10,000+ items) outrun mix gains",
+    "Apparel and home stay flat or decline again while Fun 101/food growth slows to low single digits",
+    "Walmart or Amazon report clear share gains in general merchandise or launch a price war in Target's core categories",
+    "New tariffs or loss of IEEPA refund benefit force Target to raise prices or reverse guidance"
+   ],
+   "catalysts": [
+    {
+     "date": "2026-11-19",
+     "event": "Target Q3 2026 results (estimated, not company-confirmed)"
+    }
+   ],
+   "key_dependencies": [
+    {
+     "name": "Walmart",
+     "ticker": "WMT",
+     "why": "main price competitor; share gains or price cuts pressure Target traffic"
+    },
+    {
+     "name": "Amazon",
+     "ticker": "AMZN",
+     "why": "competitor in general merchandise and same-day delivery"
+    },
+    {
+     "name": "US lower/middle-income consumer",
+     "ticker": "",
+     "why": "discretionary spend (apparel, home) is weak; sentiment hit by high prices"
+    },
+    {
+     "name": "US tariff policy / IEEPA refunds",
+     "ticker": "",
+     "why": "$994M refund added $1.65 to Q2 EPS; new tariffs raise import costs"
+    },
+    {
+     "name": "Ulta Beauty",
+     "ticker": "ULTA",
+     "why": "partnership ended Aug 2026; Target Beauty Studio replacing Ulta shops in 600+ stores"
+    }
    ]
   },
   "SLB": {
@@ -950,16 +1520,71 @@
    "earnings_confirmed": true,
    "catalysts": [
     {
+     "date": "2026-10-20",
+     "event": "Halliburton Q3 results, call 9:00 a.m. ET"
+    },
+    {
      "date": "2026-10-23",
      "event": "SLB Q3 2026 results, release 7:00 a.m. ET, call 9:30 a.m. ET"
+    },
+    {
+     "date": "2026-10-27",
+     "event": "Baker Hughes Q3 results after close (webcast 2026-10-28)"
     }
    ],
    "sources": [
     "https://www.slb.com/newsroom/press-release/2026/pr-2026-0928-q3-earnings-call-announcement",
     "https://www.marketbeat.com/earnings/reports/2026-10-23-schlumberger-limited-stock/",
-    "https://finance.yahoo.com/energy/articles/earnings-preview-expect-slb-n-102256986.html"
+    "https://finance.yahoo.com/energy/articles/earnings-preview-expect-slb-n-102256986.html",
+    "https://www.sec.gov/Archives/edgar/data/0000087347/000119312526315068/d122193dex99.htm",
+    "https://www.zacks.com/stock/news/2961087/slb-q2-earnings-call-flags-recovery-path-and-deepwater-upside",
+    "https://www.gurufocus.com/stock/LIM:SLB/transcripts/8978440",
+    "https://finviz.com/news/392434/halliburton-third-quarter-2026-earnings-conference-call",
+    "https://finviz.com/news/395814/baker-hughes-announces-dates-for-third-quarter-earnings-release-and-webcast"
    ],
-   "earnings_preview": "Consensus is EPS $0.62 (vs $0.69 a year ago) on revenue $9.27B (+3.8% y/y; Q2 was $8.97B, EPS $0.55 adj. beat $0.51); FY2026 consensus EPS $2.49. A revenue miss below roughly $9.0B (no sequential growth), or commentary that points FY2026 EPS clearly below $2.49 or cuts the international activity outlook, would weaken the case."
+   "earnings_preview": "Consensus EPS $0.62 (vs $0.69 a year ago; Q2 adj. $0.55) on revenue ~$9.27B; SLB's own Q3 guide was +3-4% q/q (~$9.24-9.33B) with adj. EBITDA margin up ~75bp from 21.2%. Revenue below ~$9.1B (the $150M Middle East downside case), a margin flat or down, or any retreat from the Q4 target of >$10B revenue at ~24% EBITDA margin and ME revenue of $2.1-2.2B would break the 2027 rebound case.",
+   "researched_on": "2026-10-13",
+   "thesis_short": "Oilfield services leader priced for a 2027 rebound (FY27 EPS consensus $3.20 vs $2.49 FY26): Middle East remobilizing after conflict, offshore FIDs +30% in 2026, Data Center Solutions heading to >$1B run rate by YE26, and >$4B of 2026 shareholder returns; shares +42% over 52 weeks.",
+   "kill_criteria": [
+    "SLB misses its Q3 guide (revenue +3-4% q/q, ~$9.24-9.33B; adj. EBITDA margin +~75bp) or walks back the Q4 target of >$10B revenue at ~24% margin",
+    "Renewed Middle East conflict disruption keeps regional revenue flat or falling (SLB's own downside case: -$150M revenue, -$75M EBITDA per quarter)",
+    "Saudi Aramco or other NOCs announce rig suspensions or upstream capex cuts for 2027",
+    "Data Center Solutions misses the >$1B annualized run rate by end-2026 or loses the Meta Alberta project",
+    "SLB cuts the 2026 buyback below $2.4B or total returns below $4B",
+    "Halliburton or Baker Hughes guide international/offshore activity down for 2027"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Saudi Aramco / Middle East NOCs",
+     "ticker": "",
+     "why": "Middle East ~65% of $2.57B ME&Asia revenue; fell 13% q/q in Q2 on conflict"
+    },
+    {
+     "name": "Offshore/deepwater operators",
+     "ticker": "",
+     "why": "long-cycle FIDs expected +30% in 2026 drive Well Construction and Reservoir Performance"
+    },
+    {
+     "name": "Meta and data-center developers",
+     "ticker": "META",
+     "why": "Data Center Solutions ($186M Q2, +80% y/y); delivery partner for Meta 1GW Alberta site"
+    },
+    {
+     "name": "Halliburton",
+     "ticker": "HAL",
+     "why": "main competitor; reports first (Oct 20) as read-across"
+    },
+    {
+     "name": "Baker Hughes",
+     "ticker": "BKR",
+     "why": "competitor in production systems and international services"
+    },
+    {
+     "name": "Oil price",
+     "ticker": "",
+     "why": "sets upstream capex budgets for 2027"
+    }
+   ]
   },
   "VTRS": {
    "cluster": "generic_pharma",
@@ -968,12 +1593,51 @@
    "catalysts": [
     {
      "date": "2026-11-05",
-     "event": "Viatris Q3 2026 results, call 8:30 a.m. ET; 2026 guidance revenue $14.55-14.95B, adj. EPS $2.45-2.59, FCF $2.05-2.35B"
+     "event": "Viatris Q3 2026 results, call 8:30 a.m. ET; 2026 guidance revenue $14.55-14.95B, adj. EPS $2.45-2.59, FCF $2.05-2.35B; first update including Pacira deal and Nashik remediation"
     }
    ],
    "sources": [
     "https://finviz.com/news/398515/viatris-to-report-third-quarter-2026-financial-results-on-november-5-2026",
-    "https://www.sec.gov/Archives/edgar/data/0001792044/000179204426000037/exhibit991-2q26earningsrel.htm"
+    "https://www.sec.gov/Archives/edgar/data/0001792044/000179204426000037/exhibit991-2q26earningsrel.htm",
+    "https://www.sec.gov/Archives/edgar/data/0001396814/000110465926114571/tm2627240d2_ex99-1.htm",
+    "https://www.fiercepharma.com/pharma/viatris-buyout-paciras-pain-pipeline-165b",
+    "https://www.autobound.ai/companies/viatris/news"
+   ],
+   "researched_on": "2026-10-13",
+   "thesis_short": "Generic and off-patent pharma cash generator (2026 guidance: revenue $14.55-14.95B, adj. EPS $2.45-2.59, FCF $2.05-2.35B) pivoting toward patented non-opioid pain medicines through the $1.65B cash acquisition of Pacira (EXPAREL, ZILRETTA) announced 2026-10-08 and the fast-acting meloxicam PDUFA on 2026-12-27.",
+   "kill_criteria": [
+    "FDA issues a warning letter or import alert for the Nashik, India oral solid dose plant, or Viatris raises the $100-150M second-half 2026 revenue impact estimate",
+    "FDA issues a complete response letter for fast-acting meloxicam (PDUFA 2026-12-27)",
+    "Pacira tender offer fails, is blocked by regulators, or Viatris raises the price or adds significant debt such that gross leverage moves above its 2.8-3.2x target",
+    "Viatris cuts 2026 guidance below adj. EPS $2.45 or FCF $2.05B at Q3 results",
+    "A court ruling or settlement allows generic EXPAREL entry earlier than expected"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Pacira BioSciences",
+     "ticker": "PCRX",
+     "why": "$1.65B ($36.50/share) cash tender target; EXPAREL and ZILRETTA, about $746M LTM revenue and $177M adj. EBITDA"
+    },
+    {
+     "name": "US FDA",
+     "ticker": "",
+     "why": "Nashik plant Form 483 remediation and fast-acting meloxicam PDUFA 2026-12-27"
+    },
+    {
+     "name": "Teva",
+     "ticker": "TEVA",
+     "why": "largest generic competitor; US generic pricing pressure"
+    },
+    {
+     "name": "Harrow",
+     "ticker": "HROW",
+     "why": "buyer of Tyrvaya rights ($30M upfront, up to $70M milestones)"
+    },
+    {
+     "name": "Idorsia",
+     "ticker": "",
+     "why": "partner for Quvivq co-promotion in Italy and Canada"
+    }
    ]
   },
   "STT": {
@@ -988,15 +1652,60 @@
     {
      "date": "2026-10-15",
      "event": "BNY Q3 2026 results (custody peer read-across)"
+    },
+    {
+     "date": "2026-10-21",
+     "event": "Northern Trust Q3 2026 results and call 8:00 a.m. CT (custody peer read-across)"
     }
    ],
    "sources": [
     "https://newsroom.statestreet.com/press-releases/press-release-details/2026/State-Street-Corporation-NYSE-STT-Announces-Remaining-2026-Quarterly-Financial-Results-Release-Dates-and-Conference-Call-Webcasts/default.aspx",
     "https://tickerleague.com/companies/STT/estimates",
     "https://www.sec.gov/Archives/edgar/data/0000093751/000009375126000387/exhibit992-2q26earningsrel.htm",
-    "https://www.nasdaq.com/articles/state-street-q2-earnings-call-highlights"
+    "https://www.nasdaq.com/articles/state-street-q2-earnings-call-highlights",
+    "https://www.sec.gov/Archives/edgar/data/0000093751/000009375126000387/stt2q26earningspresentat.htm",
+    "https://beta.earningswhispers.com/go/w/STT",
+    "https://www.aaii.com/investingideas/article/515595-what-you-need-to-know-about-state-street-corporations-q3-earnings",
+    "https://www.northerntrust.com/united-states/pr/2026/northern-trust-corporation-to-webcast-third-quarter-2026-earnings-conference-call"
    ],
-   "earnings_preview": "Consensus is EPS $3.62 (range $3.40-3.85) on revenue about $4.0B, versus Q2 EPS $3.65 and revenue $4.048B. Full-year 2026 guidance (raised in July) is fee revenue +12-13%, NII +14-15%, expenses about +8%, ~500bp positive operating leverage; trimming fee or NII growth below those ranges, or revenue under about $3.9B, would weaken the case."
+   "earnings_preview": "Q3 EPS consensus is about $3.62-3.68 (Earnings Whispers $3.65, whisper $3.75) on revenue of about $4.04B, versus Q2 EPS $3.65, revenue $4.048B, servicing fees $1.468B and NII $860M. A Q3 revenue below about $3.9B, NII falling sequentially from $860M, or any cut to the July-raised full-year guidance (fee revenue +12-13%, NII +14-15%, expenses about +8%, about 500bp positive operating leverage) would weaken the case.",
+   "researched_on": "2026-10-13",
+   "thesis_short": "Custody/asset-management franchise with record $57.9T AUC/A and $6.28T AUM, where deposit-driven NII and fee growth produced Q2 2026 EPS of $3.65 (+68% y/y) and a raised 2026 outlook of fee revenue +12-13% and NII +14-15% with about 500bp operating leverage.",
+   "kill_criteria": [
+    "State Street cuts 2026 fee revenue growth guidance below 12% or NII growth guidance below 14%",
+    "State Street reports negative operating leverage or raises 2026 expense guidance above about +8% without matching revenue",
+    "Quarterly servicing fee sales fall well below the Q2 2026 level of $87M, or a major custody client mandate loss is disclosed",
+    "Average deposit balances decline materially quarter on quarter (deposits drove the NII guidance raise)",
+    "CET1 (Standardized) falls below 10.5% or the board cuts the roughly 80% total payout target",
+    "BNY or Northern Trust report falling AUC/A or servicing fees in Q3 2026, indicating an industry fee slowdown"
+   ],
+   "key_dependencies": [
+    {
+     "name": "BNY",
+     "ticker": "BK",
+     "why": "largest custody competitor; Q3 servicing fee and deposit trends are a direct read-across"
+    },
+    {
+     "name": "Northern Trust",
+     "ticker": "NTRS",
+     "why": "custody/asset-servicing competitor reporting 2026-10-21"
+    },
+    {
+     "name": "Federal Reserve rate path",
+     "ticker": "",
+     "why": "deposit balances and rates drive NII, guided +14-15% for 2026"
+    },
+    {
+     "name": "Equity and bond market levels",
+     "ticker": "",
+     "why": "AUC/A ($57.9T) and AUM ($6.28T) values drive servicing and management fees"
+    },
+    {
+     "name": "BlackRock / Vanguard (ETF competition)",
+     "ticker": "BLK",
+     "why": "compete with SSGA/SPDR ETFs on management fees and flows"
+    }
+   ]
   },
   "BNY": {
    "cluster": "custody_banks",
@@ -1017,7 +1726,44 @@
     "https://www.hudson-labs.com/research/bny-q3-2026-earnings-revenue-preview-guidance-key-metrics",
     "https://tickerleague.com/companies/BNY/estimates"
    ],
-   "earnings_preview": "Consensus is EPS about $2.25-2.27 on revenue about $5.5B. FY2026 guidance is NII +12-13% y/y and expenses +6-7% ex-notables; cutting NII growth below 12%, guiding expenses above 7%, or revenue below about $5.4B would weaken the case."
+   "earnings_preview": "Consensus is EPS about $2.25-2.27 on revenue about $5.5B (Q2 was $2.45 on $5.70B; management called Q3 the seasonally slowest quarter against a tough Q3 2025 NII comp). The case weakens if BNY trims 2026 guidance of revenue +10-11%, NII +12-13% or ~400 bps operating leverage, guides expenses above +7% ex-notables, or prints revenue below about $5.4B.",
+   "researched_on": "2026-10-13",
+   "thesis_short": "Largest global custodian compounding fees and NII off rising AUC/A (ETF AUC/A +35% y/y) with ~400 bps positive operating leverage guided for 2026 and ROTCE already above its 28% target (31.3% in Q2).",
+   "kill_criteria": [
+    "BNY cuts 2026 NII growth guidance below +12% or total revenue growth below +10%",
+    "BNY raises 2026 expense growth guidance above +7% ex-notables or cuts the ~400 bps operating leverage target",
+    "Quarterly ROTCE falls below the 28% medium-term target or pre-tax margin below 38%",
+    "Material deposit outflows reported (BNY or State Street) that force NII guidance cuts",
+    "Loss of a major custody/clearing mandate or a significant operational/cyber incident disclosed",
+    "Large dilutive acquisition announced or capital return (87% YTD payout) cut"
+   ],
+   "key_dependencies": [
+    {
+     "name": "State Street",
+     "ticker": "STT",
+     "why": "closest custody peer; reports a day earlier (NII/deposit read-across)"
+    },
+    {
+     "name": "Northern Trust",
+     "ticker": "NTRS",
+     "why": "custody/wealth competitor"
+    },
+    {
+     "name": "Federal Reserve rate path",
+     "ticker": "",
+     "why": "drives NII on the deposit base (NII +20% y/y in Q2 2026)"
+    },
+    {
+     "name": "Equity/bond market levels and ETF flows",
+     "ticker": "",
+     "why": "AUC/A- and AUM-based fees; ETF AUC/A +35% y/y"
+    },
+    {
+     "name": "Client deposit balances",
+     "ticker": "",
+     "why": "NII funding; management flagged sequential moderation"
+    }
+   ]
   },
   "MRK": {
    "cluster": "big_pharma",
@@ -1025,22 +1771,69 @@
    "earnings_confirmed": true,
    "catalysts": [
     {
+     "date": "2026-10-24",
+     "event": "ESMO Presidential Symposium: detailed Phase 3 INTerpath-001 data for intismeran autogene + Keytruda in adjuvant melanoma (Moderna partner; topline RFS HR 0.51)"
+    },
+    {
      "date": "2026-10-29",
      "event": "Merck Q3 2026 sales and earnings call (company-announced Oct 1)"
     },
     {
      "date": "2026-10-10",
-     "event": "Past: remigromig BRUNELLO Phase 2b/3 one-year DME data presented at AAO 2026; to be discussed with regulators"
+     "event": "Past: remigromig BRUNELLO Phase 2b/3 one-year DME data at AAO 2026"
     },
     {
      "date": "2026-09-25",
-     "event": "Past: Merck withdrew the ifinatamab deruxtecan (I-DXd) BLA in ES-SCLC (PDUFA had been 2026-10-10); FDA approved Welireg + Lenvima in advanced RCC same day. No other Merck PDUFA found in window"
+     "event": "Past: Merck withdrew the I-DXd BLA in ES-SCLC (PDUFA had been 2026-10-10); FDA approved Welireg + Lenvima in advanced RCC"
     }
    ],
    "sources": [
     "https://www.merck.com/news/merck-to-hold-third-quarter-2026-sales-and-earnings-conference-call-oct-29/",
     "https://www.merck.com/news-archive",
-    "https://www.marketbeat.com/stocks/NYSE/MRK/fda-events/?drug=IDXd"
+    "https://www.marketbeat.com/stocks/NYSE/MRK/fda-events/?drug=IDXd",
+    "https://www.biospace.com/press-releases/merck-co-inc-rahway-n-j-usa-announces-second-quarter-2026-financial-results-highlights-key-regulatory-and-clinical-milestones-across-broad-diverse-pipeline",
+    "https://fintool.com/news/merck-restructures-keytruda-cliff",
+    "https://www.zacks.com/stock/news/2957847/will-keytruda-remain-the-driving-force-behind-mercks-q2-performance",
+    "https://globaltradealert.org/intervention/153958-united-states-of-america-agreement-with-merck-on-most-favoured-nation-drug-pricing-and-tariff-exemption",
+    "https://trial.medpath.com/news/moderna-and-merck-s-intismeran-cuts-melanoma-recurrence-49-in-phase-3-interpath-001",
+    "https://www.newswire.com/news/moderna-announces-late-breaking-data-to-be-presented-at-esmo-congress-2026"
+   ],
+   "researched_on": "2026-10-13",
+   "thesis_short": "Keytruda (Q2 $8.4B, +5%, of which subcutaneous Qlex $463M) still funds the bridge to the Dec-2028 compound-patent expiry while Winrevair (+75% to $588M), Lipfendra, sac-TMT and intismeran plus the Cidara/Terns deals must fill the gap; 2026 sales guide raised to $66.3-67.3B and Section 232 tariffs deferred to Jan 2029 under the Dec-2025 MFN deal.",
+   "kill_criteria": [
+    "Merck cuts 2026 sales guidance below $66.3B or Keytruda/Qlex sales decline year on year at the Oct 29 report",
+    "Keytruda Qlex adoption stalls (quarterly Qlex sales fall sequentially from $463M) undermining the 30-40% subcutaneous conversion goal by 2028",
+    "Detailed INTerpath-001 data at ESMO (Oct 24) show a weaker effect than the reported HR 0.51 or a safety issue, or FDA/partners delay the intismeran filing",
+    "Court or patent office invalidates the 2029 Keytruda secondary patents, or a biosimilar gets an at-risk launch path before 2028",
+    "White House revokes or rewrites Merck's MFN/tariff agreement, or new MFN rules extend to Medicare Part B pricing for Keytruda",
+    "Winrevair sales growth turns flat or negative quarter on quarter, or a label safety restriction is added"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Keytruda / Keytruda Qlex franchise",
+     "ticker": "",
+     "why": "about 50% of sales; compound patent expires Dec 2028, Qlex conversion is the main LOE defence"
+    },
+    {
+     "name": "Moderna",
+     "ticker": "MRNA",
+     "why": "partner on intismeran autogene (individualized neoantigen therapy) with ESMO data Oct 24"
+    },
+    {
+     "name": "Biosimilar developers (Amgen, Samsung Bioepis, others)",
+     "ticker": "AMGN",
+     "why": "pembrolizumab biosimilars expected from ~2028-2029"
+    },
+    {
+     "name": "US government (CMS / White House)",
+     "ticker": "",
+     "why": "MFN pricing agreement, Section 232 tariff deferral to Jan 2029, IRA negotiation of Keytruda from 2029"
+    },
+    {
+     "name": "Bristol Myers Squibb",
+     "ticker": "BMY",
+     "why": "main PD-1 competitor (Opdivo incl. subcutaneous Qvantig)"
+    }
    ]
   },
   "FCX": {
@@ -1054,11 +1847,51 @@
     },
     {
      "date": "2026-10-02",
-     "event": "Past: Q3 operational update - Grasberg mill ~140k t/d (~67% of pre-Sept-2025 rates); smelter restarted late Aug; targets 80% capacity mid-2027, near full by YE2027, PB1S restart mid-2027"
+     "event": "Past: Q3 operational update - Grasberg mill ~140k t/d (~67% of pre-Sept-2025 rates); smelter restarted late Aug; targets 80% capacity mid-2027, near full by YE2027, PB1S restart mid-2027; US ops hit by flooding/power outages"
     }
    ],
    "sources": [
-    "https://www.sec.gov/Archives/edgar/data/0000831259/000083125926000043/fcx_261002.htm"
+    "https://www.sec.gov/Archives/edgar/data/0000831259/000083125926000043/fcx_261002.htm",
+    "https://www.trefis.com/stock/fcx/articles/615048/why-did-freeport-mcmoran-stock-drop-on-doubts-over-a-tariff-it-would-gain-from/2026-09-11",
+    "https://app.sentisense.ai/stories/copper-hits-record-14-530-ton-on-lme-as-us-tariffs-and-ai-demand-drive-47-percen-09082026",
+    "https://www.mining.com/web/freeport-mcmoran-beats-quarterly-profit-estimates-on-higher-copper-prices/"
+   ],
+   "researched_on": "2026-10-13",
+   "thesis_short": "Largest US-listed copper miner with copper near a record ($14,500-14,700/t on the LME in September) and Grasberg recovering from the September 2025 mud rush toward 80% of capacity by mid-2027, plus COMEX-priced US output that would gain from a refined-copper tariff.",
+   "kill_criteria": [
+    "Freeport pushes back the Grasberg Block Cave timeline (80% capacity mid-2027, near full by end-2027, PB1S restart mid-2027) or reports a new Grasberg incident",
+    "The White House formally drops the proposed refined-copper tariff (15% from Jan 2027, 30% in 2028), removing the COMEX premium on Freeport's US sales",
+    "Indonesia changes PTFI export permits, export duties or smelter rules in a way that holds back concentrate or cathode sales",
+    "Q3 results (Oct 27) or Q4 guidance show unit net cash costs well above the ~$2.10/lb Q3 level or second-half copper sales below the >20% H2-over-H1 increase management guided",
+    "LME stocks rebuild from near five-year lows and the market moves to surplus as Chinese demand or data-centre and grid buildout slows",
+    "The Bagdad doubling FID, expected by year-end 2026, is delayed or cancelled"
+   ],
+   "key_dependencies": [
+    {
+     "name": "LME / COMEX copper price",
+     "ticker": "",
+     "why": "each 10c/lb is about $390M annual EBITDA (2027-28 average); US sales priced on COMEX"
+    },
+    {
+     "name": "US Commerce Dept / White House refined-copper tariff decision",
+     "ticker": "",
+     "why": "proposed 15% (2027) / 30% (2028) cathode tariff would widen the COMEX premium; decision overdue since June 30"
+    },
+    {
+     "name": "Government of Indonesia / PT Freeport Indonesia",
+     "ticker": "",
+     "why": "Grasberg export permits, duties and smelter rules; Indonesia is the majority owner of PTFI"
+    },
+    {
+     "name": "Southern Copper",
+     "ticker": "SCCO",
+     "why": "closest US-listed copper peer; moves on the same copper and tariff news"
+    },
+    {
+     "name": "Chinese copper demand / smelters",
+     "ticker": "",
+     "why": "largest buyer of copper; sets LME balance and treatment charges"
+    }
    ]
   },
   "CRL": {
@@ -1067,30 +1900,119 @@
    "earnings_confirmed": true,
    "catalysts": [
     {
-     "date": "2026-11-04",
-     "event": "Charles River Q3 2026 results before open, call 9:00 ET"
+     "date": "2026-10-21",
+     "event": "Medpace Q3 results after close (biotech CRO demand read-across; call Oct 22)"
     },
     {
      "date": "2026-10-29",
      "event": "Merck Q3 results (large-pharma R&D spend read-across)"
+    },
+    {
+     "date": "2026-11-04",
+     "event": "Charles River Q3 2026 results before open, call 9:00 ET"
+    },
+    {
+     "date": "2026-09-24",
+     "event": "Past: Investor Day - 2030 targets, 2026 guide reaffirmed at upper end"
     }
    ],
    "sources": [
-    "https://finviz.com/news/400820/charles-river-laboratories-schedules-third-quarter-2026-earnings-release-and-conference-call"
+    "https://finviz.com/news/400820/charles-river-laboratories-schedules-third-quarter-2026-earnings-release-and-conference-call",
+    "https://www.biospace.com/press-releases/charles-river-laboratories-announces-second-quarter-2026-results",
+    "https://www.sec.gov/Archives/edgar/data/0001100682/000110068226000142/crlinvestorday2026pressr.htm",
+    "https://www.clinicaltrialsarena.com/news/fda-primate-testing-draft-guidance-mab/",
+    "https://www.fda.gov/news-events/press-announcements/fda-announces-plan-phase-out-animal-testing-requirement-monoclonal-antibodies-and-other-drugs",
+    "https://www.williamblair.com/Insights/The-Quarterly-Rx-Q3-2026-US-Biopharma-Recap",
+    "https://scanx.trade/stock-market-news/companies/medpace-holdings-q3fy26-results-earnings-call-set-oct-22/51655748"
+   ],
+   "researched_on": "2026-10-13",
+   "thesis_short": "Preclinical safety-testing demand is recovering (Q2 organic growth turned positive, DSA net book-to-bill best in nearly four years, 2026 guide raised to upper end of 0-1% organic and $11.15-11.45 EPS) while 2030 targets call for 5-7% organic growth, though the FDA's push to replace animal testing is a structural threat to the core business.",
+   "kill_criteria": [
+    "Charles River reports DSA book-to-bill below 1.0 or cuts 2026 organic growth or EPS guidance at the Nov 4 report",
+    "FDA finalizes guidance removing non-human-primate or animal toxicology requirements for monoclonal antibodies or other modalities with a near-term effective date",
+    "Biotech financing drops sharply (e.g. quarterly US follow-on plus private financing falls well below Q3 2026's ~$11B combined) or large pharma announces broad R&D cuts",
+    "Charles River withdraws the 2027-2030 targets (5-7% organic growth, ~24% operating margin)",
+    "New US restriction on imported non-human primates or an NHP supply-chain enforcement action against Charles River"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Small/mid biotech clients",
+     "ticker": "XBI",
+     "why": "funding-driven preclinical demand; Q3 2026 saw 9 IPOs ($2.7B), $5.9B follow-ons, $5B private rounds"
+    },
+    {
+     "name": "Large pharma R&D budgets",
+     "ticker": "MRK",
+     "why": "global biopharma clients drive DSA study volume"
+    },
+    {
+     "name": "FDA (NAMs policy)",
+     "ticker": "",
+     "why": "April 2025 plan and Dec 2025 draft guidance to reduce NHP/animal testing for mAbs"
+    },
+    {
+     "name": "Non-human primate supply",
+     "ticker": "",
+     "why": "key input for safety assessment studies; supply and import scrutiny"
+    },
+    {
+     "name": "Inotiv / other CROs",
+     "ticker": "NOTV",
+     "why": "competing preclinical capacity and pricing"
+    }
    ]
   },
   "ROST": {
    "cluster": "offprice_retail",
-   "next_earnings": "2026-11-12",
+   "next_earnings": "2026-11-19",
    "earnings_confirmed": false,
    "catalysts": [
     {
-     "date": "2026-11-12",
-     "event": "Ross Q3 FY2026 results (estimated date, outside window); consensus EPS $1.84, revenue $6.21B. Q2 (Aug 20) EPS $2.66 vs $1.94 est; FY EPS guide raised to $8.61-8.77 incl. $0.60 tariff benefit"
+     "date": "2026-11-19",
+     "event": "Ross Q3 FY2026 results (estimated, outside window): Ross reported Q3 2025 on Thu Nov 20, 2025 and Q2 2026 on Aug 20, about 3 weeks after quarter end; investing.com lists Nov 12. Consensus EPS $1.84, revenue $6.21B; company guide Q3 EPS $1.75-1.83, comps +6-7%"
     }
    ],
    "sources": [
-    "https://www.investing.com/equities/ross-stores-inc-earnings"
+    "https://www.investing.com/equities/ross-stores-inc-earnings",
+    "https://www.sec.gov/Archives/edgar/data/0000745732/000074573226000038/q226exhibit991.htm",
+    "https://investors.rossstores.com/node/22831/pdf",
+    "https://fashionunited.com/news/business/ross-stores-q2-revenue-jumps-13-percent-driven-by-customer-traffic/2026082174200"
+   ],
+   "researched_on": "2026-10-13",
+   "thesis_short": "Off-price retailer gaining traffic (Q2 comps +10%, sales +13%) with a raised plan of 115 new stores in 2026 and $1.275B of buybacks; core margin is up about 205bp even after stripping out the $0.60/share IEEPA tariff refund.",
+   "kill_criteria": [
+    "Ross reports Q3 comparable sales below the guided +6-7% or cuts Q4 comp guidance (+4-5%)",
+    "Ross cuts FY2026 EPS guidance ($8.61-8.77 incl. $0.60 tariff refund) or says core operating margin gains have stalled",
+    "New or higher US import tariffs on apparel and home goods take effect and Ross says it cannot pass them through",
+    "Off-price peers TJX or Burlington report a sharp slowdown in US comps, pointing to weaker low-to-middle-income consumers",
+    "Ross slows the 115-store 2026 opening plan or the $1.275B buyback"
+   ],
+   "key_dependencies": [
+    {
+     "name": "TJX Companies",
+     "ticker": "TJX",
+     "why": "largest off-price competitor for closeout inventory and shoppers"
+    },
+    {
+     "name": "Burlington Stores",
+     "ticker": "BURL",
+     "why": "off-price competitor; read-across on industry comps"
+    },
+    {
+     "name": "Branded apparel/home vendors' excess inventory",
+     "ticker": "",
+     "why": "supply of closeout goods sets Ross's merchandise margin"
+    },
+    {
+     "name": "US import tariffs (IEEPA refunds, new duties)",
+     "ticker": "",
+     "why": "about $253M refund in Q2; new duties would raise costs on imported goods"
+    },
+    {
+     "name": "Low-to-middle-income US consumer",
+     "ticker": "",
+     "why": "core customer; affected by gasoline prices (oil above $100) and employment"
+    }
    ]
   },
   "BG": {
@@ -1109,7 +2031,49 @@
    ],
    "sources": [
     "https://earningswhispers.com/article/BG/2610011113",
-    "https://finviz.com/news/399205/adm-to-release-third-quarter-financial-results-on-november-3-2026"
+    "https://finviz.com/news/399205/adm-to-release-third-quarter-financial-results-on-november-3-2026",
+    "https://www.marketbeat.com/instant-alerts/bunge-global-q2-earnings-call-highlights-2026-07-29/",
+    "https://www.dtnpf.com/agriculture/web/ag/crops/article/2026/03/27/epa-finalizes-rfs-reallocates-70",
+    "https://ukragroconsult.com/en/news/cobank-expects-us-soybean-crush-to-maintain-record-pace/",
+    "https://www.thepoultrysite.com/news/2026/09/chinas-soybean-buying-seen-slowing-on-weak-crush-margins",
+    "https://www.finanztrends.de/news/bunge-aktie-vermarktung-ab-2027-geplant/",
+    "https://goldesel.de/aktien/news/bunge-verkauft-zwei-zuckerrohrmuhlen-in-brasilien-an-cofco"
+   ],
+   "researched_on": "2026-10-13",
+   "thesis_short": "Post-Viterra global oilseed crusher riding record EPA RFS volumes (BBD 9.07bn gal 2026, 70% SRE reallocation) with FY26 adj EPS guided up to $9.25-9.75 and Viterra cost synergies raised to $350M.",
+   "kill_criteria": [
+    "Bunge cuts FY2026 adjusted EPS guidance below $9.25 or guides 2027 soybean processing results lower",
+    "EPA weakens or delays the finalized 2026-2027 RFS volumes, the 70% SRE reallocation, or the 2028 half-credit for imported feedstocks (e.g. court ruling or new rule)",
+    "Bunge lowers or pushes out the $350M Viterra cost-synergy target or reports a material Viterra-related impairment",
+    "China extends retaliatory tariffs or halts state purchases of US soybeans and Bunge flags a structural hit to grain merchandising volumes",
+    "Bunge's adjusted leverage rises above ~2.5x adjusted EBITDA or it suspends buybacks/dividend growth"
+   ],
+   "key_dependencies": [
+    {
+     "name": "US EPA (Renewable Fuel Standard)",
+     "ticker": "",
+     "why": "RVO volumes and SRE reallocation drive soybean oil demand and US crush margins"
+    },
+    {
+     "name": "Archer-Daniels-Midland",
+     "ticker": "ADM",
+     "why": "largest US crush/merchandising competitor; Nov 3 results are read-across"
+    },
+    {
+     "name": "China state buyers (COFCO, Sinograin)",
+     "ticker": "",
+     "why": "swing buyers of US vs South American soybeans; 10% extra tariff on US beans persists"
+    },
+    {
+     "name": "Renewable diesel / SAF producers",
+     "ticker": "DAR",
+     "why": "soybean oil feedstock demand from biofuel blenders"
+    },
+    {
+     "name": "Argentina/Brazil crop and export policy",
+     "ticker": "",
+     "why": "South American soybean supply and Argentine crush shape global meal/oil margins"
+    }
    ]
   },
   "CF": {
@@ -1127,7 +2091,53 @@
     }
    ],
    "sources": [
-    "https://finviz.com/news/400084/cf-industries-holdings-inc-declares-quarterly-dividend-and-confirms-dates-for-third-quarter-2026-results-and-conference-call"
+    "https://finviz.com/news/400084/cf-industries-holdings-inc-declares-quarterly-dividend-and-confirms-dates-for-third-quarter-2026-results-and-conference-call",
+    "https://www.sec.gov/Archives/edgar/data/0001324404/000132440426000017/cf-08052026_ex991xearnings.htm",
+    "https://www.webull.com/news/15393481135449088",
+    "https://www.fertilizerdaily.com/20261005-u-s-fertilizer-prices-split-sharply-as-urea-jumps-9-and-uan28-falls-11/md/",
+    "https://www.eia.gov/outlooks/steo/archives/oct26.pdf"
+   ],
+   "researched_on": "2026-10-13",
+   "thesis_short": "Lowest-cost North American nitrogen producer earning a wide margin over cheap US gas (EIA 4Q26 Henry Hub $3.30) while Middle East supply disruption keeps urea tight (US urea $796/st early Oct), with Blue Point blue ammonia JV now under construction.",
+   "kill_criteria": [
+    "Strait of Hormuz / Gulf nitrogen exports normalize and CF or industry data show urea prices falling toward the $385/st NOLA incentive level",
+    "China lifts urea exports well above the 4-6M t CF assumed for 2026",
+    "US Henry Hub gas sustains above ~$5/MMBtu (EIA or futures), eroding CF's cost advantage over Europe",
+    "Yazoo City restart slips beyond 1H 2027 or Donaldsonville/another major plant has an extended unplanned outage",
+    "Blue Point JV cost overrun or delay announced, or a partner (JERA, Mitsui) exits",
+    "Congress or Treasury curtails the 45Q carbon-capture credit"
+   ],
+   "key_dependencies": [
+    {
+     "name": "US natural gas (Henry Hub)",
+     "ticker": "",
+     "why": "main feedstock cost; Q2 cost of sales gas $3.37/MMBtu; mid-cycle model assumes $3.50"
+    },
+    {
+     "name": "Middle East / Gulf nitrogen exporters",
+     "ticker": "",
+     "why": "~5M t supply lost to Iran conflict sets marginal global urea price"
+    },
+    {
+     "name": "China urea export policy",
+     "ticker": "",
+     "why": "4-6M t exports in 2026 partly offset Gulf losses"
+    },
+    {
+     "name": "JERA and Mitsui (Blue Point JV partners)",
+     "ticker": "",
+     "why": "35%/25% partners in the low-carbon ammonia project; offtake to Japan"
+    },
+    {
+     "name": "ExxonMobil (Donaldsonville CCS)",
+     "ticker": "XOM",
+     "why": "sequesters CO2 for 45Q credits and low-carbon ammonia premium"
+    },
+    {
+     "name": "Nutrien",
+     "ticker": "NTR",
+     "why": "North American nitrogen competitor and pricing read-across"
+    }
    ]
   },
   "CAH": {
@@ -1140,13 +2150,58 @@
      "event": "McKesson Q2 FY2027 results after close (distribution peer)"
     },
     {
+     "date": "2026-11-04",
+     "event": "Cencora Q4 FY2026 results before open (distribution peer)"
+    },
+    {
      "date": "2026-11-05",
      "event": "Cardinal Health Q1 FY2027 results before open, webcast 8:30 ET"
     }
    ],
    "sources": [
     "https://finviz.com/news/397505/cardinal-health-to-announce-first-quarter-results-for-fiscal-year-2027-on-november-5",
-    "https://finviz.com/news/394657/mckesson-corporation-announces-second-quarter-fiscal-2027-earnings-release-date"
+    "https://finviz.com/news/394657/mckesson-corporation-announces-second-quarter-fiscal-2027-earnings-release-date",
+    "https://www.sec.gov/Archives/edgar/data/0000721371/000072137126000037/a26q4_x063026xex991xnewsre.htm",
+    "https://www.marketbeat.com/instant-alerts/cardinal-health-q4-earnings-call-highlights-2026-08-11/",
+    "https://www.mdm.com/news/mergers-acquisitions/cardinal-health-expands-home-care-business-with-360m-acquisition-pair/",
+    "https://finviz.com/news/398244/cencora-announces-date-and-time-for-fourth-quarter-fiscal-2026-earnings-release"
+   ],
+   "researched_on": "2026-10-13",
+   "thesis_short": "US drug distributor compounding EPS 13-15% in FY27 (guide $12.40-12.60) on specialty, nuclear/theranostics and at-Home growth plus a GMPD turnaround, with $3.5-4.0B FCF funding ~$1B buybacks.",
+   "kill_criteria": [
+    "Cardinal cuts FY2027 non-GAAP EPS guidance below $12.40",
+    "Loss or non-renewal of a top pharmaceutical distribution customer (e.g. a large PBM/retail contract)",
+    "Pharmaceutical & Specialty segment profit growth guided below the 8-11% range",
+    "GMPD profit guided below $200M (e.g. tariff costs or Iran-driven fuel/commodity inflation)",
+    "Drug pricing policy (IRA negotiation, MFN, tariff on pharmaceuticals) explicitly cited by management as compressing distribution margins",
+    "Large debt-funded acquisition that resets the EPS base"
+   ],
+   "key_dependencies": [
+    {
+     "name": "McKesson",
+     "ticker": "MCK",
+     "why": "largest distribution competitor; contract pricing read-across"
+    },
+    {
+     "name": "Cencora",
+     "ticker": "COR",
+     "why": "third big-three distributor; specialty/GLP-1 read-across"
+    },
+    {
+     "name": "Kroger and large retail/PBM customers",
+     "ticker": "KR",
+     "why": "Kroger contract renewed long term; customer concentration risk"
+    },
+    {
+     "name": "GLP-1 makers (Novo Nordisk, Eli Lilly)",
+     "ticker": "LLY",
+     "why": "GLP-1 volume and pricing swing PSS revenue ~500bp"
+    },
+    {
+     "name": "US tariff policy",
+     "ticker": "",
+     "why": "GMPD import costs; FY26 included $0.31 EPS IEEPA refund benefit"
+    }
    ]
   },
   "NEM": {
@@ -1157,14 +2212,57 @@
     {
      "date": "2026-10-22",
      "event": "Newmont Q3 2026 results after close, call 5:30 pm ET"
+    },
+    {
+     "date": "2026-10-28",
+     "event": "FOMC decision (markets price ~84% odds of a hike by December; gold-sensitive)"
     }
    ],
    "sources": [
     "https://investingnews.com/newmont-announces-third-quarter-2026-results-conference-call/",
     "https://www.marketbeat.com/earnings/reports/2026-10-22-newmont-co-stock/",
-    "https://www.sec.gov/Archives/edgar/data/0001164727/000116472726000034/newmontq22026earningsrelea.htm"
+    "https://www.sec.gov/Archives/edgar/data/0001164727/000116472726000034/newmontq22026earningsrelea.htm",
+    "https://www.miningweekly.com/article/newmont-tops-profit-estimates-on-higher-gold-prices-sees-steady-output-2026-07-24",
+    "https://easternherald.com/market/gold-price-today-spot-gold-rebounds-4194-fed-hike-bets/"
    ],
-   "earnings_preview": "Consensus Q3 EPS $2.03 on revenue $6.24B (Q2: EPS $2.10, 1.29 Moz attributable, AISC $1,621/oz, FCF $2.2B; company guided Q3 production broadly in line with Q2 with higher unit costs). Case breaks if Newmont cuts FY2026 guidance of 5.26 Moz (+/-5%) or AISC $1,680/oz (+/-5%), or if Cadia recovery after the April seismic event slips further."
+   "earnings_preview": "Consensus Q3 EPS ~$2.03 on revenue ~$6.24B vs Q2 EPS $2.10 / 1.29 Moz / AISC $1,621/oz / FCF $2.2B; company guided Q3 output in line with Q2 and higher unit costs. Case breaks if Newmont cuts FY2026 guidance of 5.26 Moz or $1,680/oz AISC (+/-5%), if Cadia has not sustained normal rates after the April seismic event, or if buybacks slow materially from the ~$1.7B per quarter pace ($4.3B left on $6B authorization). Spot gold (~$4,090-4,194 in early October) is below Q2's $4,414 realized, so a realized price under ~$4,000 would pressure the margin story.",
+   "researched_on": "2026-10-13",
+   "thesis_short": "World's largest gold miner converting ~$4,000+/oz gold into record free cash flow ($2.2B in Q2, $3.4B net cash) and large buybacks ($4.3B left on $6B authorization) while holding FY26 guidance of 5.26 Moz at $1,680/oz AISC.",
+   "kill_criteria": [
+    "Newmont cuts FY2026 production guidance below 5.26 Moz (-5%) or raises AISC guidance above $1,680/oz (+5%)",
+    "New seismic event or extended outage at Cadia, Lihir or Penasquito",
+    "Newmont suspends or materially slows its buyback or cuts the $0.26 quarterly dividend",
+    "Fed starts a hiking cycle (e.g. a hike at the Oct 27-28 FOMC) and Newmont cuts its gold price planning assumption",
+    "Large dilutive acquisition or big capex overrun on Red Chris Block Cave / Tanami Expansion 2",
+    "Host-country royalty or tax increase (Ghana, Peru, PNG, Mexico) announced on a major asset"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Gold price",
+     "ticker": "GLD",
+     "why": "revenue driver; spot ~$4,194 Oct 10 vs Q2 realized $4,414"
+    },
+    {
+     "name": "Federal Reserve / real yields",
+     "ticker": "",
+     "why": "30-yr Treasury at 5.73% and hike bets pressure gold"
+    },
+    {
+     "name": "Barrick (Nevada Gold Mines JV partner)",
+     "ticker": "B",
+     "why": "operator of Nevada Gold Mines, a major Newmont asset"
+    },
+    {
+     "name": "Oil / diesel prices",
+     "ticker": "",
+     "why": "energy cost input; Iran-war oil spike lifts AISC"
+    },
+    {
+     "name": "Host governments (Australia, Ghana, PNG, Peru, Mexico)",
+     "ticker": "",
+     "why": "permits, royalties and taxes on Tier 1 assets"
+    }
+   ]
   },
   "APA": {
    "cluster": "oil_gas_ep",
@@ -1173,12 +2271,54 @@
    "catalysts": [
     {
      "date": "2026-11-05",
-     "event": "APA Q3 2026 results call 10:00 CT (release timing not stated; historically after close the day before). Oct 7 supplemental: US oil $87.50/bbl, US gas $1.45/Mcf, intl oil $98.50/bbl, Egypt tax barrels 36 MBoe/d, 10.5M shares bought back at $42.78, $25M dry hole costs"
+     "event": "APA Q3 2026 results call at 10:00 CT (release timing not stated; historically after close the day before). Oct 7 supplemental: US oil $87.50/bbl, US gas $1.45/Mcf, intl oil $98.50/bbl, Egypt tax barrels 36 MBoe/d, 10.5M shares bought back at $42.78, $25M dry hole costs, $190M gas-trading gain"
     }
    ],
    "sources": [
     "https://www.globenewswire.com/news-release/2026/10/07/3376853/0/en/index.html",
-    "https://finviz.com/news/400071/apa-corporation-provides-third-quarter-2026-supplemental-information-and-schedules-results-conference-call-for-nov-5-at-10-am-central-time"
+    "https://finviz.com/news/400071/apa-corporation-provides-third-quarter-2026-supplemental-information-and-schedules-results-conference-call-for-nov-5-at-10-am-central-time",
+    "https://investor.apacorp.com/news-releases/news-release-details/apa-corporation-announces-second-quarter-2026-financial-and",
+    "https://www.webull.com/news/15392714389087232",
+    "https://oilprice.com/futures/brent/0",
+    "https://finance.yahoo.com/sectors/energy/articles/brent-stay-above-100-2026-003121731.html",
+    "https://www.newsquawk.com/headlines/fitch-says-the-brent-oil-price-could-average-usd120bbl-in-2026-if-the-strait-of-hormuz-remains-effectively-closed-for-six-months-or-usd-100bbl-if-closed-for-three-months"
+   ],
+   "researched_on": "2026-10-13",
+   "thesis_short": "Permian plus Egypt gas producer with a large exposure to Brent through Egypt and the North Sea at a time when Hormuz disruption has Brent near $104, while paying down debt, buying back stock and waiting for Suriname GranMorgu first oil in mid-2028.",
+   "kill_criteria": [
+    "Strait of Hormuz shipping normalises and Brent falls back below $80 (Fitch/Goldman scenarios tie $100+ Brent to the closure continuing)",
+    "Egypt government falls behind on receivables or reopens the 2024 gas pricing agreement that now covers about half of APA's Egypt gas",
+    "APA cuts its 2026 shareholder-return commitment (at least 60% of free cash flow) or stops buybacks",
+    "GranMorgu (Suriname) first oil slips past mid-2028 or the project is reported over budget",
+    "Permian US oil guidance (123,000 bbl/d for 2026) is cut, or Waha/US gas realisations stay near $1.45/Mcf and force rig cuts below 4",
+    "Net debt rises instead of reaching the $3B target in 2027"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Brent crude / Strait of Hormuz disruption",
+     "ticker": "",
+     "why": "international oil realised $98.50/bbl in Q3; Brent about $104 in early October on the Hormuz closure"
+    },
+    {
+     "name": "Egyptian General Petroleum Corp (Egypt government)",
+     "ticker": "",
+     "why": "Egypt gross output 207 MBoe/d incl. 539 MMcf/d gas; 2024 repricing covers about half the gas; payment and receivables risk"
+    },
+    {
+     "name": "TotalEnergies",
+     "ticker": "TTE",
+     "why": "operator and partner on GranMorgu in Suriname Block 58 (first oil mid-2028)"
+    },
+    {
+     "name": "Waha / Permian natural gas price",
+     "ticker": "",
+     "why": "US gas realised only $1.45/Mcf in Q3; gas trading added about $950M of 2026 pretax cash flow"
+    },
+    {
+     "name": "Eni",
+     "ticker": "E",
+     "why": "partner in Uruguay Block 6 exploration (well planned for 2027)"
+    }
    ]
   }
  },
@@ -1385,26 +2525,38 @@
   },
   "us_steel": {
    "updated": "2026-10-13",
-   "verdict": "Earnings are near a cycle high but slightly below hopes. On 2026-09-17 Nucor guided Q3 EPS to $5.55-5.65 (versus $6.17 consensus and $2.63 a year earlier) and Steel Dynamics to $5.34-5.38 (versus $5.66 consensus and $2.74 a year earlier). Both cited higher selling prices; Steel Dynamics cited record shipments and lower scrap costs, while raw-material and recycling earnings fall. Results come Oct 19 (STLD) and Oct 26 (NUE).",
+   "verdict": "Tight spot market near a cycle high. On Oct 12 Nucor's hot-rolled CSP rose to $1,240/st, its latest weekly increase (SMU index $1,270/st on Oct 6), and lead times are 3-5 weeks. The 50% Section 232 tariff has cut finished-import share to about 16% YTD, with Jan-Aug imports down 18.5%. Utilization is 79.0% YTD versus 77.1% a year earlier (78.3% in the week of Oct 3). Risks are building: Q3 guides from NUE ($5.55-5.65) and STLD ($5.34-5.38) came in below consensus on Sept 17, imports rose in July (+7.4%) and August (+3.4%) to a 17.5% share, and Canada and Mexico are pushing for tariff relief in the USMCA review.",
    "signals": [
     {
-     "signal": "Quarterly guidance below consensus",
+     "signal": "Quarterly EPS guidance below consensus (NUE and STLD, 2026-09-17)",
      "status": "fired"
     },
     {
-     "signal": "Realized steel selling prices fall quarter on quarter",
+     "signal": "Nucor hot-rolled CSP cut for several weeks in a row (Oct 12: $1,240/st, rising)",
      "status": "ok"
     },
     {
-     "signal": "Steel shipments decline",
-     "status": "ok"
-    },
-    {
-     "signal": "Metal spreads narrow (scrap up versus steel price)",
+     "signal": "Finished-steel import share back above 20% (August 17.5%, YTD about 16%; rising since June)",
      "status": "watch"
     },
     {
-     "signal": "Raw materials/recycling earnings keep falling",
+     "signal": "Section 232 rate cut or Canada/Mexico exemption in the USMCA review",
+     "status": "watch"
+    },
+    {
+     "signal": "Raw steel utilization falls below 75% (week of Oct 3: 78.3%; YTD 79.0%)",
+     "status": "ok"
+    },
+    {
+     "signal": "Metal spreads narrow: scrap rises while steel prices stall (mills are chasing extra October scrap)",
+     "status": "watch"
+    },
+    {
+     "signal": "Mill lead times shorten or backlogs fall quarter on quarter",
+     "status": "ok"
+    },
+    {
+     "signal": "USW contracts at U.S. Steel and Cleveland-Cliffs settled or broken (on rolling 48-hour extensions since Oct 1)",
      "status": "watch"
     }
    ]
