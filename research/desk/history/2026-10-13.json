@@ -1,6 +1,5 @@
 {
  "as_of": "2026-10-13",
- "note": "Seeded by hand from the 2026-10-13 memory sector overview; the weekly research desk task refreshes and extends it.",
  "names": {
   "SNDK": {
    "cluster": "memory",
@@ -14,20 +13,37 @@
     "PC or phone makers report rising NAND inventory or cut SSD content further"
    ],
    "next_earnings": "2026-10-29",
-   "earnings_confirmed": false,
+   "earnings_confirmed": true,
    "catalysts": [
     {
+     "date": "2026-10-22",
+     "event": "Western Digital fiscal Q1 2027 results (storage read-across; date confirmed by WD)"
+    },
+    {
      "date": "2026-10-28",
-     "event": "Seagate results (storage demand read-across)"
+     "event": "Microsoft and Alphabet Q3 results: 2027 capex commentary (dates confirmed per calendar)"
+    },
+    {
+     "date": "2026-10-28",
+     "event": "Seagate fiscal Q1 2027 results (estimated date)"
     },
     {
      "date": "2026-10-29",
-     "event": "SanDisk fiscal Q1 2027 results"
+     "event": "SanDisk fiscal Q1 2027 results (company guided 83-85% adj. gross margin)"
+    },
+    {
+     "date": "2026-10-29",
+     "event": "Amazon Q3 results: AWS capex commentary (estimated date)"
     }
    ],
    "sources": [
     "https://www.trendforce.com/presscenter/news/20260730-13158.html",
-    "https://247wallst.com/investing/2026/10/12/sandisk-drops-6-in-memory-selloff-despite-making-no-dram-seagate-slides-4/"
+    "https://247wallst.com/investing/2026/10/12/sandisk-drops-6-in-memory-selloff-despite-making-no-dram-seagate-slides-4/",
+    "https://www.sandisk.com/company/newsroom/press-releases/2026/2026-09-29-sandisk-to-report-first-quarter-fiscal-year-2027-results-on-october-29-2026",
+    "https://www.trendforce.com/presscenter/news/20260930-13258.html",
+    "https://www.ibtimes.com.au/sandisk-shares-ai-data-centre-nand-memory-boom-1876396",
+    "https://www.westerndigital.com/en-ae/company/newsroom/press-releases/2026/2026-10-08-wd-to-announce-first-quarter-fiscal-year-2027-financial-results",
+    "https://www.smartcalendars.ai/en/feeds/hyperscaler-capex-earnings-calendar"
    ],
    "key_dependencies": [
     {
@@ -58,7 +74,7 @@
    "thesis_short": "DRAM + HBM leader; supply tight through 2028; 87% gross margin; 2027 HBM largely sold.",
    "kill_criteria": [
     "DRAM contract prices flat or down quarter on quarter",
-    "Micron guides gross margin down or revenue below consensus",
+    "Micron guides gross margin below 85% or revenue down quarter on quarter (FQ1 2027 guide set 2026-09-30: revenue $61.5B, GM 86.25% vs 87.0% prior)",
     "A large cloud provider cuts or flattens its 2027 capex plan",
     "CXMT qualifies HBM at a major customer or starts discounting DRAM",
     "Samsung or SK hynix bring large new DRAM capacity forward from 2028 into 2027",
@@ -69,16 +85,30 @@
    "catalysts": [
     {
      "date": "2026-10-22",
-     "event": "Western Digital results"
+     "event": "Western Digital fiscal Q1 2027 results"
+    },
+    {
+     "date": "2026-10-28",
+     "event": "Microsoft, Alphabet (confirmed) and Meta (estimated) Q3 results: 2027 capex plans"
     },
     {
      "date": "2026-10-29",
-     "event": "SanDisk results (NAND read-across)"
+     "event": "SanDisk fiscal Q1 2027 results (NAND read-across)"
+    },
+    {
+     "date": "2026-10-29",
+     "event": "Amazon Q3 results: AWS capex (estimated date)"
     }
    ],
    "sources": [
     "https://cranberryjournal.com/technology/micron-record-quarter-stock-flat/",
-    "https://www.techtimes.com/articles/326440/20260903/cxmt-hits-10-dram-market-share-oligopoly-falls-below-90-two-years-early.htm"
+    "https://www.techtimes.com/articles/326440/20260903/cxmt-hits-10-dram-market-share-oligopoly-falls-below-90-two-years-early.htm",
+    "https://stocktwits.com/news-articles/markets/equity/mu-stock-drops-after-hours-micron-s-heightened-capex-forecast-overpowers-q4-beat-expectation-beating-q1-guidance/cZMFVZfRBLS",
+    "https://www.trendforce.com/presscenter/news/20260930-13258.html",
+    "https://cryptobriefing.com/samsung-80-billion-q3-profit-ai-memory/",
+    "https://www.sammyfans.com/2026/09/28/samsung-accelerates-p5-expansion-for-dram-and-hbm-production/",
+    "https://m.theinvestor.co.kr/article/10821790",
+    "https://www.smartcalendars.ai/en/feeds/hyperscaler-capex-earnings-calendar"
    ],
    "key_dependencies": [
     {
@@ -118,15 +148,24 @@
    "catalysts": [
     {
      "date": "2026-10-22",
-     "event": "Western Digital results (HDD read-across)"
+     "event": "Western Digital fiscal Q1 2027 results (confirmed; HDD pricing, lead times and Toshiba read-across)"
     },
     {
      "date": "2026-10-28",
-     "event": "Seagate fiscal Q1 2027 results"
+     "event": "Seagate fiscal Q1 2027 results (estimated; consensus EPS ~$7.39 vs guide $7.30 +/- $0.20, revenue guide $4.1B +/- $0.1B)"
+    },
+    {
+     "date": "2026-10-29",
+     "event": "SanDisk fiscal Q1 2027 results (estimated)"
     }
    ],
    "sources": [
-    "https://www.tikr.com/blog/seagate-technology-q4-earnings-13th-straight-quarter-of-margin-gains"
+    "https://www.tikr.com/blog/seagate-technology-q4-earnings-13th-straight-quarter-of-margin-gains",
+    "https://www.tipranks.com/stocks/stx/earnings",
+    "https://www.storagenewsletter.com/2026/07/31/seagate-technology-fiscal-4q26-and-fy26-financial-results/",
+    "https://www.tikr.com/blog/seagate-sinks-12-western-digital-down-10-as-toshiba-plans-to-double-hard-disk-output",
+    "https://www.blocksandfiles.com/disk/2026/10/06/distant-third-hdd-maker-toshiba-spending-380-million-to-catch-up/5301322",
+    "https://www.westerndigital.com/en-ae/company/newsroom/press-releases/2026/2026-10-08-wd-to-announce-first-quarter-fiscal-year-2027-financial-results"
    ],
    "key_dependencies": [
     {
@@ -145,28 +184,1024 @@
      "why": "large nearline buyers"
     }
    ]
+  },
+  "MRNA": {
+   "cluster": "mrna_vaccines",
+   "researched_on": "2026-10-13",
+   "thesis_short": "The stock has risen more than sixfold in 2026 because the Phase 3 INTerpath-001 melanoma trial of the intismeran cancer vaccine (with Merck) met its primary endpoint in August, the FDA approved the mFLUSIVA flu vaccine (Aug 5) and Moderna joined the Nasdaq-100 (Oct 9); full Phase 3 data at ESMO on Oct 24 is the next test.",
+   "kill_criteria": [
+    "Full INTerpath-001 data at ESMO (2026-10-24) shows a recurrence-free survival benefit materially smaller than the Phase 2b result (49% risk reduction), or an adverse safety signal",
+    "Moderna and Merck do not announce a filing plan for intismeran in adjuvant melanoma, or the FDA signals it will not accept or review the filing",
+    "HHS, FDA or CDC restricts mFLUSIVA use (e.g. drops the 65+ indication or gives no recommendation), or mRNA-1083 cannot be refiled in the US",
+    "Moderna cuts 2026 revenue guidance (up to 10% growth over 2025) or year-end cash guidance ($4.7-5.2B), or announces an equity raise",
+    "The norovirus Phase 3 (mRNA-1403) or the propionic acidemia registrational study (mRNA-3927) fails at final readout"
+   ],
+   "next_earnings": "2026-11-05",
+   "earnings_confirmed": false,
+   "catalysts": [
+    {
+     "date": "2026-10-24",
+     "event": "ESMO Presidential Symposium: full Phase 3 INTerpath-001 data (intismeran + Keytruda in adjuvant melanoma), with a Moderna investor webcast at 1:00 PM EDT"
+    },
+    {
+     "date": "2026-10-25",
+     "event": "ESMO poster: Phase 1 intismeran + FOLFIRINOX in resectable pancreatic cancer"
+    },
+    {
+     "date": "2026-10-26",
+     "event": "ESMO poster: INTerpath-014 Phase 3 design (stage I NSCLC); no results expected"
+    },
+    {
+     "date": "2026-11-05",
+     "event": "Moderna Q3 2026 results (estimated, not confirmed; Q3 should carry about 55% of second-half revenue per guidance)"
+    }
+   ],
+   "sources": [
+    "https://www.newswire.com/news/moderna-reports-second-quarter-2026-financial-results-and-provides-business",
+    "https://www.newswire.com/news/moderna-announces-late-breaking-data-to-be-presented-at-esmo-congress-2026",
+    "https://abc7news.com/story/fda-approves-modernas-mrna-seasonal-flu-vaccine/19634596/",
+    "https://www.digitaltoday.co.kr/en/view/111438/moderna-surges-nearly-7-percent-ahead-of-nasdaq-100-inclusion-citi-warns-sell",
+    "https://www.kucoin.com/news/flash/moderna-stock-surges-663-in-2026-amid-cancer-vaccine-trial-progress",
+    "https://trial.medpath.com/news/moderna-and-merck-s-intismeran-cuts-melanoma-recurrence-49-in-phase-3-interpath-001",
+    "https://www.marketbeat.com/stocks/NASDAQ/MRNA/earnings"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Merck (intismeran partner; Keytruda combination)",
+     "ticker": "MRK",
+     "why": "co-develops and shares cost and profit on intismeran; every Phase 3 trial pairs it with Keytruda"
+    },
+    {
+     "name": "FDA / HHS / CDC",
+     "ticker": "",
+     "why": "approvals, refiling path for mRNA-1083, and vaccine recommendations under an HHS leadership critical of mRNA"
+    },
+    {
+     "name": "BioNTech",
+     "ticker": "BNTX",
+     "why": "competing individualized cancer vaccines and COVID vaccine competitor"
+    },
+    {
+     "name": "Roche / Genentech",
+     "ticker": "",
+     "why": "competing personalized cancer vaccine programs (with BioNTech)"
+    },
+    {
+     "name": "Pfizer",
+     "ticker": "PFE",
+     "why": "main COVID vaccine competitor in the shrinking respiratory market"
+    }
+   ]
+  },
+  "DELL": {
+   "cluster": "ai_servers",
+   "researched_on": "2026-10-13",
+   "thesis_short": "Dell has become one of the largest AI server makers: a record $60.9B of AI orders in fiscal Q2 2027, a $95B AI backlog and full-year AI server revenue guidance raised to $74B; the open question is whether it can turn that backlog into profit while memory and component costs rise.",
+   "kill_criteria": [
+    "Dell reports AI orders below AI shipments for a quarter (backlog falls from $95B) or cuts FY27 AI server revenue guidance ($74B)",
+    "Dell cuts FY27 revenue guidance ($192B) or non-GAAP EPS guidance ($25.50), or misses its Q3 guide ($49.0B revenue / $6.50 EPS)",
+    "ISG operating margin falls well below 15.0% because of memory or component costs, or Dell says shortages are pushing backlog shipments into later quarters",
+    "A large cloud provider or AI lab (e.g. Microsoft, xAI/SpaceX, CoreWeave) cuts or flattens its 2027 capex plan, or moves server purchases to ODMs or Super Micro",
+    "Nvidia reports a slip in its next-generation rack platform ramp that delays Dell's shipments"
+   ],
+   "next_earnings": "2026-11-24",
+   "earnings_confirmed": false,
+   "catalysts": [
+    {
+     "date": "2026-10-28",
+     "event": "Microsoft fiscal Q1 2027 results (cloud and AI capex read-across), date confirmed by Microsoft"
+    }
+   ],
+   "sources": [
+    "https://www.sec.gov/Archives/edgar/data/0001571996/000157199626000039/exhibit991earnings8kq2fy27.htm",
+    "https://www.kucoin.com/news/flash/dell-stock-surges-9-as-analysts-raise-price-targets-to-735-amid-95b-ai-backlog",
+    "https://www.tikr.com/blog/dell-stock-is-up-15-this-week-as-its-ai-backlog-hits-95-billion",
+    "https://parameter.io/dell-dell-stock-plunges-5-following-analyst-downgrade-to-hold/",
+    "https://unusualwhales.com/stock/DELL/earnings",
+    "https://finviz.com/news/400058/microsoft-announces-quarterly-earnings-release-date"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Nvidia",
+     "ticker": "NVDA",
+     "why": "supplies the GPUs and rack platforms in Dell's AI servers; its product timing sets Dell's shipment timing"
+    },
+    {
+     "name": "Cloud providers and AI labs (Microsoft, xAI/SpaceX, CoreWeave)",
+     "ticker": "MSFT",
+     "why": "their capex is the source of the AI server backlog; some are reported to be looking at buying directly from ODMs"
+    },
+    {
+     "name": "Memory suppliers (Micron, Samsung, SK hynix)",
+     "ticker": "MU",
+     "why": "DRAM and NAND are scarce and getting more expensive, which squeezes server margins and limits how fast Dell can ship"
+    },
+    {
+     "name": "Super Micro Computer",
+     "ticker": "SMCI",
+     "why": "direct AI server competitor; GF Securities expects it to win share at SpaceX from 2027"
+    },
+    {
+     "name": "Hewlett Packard Enterprise",
+     "ticker": "HPE",
+     "why": "competitor in AI and traditional servers (AI backlog about $16B)"
+    }
+   ]
+  },
+  "INTC": {
+   "cluster": "x86_cpu",
+   "researched_on": "2026-10-13",
+   "thesis_short": "Server CPU demand from AI infrastructure is outrunning Intel's supply (Q2 2026 DCAI +59% y/y, seventh straight beat), 18A output is running ~25% above target, and the build-out toward 14A in 2028 is funded by a $20B equity raise; external foundry customers are not yet signed.",
+   "kill_criteria": [
+    "Intel guides Q4 2026 non-GAAP gross margin below the ~42% Q3 guide, or guides revenue down sequentially",
+    "Intel lowers its view of strong double-digit industry server CPU unit growth in 2026 and 2027",
+    "18A ramp setback: Intel reports yields below plan or delays Panther Lake / 18A server products",
+    "14A slips: Intel moves high-volume 14A from 2028 or says the node is on hold for lack of external customers",
+    "No external 14A customer (Apple, Terafab, AMD or Nvidia were all reported evaluating it) signs by end of 1H 2027",
+    "A large cloud provider cuts or flattens its 2027 capex plan"
+   ],
+   "next_earnings": "2026-10-29",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-10-15",
+     "event": "TSMC Q3 2026 results (foundry competitor, read-across on AI and wafer demand)"
+    },
+    {
+     "date": "2026-10-29",
+     "event": "Intel Q3 2026 results, after market close (guide was revenue $15.8-16.8B, non-GAAP GM ~42%, EPS $0.38)"
+    },
+    {
+     "date": "2026-10-31",
+     "event": "14A PDK 0.9 due in October per Intel's Q2 call (lets prospective foundry customers start test-chip design)"
+    },
+    {
+     "date": "2026-11-03",
+     "event": "AMD Q3 2026 results (x86 server and PC share read-across)"
+    }
+   ],
+   "sources": [
+    "https://www.intc.com/news-events/press-releases/detail/1782/intel-to-report-third-quarter-2026-financial-results",
+    "https://www.nasdaq.com/articles/intel-q2-earnings-call-highlights",
+    "https://aiweekly.co/alerts/intel-promises-apple-and-terafab-a-14a-pdk-milestone-this-fall",
+    "https://www.advisorperspectives.com/articles/2026/08/11/intel-raises-20-billion-upsized-share-sale-ai-plans",
+    "https://fintool.com/news/intel-stock-crash-supply-constraints",
+    "https://investor.tsmc.com/quarterly-results",
+    "https://ir.amd.com/news-events/press-releases/detail/1300/amd-to-report-fiscal-third-quarter-2026-financial-results"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Hyperscale cloud providers",
+     "ticker": "MSFT",
+     "why": "AI inference build-outs drive server CPU demand (DCAI $6.3B in Q2, +59% y/y)"
+    },
+    {
+     "name": "AMD",
+     "ticker": "AMD",
+     "why": "main x86 server and PC CPU competitor; also reported to be evaluating 14A"
+    },
+    {
+     "name": "TSMC",
+     "ticker": "TSM",
+     "why": "makes some Intel product tiles and is the foundry incumbent Intel Foundry has to win customers from"
+    },
+    {
+     "name": "Apple",
+     "ticker": "AAPL",
+     "why": "reported to be evaluating 14A for lower-end A-series and M-series chips; no deal signed"
+    },
+    {
+     "name": "Memory and substrate suppliers",
+     "ticker": "MU",
+     "why": "industry-wide memory and substrate shortages limit server builds; high memory prices push 2026 PC demand down low double digits"
+    },
+    {
+     "name": "Nvidia / US government",
+     "ticker": "NVDA",
+     "why": "both are equity investors in Intel; Nvidia is also reported to be evaluating 14A for GPUs"
+    }
+   ]
+  },
+  "WDC": {
+   "cluster": "storage_hdd",
+   "researched_on": "2026-10-13",
+   "thesis_short": "Pure-play nearline HDD supplier (cloud 89% of revenue) with capacity sold through firm orders and LTAs, pricing up by the high teens per TB y/y and margins at a record 54.4%; 40TB ePMR and UltraSMR ramp now, 44TB HAMR in 1H CY2027.",
+   "kill_criteria": [
+    "WDC guides fiscal Q2 2027 revenue below the fiscal Q1 level or gross margin below 55%",
+    "44TB HAMR shipments slip past 1H calendar 2027, or WDC reports 40TB ePMR qualification problems at a major customer",
+    "WDC says nearline price per TB is falling, or that LTA talks for 2029-2031 stall or customers cut contracted volumes",
+    "Toshiba or Seagate add HDD capacity beyond what is already announced, or WDC reports nearline lead times shortening",
+    "A large cloud provider cuts or flattens its 2027 capex plan"
+   ],
+   "next_earnings": "2026-10-22",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-10-22",
+     "event": "Western Digital fiscal Q1 2027 results, after market close (call 4:30 p.m. ET)"
+    },
+    {
+     "date": "2026-10-28",
+     "event": "Seagate fiscal Q1 2027 results (date estimated, not yet announced)"
+    },
+    {
+     "date": "2026-10-29",
+     "event": "SanDisk fiscal Q1 2027 results (estimated; storage demand read-across)"
+    }
+   ],
+   "sources": [
+    "https://www.westerndigital.com/en-ae/company/newsroom/press-releases/2026/2026-10-08-wd-to-announce-first-quarter-fiscal-year-2027-financial-results",
+    "https://www.sec.gov/Archives/edgar/data/0000106040/000162828026053305/a4ex991-pressreleaseq426.htm",
+    "https://www.marketbeat.com/instant-alerts/western-digital-q4-earnings-call-highlights-2026-08-06/",
+    "https://www.gurufocus.com/news/9009786/western-digital-corp-wdc-q4-2026-earnings-call-highlights-record-revenue-and-eps-soar-on-aidriven-storage-demand",
+    "https://www.marketbeat.com/instant-alerts/western-digital-nasdaqwdc-updates-q1-2027-earnings-guidance-2026-08-05/",
+    "https://stocktwits.com/symbol/WDC/earnings",
+    "https://windowsreport.com/seagate-and-western-digital-fully-booked-as-ai-data-centers-hoard-storage/",
+    "https://www.blocksandfiles.com/disk/2026/10/06/distant-third-hdd-maker-toshiba-spending-380-million-to-catch-up/5301322"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Hyperscale cloud providers",
+     "ticker": "AMZN",
+     "why": "cloud was $3.3B, 89% of fiscal Q4 2026 revenue; a few customers take most nearline shipments"
+    },
+    {
+     "name": "Seagate",
+     "ticker": "STX",
+     "why": "main HDD competitor (~44% share each); HAMR lead and supply discipline"
+    },
+    {
+     "name": "Toshiba",
+     "ticker": "",
+     "why": "No. 3 HDD maker (~11% share) reported to be roughly doubling AI data-centre HDD capacity by its FY2027"
+    },
+    {
+     "name": "Microsoft / Meta / Alphabet",
+     "ticker": "MSFT",
+     "why": "2027 capex plans set exabyte demand and LTA volumes"
+    },
+    {
+     "name": "QLC enterprise SSD makers",
+     "ticker": "SNDK",
+     "why": "flash substitutes for nearline HDD if HDD shortages persist or SSD prices fall"
+    }
+   ],
+   "earnings_preview": "Consensus is ~$4.08 EPS on $4.14B revenue, at the top half of the $4.0-4.2B / $3.85-4.15 guide; the case weakens if gross margin lands below the 55-56% guide, if exabyte growth stays at or below the June quarter's 22% y/y, or if the fiscal Q2 guide shows revenue flat-to-down from ~$4.1B. Comments on Toshiba's capacity plan, nearline price per TB (high-teens y/y last quarter), and whether 44TB HAMR is still on track for 1H CY2027 matter as much as the headline numbers."
+  },
+  "VLO": {
+   "cluster": "oil_refining",
+   "researched_on": "2026-10-13",
+   "thesis_short": "Largest US Gulf Coast-heavy independent refiner with high diesel and export exposure, earning record margins (Q2 2026 adj. EPS $12.54) while war-related global refinery outages keep US distillate stocks about 12-13% below the 5-year average.",
+   "kill_criteria": [
+    "Valero guides Q4 2026 Gulf Coast throughput below its Q3 range (1.78-1.83M bpd) or reports a major unplanned outage at a large Gulf Coast refinery",
+    "A durable US-Iran agreement or ceasefire that reopens Persian Gulf product flows (about 900k bpd diesel before the war) is announced",
+    "Russia lifts its diesel export ban and Ukrainian strikes on Russian refineries stop, restoring Russian product exports",
+    "EIA weekly data show US distillate inventories back at or above the 5-year average",
+    "EPA grants a large batch of new small refinery exemptions or changes the 2026-27 RVO in a way that pushes D4 RINs below feedstock fat prices, removing the renewable diesel profit Valero cited",
+    "Valero cuts its buyback pace sharply or says mid-cycle margins have reset lower"
+   ],
+   "next_earnings": "2026-10-22",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-10-14",
+     "event": "EIA weekly petroleum status report (distillate stocks, utilization); also due 2026-10-21, 10-28 and 11-04"
+    },
+    {
+     "date": "2026-10-22",
+     "event": "Valero Q3 2026 results before market open, call 10:00 ET"
+    },
+    {
+     "date": "2026-10-28",
+     "event": "Phillips 66 Q3 2026 results (peer margin read-across)"
+    },
+    {
+     "date": "2026-11-03",
+     "event": "Marathon Petroleum Q3 2026 results; US midterm elections (Trump ruled out a strike on Iran before the midterms)"
+    }
+   ],
+   "sources": [
+    "https://finviz.com/news/389791/valero-energy-corporation-to-announce-third-quarter-2026-earnings-results-on-october-22-2026",
+    "https://www.nasdaq.com/articles/valero-energy-q2-earnings-call-highlights",
+    "https://www.aaii.com/investingideas/article/523509-what-you-need-to-know-about-valero-energy-corporations-q3-earnings",
+    "https://kr.benzinga.com/quote/VLO/earnings-forecasts",
+    "https://rbnenergy.com/daily-posts/analyst-insight/usgc-crack-spread-turns-down-volume-after-september-rally",
+    "https://www.cruxinvestor.com/posts/diesel-margins-keep-oil-earnings-high-as-crude-slips-on-iran-talks",
+    "https://hydrocarbonprocessing.com/news/2026/01/valero-to-keep-importing-gasoline-after-benicia-us-refinery-closure/",
+    "https://www.epa.gov/renewable-fuel-standard/final-renewable-fuel-standards-2026-and-2027"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Diesel and gasoline export markets (Latin America, Europe)",
+     "ticker": "",
+     "why": "Gulf Coast system relies on exports; US distillate exports at 1.76M bpd vs 1.24M a year ago"
+    },
+    {
+     "name": "Persian Gulf and Russian refining/export disruptions",
+     "ticker": "",
+     "why": "Main driver of record cracks (USGC diesel crack $104/bbl in September)"
+    },
+    {
+     "name": "Diamond Green Diesel JV partner Darling Ingredients",
+     "ticker": "DAR",
+     "why": "Renewable diesel segment ($717M Q2 operating income) depends on RINs and fat feedstock costs"
+    },
+    {
+     "name": "Heavy sour crude suppliers (Canada, Venezuela, Mexico)",
+     "ticker": "",
+     "why": "Crude discounts are a key part of Valero's margin capture"
+    },
+    {
+     "name": "Marathon Petroleum / Phillips 66",
+     "ticker": "MPC",
+     "why": "Peer Gulf Coast refiners; their throughput decisions set product supply"
+    }
+   ],
+   "earnings_preview": "Consensus for Q3 2026 ranges from about $15.96 (Benzinga, revenue $38.3B) to $20.27 (AAII/I-B-E-S, 17 analysts) per share, versus $12.54 in Q2. With September's USGC 3-2-1 crack at $71/bbl, the case weakens if EPS misses $15.96, if Gulf Coast throughput comes in below the guided 1.78M bpd, or if Q4 throughput guidance or management commentary signals margins normalising (for example, the early-October crack pullback continuing)."
+  },
+  "MPC": {
+   "cluster": "oil_refining",
+   "researched_on": "2026-10-13",
+   "thesis_short": "Largest US refiner by capacity (about 3M bpd) with 112% margin capture in Q2 2026 and $2.5B of quarterly buybacks, plus MPLX midstream cash flows growing distributions 12.5% a year, in a refining market where global downtime is about 4M bpd above normal.",
+   "kill_criteria": [
+    "MPC guides Q4 2026 utilization well below the Q3 guide of 94%, or reports a major unplanned Gulf Coast or Mid-Continent outage",
+    "Management drops its view of an enhanced mid-cycle margin environment through 2027",
+    "A US-Iran settlement or Russian export resumption brings back several million bpd of offline global refining (MPC cited more than 9M bpd of global downtime)",
+    "MPLX cuts its 12.5% distribution growth target for 2026-2027 or MPC cuts buybacks materially",
+    "EIA weekly data show US distillate inventories back at or above the 5-year average"
+   ],
+   "next_earnings": "2026-11-03",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-10-22",
+     "event": "Valero Q3 2026 results (peer margin read-across)"
+    },
+    {
+     "date": "2026-10-28",
+     "event": "Phillips 66 Q3 2026 results"
+    },
+    {
+     "date": "2026-11-03",
+     "event": "Marathon Petroleum Q3 2026 results, call 11:00 ET; MPLX reports alongside"
+    },
+    {
+     "date": "2026-11-03",
+     "event": "US midterm elections (Iran policy risk to diesel cracks)"
+    }
+   ],
+   "sources": [
+    "https://finviz.com/news/393371/marathon-petroleum-corp-to-report-third-quarter-financial-results-on-november-3-2026",
+    "https://www.marketbeat.com/instant-alerts/marathon-petroleum-q2-earnings-call-highlights-2026-08-05/",
+    "https://www.webull.ca/news-detail/15417703273178112",
+    "https://www.karmactive.com/?p=282043",
+    "https://rbnenergy.com/daily-posts/analyst-insight/usgc-crack-spread-turns-down-volume-after-september-rally",
+    "https://hydrocarbonprocessing.com/news/2026/09/us-diesel-prices-hit-record-high-as-conflicts-intensify-supply-crunch/"
+   ],
+   "key_dependencies": [
+    {
+     "name": "MPLX",
+     "ticker": "MPLX",
+     "why": "Midstream subsidiary whose distributions fund much of MPC's capital return"
+    },
+    {
+     "name": "Persian Gulf and Russian refining outages",
+     "ticker": "",
+     "why": "Drive the global product shortage behind record margins"
+    },
+    {
+     "name": "Canadian and Venezuelan heavy crude, plus SPR barrels",
+     "ticker": "",
+     "why": "Discounted feedstock MPC is running more of"
+    },
+    {
+     "name": "Valero / Phillips 66",
+     "ticker": "VLO",
+     "why": "Competing US refiners and read-across on margins"
+    },
+    {
+     "name": "Jet fuel demand (airlines)",
+     "ticker": "",
+     "why": "MPC has raised jet yield capability to 12% from 8% in 2024"
+    }
+   ]
+  },
+  "PSX": {
+   "cluster": "oil_refining",
+   "researched_on": "2026-10-13",
+   "thesis_short": "Diversified refiner (Q2 2026 adj. EPS $9.41; refining $3.1B of $4.9B segment pre-tax) with growing NGL midstream and a CPChem stake; refining is running at 96% utilization in a record-margin market, and Elliott pressure has eased after two board additions in March 2026.",
+   "kill_criteria": [
+    "Bayway refinery strike (Teamsters Local 877, contract expired 2026-10-01) starts and lasts more than a few weeks",
+    "PSX reports refining utilization well below 96% or a realized margin capture well below its Q2 level of $24.08/bbl relative to market cracks",
+    "Elliott launches a new proxy fight or publicly turns against management, or PSX abandons its debt and buyback plan",
+    "A US-Iran settlement or Russian export resumption that normalises diesel cracks is announced",
+    "CPChem Golden Triangle or Ras Laffan polymer projects are delayed beyond 2027, or midstream projects (Zeus gas plant, Corpus Christi fractionator) are cancelled"
+   ],
+   "next_earnings": "2026-10-28",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-10-22",
+     "event": "Valero Q3 2026 results (peer read-across)"
+    },
+    {
+     "date": "2026-10-28",
+     "event": "Phillips 66 Q3 2026 results, webcast noon ET"
+    },
+    {
+     "date": "2026-11-03",
+     "event": "Marathon Petroleum Q3 2026 results; US midterm elections"
+    },
+    {
+     "date": "2026-10-13",
+     "event": "Bayway refinery labour talks ongoing; strike authorised by 92% of 385 Teamsters members (no strike reported yet)"
+    }
+   ],
+   "sources": [
+    "https://finviz.com/news/392869/phillips-66-to-announce-third-quarter-financial-results",
+    "https://www.streetinsider.com/Business+Wire/Phillips+66+Delivers+Strong+Second-Quarter+Results+and+Operating+Performance/26869967.html",
+    "https://seekingalpha.com/news/4562305-phillips-66-adds-two-directors-to-avoid-proxy-battle-with-elliott",
+    "https://uk.marketscreener.com/quote/stock/PHILLIPS-66-10447684/news-insiders/",
+    "https://finviz.com/news/398697/phillips-66-announces-refining-leadership-transition",
+    "https://www.finanztrends.de/news/phillips-aktie-teamsters-geben-streik-frei/",
+    "https://www.fortune.com/article/phillips-66-elliott-proxy-battle-split-vote",
+    "https://www.argusmedia.com/en/news-and-insights/latest-market-news/2690111-phillips-66-vote-could-change-company-s-course"
+   ],
+   "key_dependencies": [
+    {
+     "name": "Chevron Phillips Chemical (50% JV with Chevron)",
+     "ticker": "CVX",
+     "why": "Chemicals segment; Elliott has pushed for a sale; new polymer plants due 2027"
+    },
+    {
+     "name": "Elliott Investment Management",
+     "ticker": "",
+     "why": "Activist that won 2 board seats in May 2025 and wanted a midstream spin-off and CPChem exit; PSX added 2 directors in March 2026 to avoid a second fight"
+    },
+    {
+     "name": "Permian NGL producers",
+     "ticker": "",
+     "why": "Feed the midstream gas plants and fractionators (record NGL and LPG export volumes)"
+    },
+    {
+     "name": "Teamsters Local 877 (Bayway, NJ)",
+     "ticker": "",
+     "why": "Labour risk at the East Coast refinery, where distillate stocks are at record lows"
+    },
+    {
+     "name": "Valero / Marathon Petroleum",
+     "ticker": "VLO",
+     "why": "Refining peers; margin read-across"
+    }
+   ]
+  },
+  "JBHT": {
+   "cluster": "freight_intermodal",
+   "researched_on": "2026-10-13",
+   "thesis_short": "Largest US intermodal operator positioned for truck-to-rail freight conversion while truckload costs run ~32% above intermodal, though driver and fuel costs squeeze Q3 2026 profit first.",
+   "kill_criteria": [
+    "J.B. Hunt reports Q3 2026 EPS below the low end of its own September signal (5-10% below Q2's $1.91, about $1.72), or guides Q4 to a further sequential decline",
+    "J.B. Hunt says the Q4 2026 intermodal bid season brought no contract rate increases (intermodal revenue per load excluding fuel flat or down year over year)",
+    "Intermodal load volumes fall year over year in Q3 or Q4 2026 even though the truck-intermodal price gap is still above 30%",
+    "J.B. Hunt says driver and fuel cost inflation is structural rather than cyclical, or keeps it as a headwind into 2027 guidance",
+    "STB approves the Union Pacific-Norfolk Southern merger with conditions that hurt BNSF-J.B. Hunt transcontinental service, or J.B. Hunt discloses a new revenue-split dispute with BNSF",
+    "Dedicated truck count declines year over year despite the 'all-time high' pipeline management cited"
+   ],
+   "next_earnings": "2026-10-15",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-10-15",
+     "event": "J.B. Hunt Q3 2026 results after close; call 4:00 pm CDT"
+    },
+    {
+     "date": "2026-10-21",
+     "event": "Knight-Swift Q3 2026 results after close (truckload rates and driver-cost read-across)"
+    },
+    {
+     "date": "2026-10-22",
+     "event": "Union Pacific Q3 2026 results (intermodal volumes, NS merger update)"
+    }
+   ],
+   "sources": [
+    "https://finviz.com/news/398058/jb-hunt-transport-services-inc-announces-third-quarter-2026-earnings-release-date-and-conference-call-information",
+    "https://talkbusiness.net/2026/10/j-b-hunt-q3-earnings-revenue-to-rise-analysts-say/",
+    "https://stocktwits.com/news-articles/markets/equity/j-b-hunt-warns-near-term-earnings-will-fall-barclays-flags-higher-costs-but-sees-freight-demand-inflection/cZtYLJKRB2M",
+    "https://www.freightwaves.com/news/j-b-hunt-flags-q3-cost-pressures-shares-sink-12",
+    "https://www.ajot.com/news/jb-hunt-reports-second-quarter-2026-results",
+    "https://railmarket.com/news/business/57579-us-surface-transportation-board-accepts-union-pacific-norfolk-southern-merger-application",
+    "https://finviz.com/news/395167/union-pacific-corporation-announces-third-quarter-2026-earnings-release-date",
+    "https://finviz.com/news/397825/knight-swift-transportation-holdings-inc-announces-timing-of-third-quarter-2026-earnings-release-and-related-conference-call"
+   ],
+   "key_dependencies": [
+    {
+     "name": "BNSF Railway (Berkshire Hathaway)",
+     "ticker": "BRK.B",
+     "why": "main rail partner for western and transcontinental intermodal; sets service quality and revenue split"
+    },
+    {
+     "name": "Norfolk Southern / CSX",
+     "ticker": "NSC",
+     "why": "eastern rail partners; the UP-NS merger (STB accepted the application 2026-05-28, target mid-2027) could reshape eastern intermodal"
+    },
+    {
+     "name": "Union Pacific",
+     "ticker": "UNP",
+     "why": "would become a transcontinental intermodal competitor if the NS merger closes"
+    },
+    {
+     "name": "Knight-Swift",
+     "ticker": "KNX",
+     "why": "largest truckload carrier; truckload rates set the price gap that drives truck-to-rail conversion"
+    },
+    {
+     "name": "Diesel fuel and driver labor",
+     "ticker": "",
+     "why": "fuel (surcharge recovery lags about 1 week) and driver costs (about $25M extra in Q3) caused the Q3 profit warning"
+    }
+   ],
+   "earnings_preview": "Consensus for Q3 (Oct 15) is EPS $1.81 on revenue $3.59B (18 analysts). Management's September signal of a 5-10% drop from Q2's $1.91 implies about $1.72-1.81. EPS below $1.72, or a Q4 outlook showing further decline, would weaken the case. So would no rate gains in the intermodal bid season (about 10% of contracts renew in Q4) or a year-over-year drop in intermodal loads."
+  },
+  "EXPD": {
+   "cluster": "freight_forwarding",
+   "next_earnings": "2026-11-03",
+   "earnings_confirmed": false,
+   "catalysts": [
+    {
+     "date": "2026-10-15",
+     "event": "J.B. Hunt Q3 results (US freight demand read-across)"
+    },
+    {
+     "date": "2026-10-22",
+     "event": "Union Pacific Q3 results (intermodal/import volumes)"
+    },
+    {
+     "date": "2026-11-03",
+     "event": "Expeditors Q3 2026 results before open (third-party date; consensus EPS $2.24, revenue $3.62B)"
+    }
+   ],
+   "sources": [
+    "https://beta.earningswhispers.com/go/w/EXPD",
+    "https://finviz.com/news/395167/union-pacific-corporation-announces-third-quarter-2026-earnings-release-date"
+   ]
+  },
+  "CAT": {
+   "cluster": "construction_mining_equipment",
+   "next_earnings": "2026-10-29",
+   "earnings_confirmed": false,
+   "catalysts": [
+    {
+     "date": "2026-10-28",
+     "event": "GE Vernova Q3 results (gas turbine and data-centre power demand read-across for Caterpillar's power generation business)"
+    },
+    {
+     "date": "2026-10-29",
+     "event": "Caterpillar Q3 2026 results before open (third-party date; consensus EPS $6.95, revenue $20.17B); backlog was a record after Q2"
+    }
+   ],
+   "sources": [
+    "https://beta.earningswhispers.com/go/w/CAT",
+    "https://www.marketbeat.com/instant-alerts/caterpillar-q2-earnings-call-highlights-2026-08-04/",
+    "https://www.gevernova.com/investors/events/3rd-quarter-2026-earnings-webcast"
+   ]
+  },
+  "GM": {
+   "cluster": "us_autos",
+   "next_earnings": "2026-10-20",
+   "earnings_confirmed": false,
+   "catalysts": [
+    {
+     "date": "2026-10-20",
+     "event": "GM Q3 2026 results before open, 6:30 am ET (third-party date; GM release not found)"
+    }
+   ],
+   "sources": [
+    "https://beta.earningswhispers.com/go/w/GM",
+    "https://www.sec.gov/Archives/edgar/data/0001467858/000146785826000049/gmq22026pressreleaseandfin.htm",
+    "https://nasdaq.com/articles/general-motors-raises-2026-adj-ebit-adj-eps-guidance"
+   ],
+   "earnings_preview": "Consensus for Q3 is EPS $3.52 on revenue $48.33B (Q2 was $3.57 on $48.0B). Any cut to 2026 guidance would weaken the case. GM raised that guidance in July to EBIT-adjusted $14.0-16.0B, EPS-adjusted $12.00-14.00 and adjusted auto free cash flow $9.5-11.5B. Gross tariff costs above the $2.5-3.5B range given in April would also weaken it."
+  },
+  "NUE": {
+   "cluster": "us_steel",
+   "next_earnings": "2026-10-26",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-10-19",
+     "event": "Steel Dynamics Q3 results after close (peer read-across)"
+    },
+    {
+     "date": "2026-10-20",
+     "event": "GM Q3 results (auto steel demand)"
+    },
+    {
+     "date": "2026-10-26",
+     "event": "Nucor Q3 2026 results after close; call Oct 27 10:00 am ET. Guided EPS $5.55-5.65 vs $6.17 consensus at the time; Q2 had a $130M one-off raw-materials refund"
+    }
+   ],
+   "sources": [
+    "https://finviz.com/news/393374/nucor-announces-guidance-for-the-third-quarter-of-2026-earnings",
+    "https://www.tikr.com/blog/nucor-stock-estimates-bake-in-a-60-earnings-rebound-but-q3-guidance-just-missed",
+    "https://finviz.com/news/400568/steel-dynamics-announces-third-quarter-2026-earnings-conference-call-and-webcast"
+   ]
+  },
+  "STLD": {
+   "cluster": "us_steel",
+   "next_earnings": "2026-10-19",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-10-19",
+     "event": "Steel Dynamics Q3 2026 results after close; call Oct 20 11:00 am ET"
+    },
+    {
+     "date": "2026-10-26",
+     "event": "Nucor Q3 results (peer read-across)"
+    }
+   ],
+   "sources": [
+    "https://finviz.com/news/400568/steel-dynamics-announces-third-quarter-2026-earnings-conference-call-and-webcast",
+    "https://finviz.com/news/393373/steel-dynamics-provides-third-quarter-2026-earnings-guidance",
+    "https://www.tickerreport.com/?p=13588280",
+    "https://tradersunion.com/news/stocks/show/3390538-steel-dynamics-slides-4-74percent-to/"
+   ],
+   "earnings_preview": "On Sept 17 Steel Dynamics guided Q3 EPS to $5.34-5.38, below the $5.66 consensus at the time; Q2 was $3.69 on revenue $6.09B. Actual EPS below $5.34 would weaken the case. So would a Q4 outlook of lower steel margins or shipments, or a further slip in Columbus aluminum, whose first coated (CASH) line is due to ship commercially in Q4."
+  },
+  "DE": {
+   "cluster": "ag_equipment",
+   "next_earnings": "2026-11-25",
+   "earnings_confirmed": false,
+   "catalysts": [
+    {
+     "date": "2026-10-29",
+     "event": "Caterpillar Q3 results (construction equipment read-across)"
+    }
+   ],
+   "sources": [
+    "https://unusualwhales.com/stock/DE/earnings",
+    "https://beta.earningswhispers.com/go/w/CAT"
+   ]
+  },
+  "PWR": {
+   "cluster": "ai_power_infrastructure",
+   "next_earnings": "2026-10-29",
+   "earnings_confirmed": false,
+   "catalysts": [
+    {
+     "date": "2026-10-28",
+     "event": "GE Vernova Q3 results (grid/electrification orders read-across)"
+    },
+    {
+     "date": "2026-10-29",
+     "event": "Quanta Q3 2026 results before open (MarketBeat estimate based on prior-year timing; Q3 consensus EPS $3.38 from 5 analysts)"
+    }
+   ],
+   "sources": [
+    "https://www.marketbeat.com/stocks/NYSE/PWR/earnings/",
+    "https://www.gevernova.com/investors/events/3rd-quarter-2026-earnings-webcast"
+   ]
+  },
+  "GEV": {
+   "cluster": "ai_power_infrastructure",
+   "next_earnings": "2026-10-28",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-10-28",
+     "event": "GE Vernova Q3 2026 results; webcast 7:30 am EDT. In July 2026 guidance was raised to revenue $45.5-46.5B and free cash flow $11.5-12.5B, with at least 125 GW of gas equipment under contract by year-end (116 GW at Q2)"
+    },
+    {
+     "date": "2026-10-29",
+     "event": "Quanta Q3 results (estimated date; grid construction read-across)"
+    }
+   ],
+   "sources": [
+    "https://www.gevernova.com/investors/events/3rd-quarter-2026-earnings-webcast",
+    "https://www.sec.gov/Archives/edgar/data/0001996810/000199681026000147/gevpressrelease2q26.htm",
+    "https://beta.earningswhispers.com/epsdetails/GEV"
+   ]
+  },
+  "VRT": {
+   "cluster": "ai_power_infrastructure",
+   "next_earnings": "2026-10-28",
+   "earnings_confirmed": false,
+   "catalysts": [
+    {
+     "date": "2026-10-28",
+     "event": "Vertiv Q3 2026 results (third-party date, not confirmed by Vertiv; prior-year Q3 was reported Oct 22). Guided EPS $1.77-1.83 and revenue $3.7-3.9B; full-year 2026 EPS $6.65-6.75"
+    },
+    {
+     "date": "2026-10-28",
+     "event": "GE Vernova Q3 results (data-centre power demand read-across)"
+    }
+   ],
+   "sources": [
+    "https://bullstory.io/en/stocks/vrt/earnings/2026-q3",
+    "https://www.marketbeat.com/instant-alerts/vertiv-nysevrt-updates-q3-2026-earnings-guidance-2026-07-29/",
+    "https://www.marketscreener.com/quote/stock/VERTIV-HOLDINGS-CO-45109447/calendar/"
+   ]
+  },
+  "TRGP": {
+   "cluster": "permian_midstream_ngl",
+   "next_earnings": "2026-11-06",
+   "earnings_confirmed": false,
+   "catalysts": [
+    {
+     "date": "2026-11-06",
+     "event": "Targa Q3 2026 results (estimated; consensus EPS $2.66, revenue $5.12B); 2026 adj. EBITDA guided toward top of $5.7-5.9B"
+    }
+   ],
+   "sources": [
+    "https://beta.earningswhispers.com/go/w/TRGP",
+    "https://www.sec.gov/Archives/edgar/data/0001389170/000119312526336525/trgp-ex99_1.htm",
+    "https://www.autobound.ai/companies/targa-resources/news"
+   ]
+  },
+  "CNC": {
+   "cluster": "managed_care",
+   "next_earnings": "2026-10-27",
+   "earnings_confirmed": false,
+   "catalysts": [
+    {
+     "date": "2026-10-27",
+     "event": "Centene Q3 2026 results (estimated date); 2026 EPS guided to at least $4.80; management to update 2027 ACA marketplace positioning with Q3"
+    }
+   ],
+   "sources": [
+    "https://bullstory.io/en/stocks/cnc/earnings/2026-q3",
+    "https://www.fiercehealthcare.com/payers/centene-boosts-2026-guidance-it-posts-11b-q2-profit",
+    "https://www.sec.gov/Archives/edgar/data/0001071739/000107173926000154/a20260728ex991pressrelease.htm"
+   ]
+  },
+  "TGT": {
+   "cluster": "us_discount_retail",
+   "next_earnings": "2026-11-19",
+   "earnings_confirmed": false,
+   "sources": [
+    "https://beta.earningswhispers.com/go/x/TGT",
+    "https://www.sec.gov/Archives/edgar/data/0000027419/000002741926000034/a2026q2ex-99.htm",
+    "https://www.autobound.ai/companies/target/news"
+   ]
+  },
+  "SLB": {
+   "cluster": "oilfield_services",
+   "next_earnings": "2026-10-23",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-10-23",
+     "event": "SLB Q3 2026 results, release 7:00 a.m. ET, call 9:30 a.m. ET"
+    }
+   ],
+   "sources": [
+    "https://www.slb.com/newsroom/press-release/2026/pr-2026-0928-q3-earnings-call-announcement",
+    "https://www.marketbeat.com/earnings/reports/2026-10-23-schlumberger-limited-stock/",
+    "https://finance.yahoo.com/energy/articles/earnings-preview-expect-slb-n-102256986.html"
+   ],
+   "earnings_preview": "Consensus is EPS $0.62 (vs $0.69 a year ago) on revenue $9.27B (+3.8% y/y; Q2 was $8.97B, EPS $0.55 adj. beat $0.51); FY2026 consensus EPS $2.49. A revenue miss below roughly $9.0B (no sequential growth), or commentary that points FY2026 EPS clearly below $2.49 or cuts the international activity outlook, would weaken the case."
+  },
+  "VTRS": {
+   "cluster": "generic_pharma",
+   "next_earnings": "2026-11-05",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-11-05",
+     "event": "Viatris Q3 2026 results, call 8:30 a.m. ET; 2026 guidance revenue $14.55-14.95B, adj. EPS $2.45-2.59, FCF $2.05-2.35B"
+    }
+   ],
+   "sources": [
+    "https://finviz.com/news/398515/viatris-to-report-third-quarter-2026-financial-results-on-november-5-2026",
+    "https://www.sec.gov/Archives/edgar/data/0001792044/000179204426000037/exhibit991-2q26earningsrel.htm"
+   ]
+  },
+  "STT": {
+   "cluster": "custody_banks",
+   "next_earnings": "2026-10-14",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-10-14",
+     "event": "State Street Q3 2026 results, release ~7:30 a.m. ET, call 11:00 a.m. ET"
+    },
+    {
+     "date": "2026-10-15",
+     "event": "BNY Q3 2026 results (custody peer read-across)"
+    }
+   ],
+   "sources": [
+    "https://newsroom.statestreet.com/press-releases/press-release-details/2026/State-Street-Corporation-NYSE-STT-Announces-Remaining-2026-Quarterly-Financial-Results-Release-Dates-and-Conference-Call-Webcasts/default.aspx",
+    "https://tickerleague.com/companies/STT/estimates",
+    "https://www.sec.gov/Archives/edgar/data/0000093751/000009375126000387/exhibit992-2q26earningsrel.htm",
+    "https://www.nasdaq.com/articles/state-street-q2-earnings-call-highlights"
+   ],
+   "earnings_preview": "Consensus is EPS $3.62 (range $3.40-3.85) on revenue about $4.0B, versus Q2 EPS $3.65 and revenue $4.048B. Full-year 2026 guidance (raised in July) is fee revenue +12-13%, NII +14-15%, expenses about +8%, ~500bp positive operating leverage; trimming fee or NII growth below those ranges, or revenue under about $3.9B, would weaken the case."
+  },
+  "BNY": {
+   "cluster": "custody_banks",
+   "next_earnings": "2026-10-15",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-10-14",
+     "event": "State Street Q3 2026 results (custody peer read-across)"
+    },
+    {
+     "date": "2026-10-15",
+     "event": "BNY Q3 2026 results, release ~6:30 a.m. ET, call 11:00 a.m. ET"
+    }
+   ],
+   "sources": [
+    "https://www.bny.com/corporate/global/en/about-us/newsroom/press-release/bny-announces-conference-calls-to-review-earnings-in-2026-130449.html",
+    "https://www.hudson-labs.com/research/bny-q3-2026-earnings-revenue-preview-guidance-key-metrics",
+    "https://tickerleague.com/companies/BNY/estimates"
+   ],
+   "earnings_preview": "Consensus is EPS about $2.25-2.27 on revenue about $5.5B. FY2026 guidance is NII +12-13% y/y and expenses +6-7% ex-notables; cutting NII growth below 12%, guiding expenses above 7%, or revenue below about $5.4B would weaken the case."
+  },
+  "MRK": {
+   "cluster": "big_pharma",
+   "next_earnings": "2026-10-29",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-10-29",
+     "event": "Merck Q3 2026 sales and earnings call (company-announced Oct 1)"
+    },
+    {
+     "date": "2026-10-10",
+     "event": "Past: remigromig BRUNELLO Phase 2b/3 one-year DME data presented at AAO 2026; to be discussed with regulators"
+    },
+    {
+     "date": "2026-09-25",
+     "event": "Past: Merck withdrew the ifinatamab deruxtecan (I-DXd) BLA in ES-SCLC (PDUFA had been 2026-10-10); FDA approved Welireg + Lenvima in advanced RCC same day. No other Merck PDUFA found in window"
+    }
+   ],
+   "sources": [
+    "https://www.merck.com/news/merck-to-hold-third-quarter-2026-sales-and-earnings-conference-call-oct-29/",
+    "https://www.merck.com/news-archive",
+    "https://www.marketbeat.com/stocks/NYSE/MRK/fda-events/?drug=IDXd"
+   ]
+  },
+  "FCX": {
+   "cluster": "copper_mining",
+   "next_earnings": "2026-10-27",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-10-27",
+     "event": "Freeport Q3 2026 results before open, call 10:00 ET. Oct 2 update guided Q3 copper sales ~750M lbs, gold sales ~100k oz (~60k oz deferred to Q4), unit net cash cost ~5% above $2.00/lb, realized copper >$6.50/lb"
+    },
+    {
+     "date": "2026-10-02",
+     "event": "Past: Q3 operational update - Grasberg mill ~140k t/d (~67% of pre-Sept-2025 rates); smelter restarted late Aug; targets 80% capacity mid-2027, near full by YE2027, PB1S restart mid-2027"
+    }
+   ],
+   "sources": [
+    "https://www.sec.gov/Archives/edgar/data/0000831259/000083125926000043/fcx_261002.htm"
+   ]
+  },
+  "CRL": {
+   "cluster": "preclinical_cro",
+   "next_earnings": "2026-11-04",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-11-04",
+     "event": "Charles River Q3 2026 results before open, call 9:00 ET"
+    },
+    {
+     "date": "2026-10-29",
+     "event": "Merck Q3 results (large-pharma R&D spend read-across)"
+    }
+   ],
+   "sources": [
+    "https://finviz.com/news/400820/charles-river-laboratories-schedules-third-quarter-2026-earnings-release-and-conference-call"
+   ]
+  },
+  "ROST": {
+   "cluster": "offprice_retail",
+   "next_earnings": "2026-11-12",
+   "earnings_confirmed": false,
+   "catalysts": [
+    {
+     "date": "2026-11-12",
+     "event": "Ross Q3 FY2026 results (estimated date, outside window); consensus EPS $1.84, revenue $6.21B. Q2 (Aug 20) EPS $2.66 vs $1.94 est; FY EPS guide raised to $8.61-8.77 incl. $0.60 tariff benefit"
+    }
+   ],
+   "sources": [
+    "https://www.investing.com/equities/ross-stores-inc-earnings"
+   ]
+  },
+  "BG": {
+   "cluster": "agri_processing",
+   "next_earnings": "2026-10-29",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-10-29",
+     "event": "Bunge Q3 2026 results before open, call 7:00 CT (Business Wire, Oct 1)"
+    },
+    {
+     "date": "2026-11-03",
+     "event": "ADM Q3 2026 results (crush/processing peer read-across)"
+    }
+   ],
+   "sources": [
+    "https://earningswhispers.com/article/BG/2610011113",
+    "https://finviz.com/news/399205/adm-to-release-third-quarter-financial-results-on-november-3-2026"
+   ]
+  },
+  "CF": {
+   "cluster": "nitrogen_fertilizer",
+   "next_earnings": "2026-11-04",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-11-04",
+     "event": "CF Q3 2026 results after close; call 2026-11-05 11:00 ET"
+    },
+    {
+     "date": "2026-11-16",
+     "event": "Record date for $0.60 dividend (payable Nov 30; outside window)"
+    }
+   ],
+   "sources": [
+    "https://finviz.com/news/400084/cf-industries-holdings-inc-declares-quarterly-dividend-and-confirms-dates-for-third-quarter-2026-results-and-conference-call"
+   ]
+  },
+  "CAH": {
+   "cluster": "drug_distribution",
+   "next_earnings": "2026-11-05",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-11-04",
+     "event": "McKesson Q2 FY2027 results after close (distribution peer)"
+    },
+    {
+     "date": "2026-11-05",
+     "event": "Cardinal Health Q1 FY2027 results before open, webcast 8:30 ET"
+    }
+   ],
+   "sources": [
+    "https://finviz.com/news/397505/cardinal-health-to-announce-first-quarter-results-for-fiscal-year-2027-on-november-5",
+    "https://finviz.com/news/394657/mckesson-corporation-announces-second-quarter-fiscal-2027-earnings-release-date"
+   ]
+  },
+  "NEM": {
+   "cluster": "gold_mining",
+   "next_earnings": "2026-10-22",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-10-22",
+     "event": "Newmont Q3 2026 results after close, call 5:30 pm ET"
+    }
+   ],
+   "sources": [
+    "https://investingnews.com/newmont-announces-third-quarter-2026-results-conference-call/",
+    "https://www.marketbeat.com/earnings/reports/2026-10-22-newmont-co-stock/",
+    "https://www.sec.gov/Archives/edgar/data/0001164727/000116472726000034/newmontq22026earningsrelea.htm"
+   ],
+   "earnings_preview": "Consensus Q3 EPS $2.03 on revenue $6.24B (Q2: EPS $2.10, 1.29 Moz attributable, AISC $1,621/oz, FCF $2.2B; company guided Q3 production broadly in line with Q2 with higher unit costs). Case breaks if Newmont cuts FY2026 guidance of 5.26 Moz (+/-5%) or AISC $1,680/oz (+/-5%), or if Cadia recovery after the April seismic event slips further."
+  },
+  "APA": {
+   "cluster": "oil_gas_ep",
+   "next_earnings": "2026-11-05",
+   "earnings_confirmed": true,
+   "catalysts": [
+    {
+     "date": "2026-11-05",
+     "event": "APA Q3 2026 results call 10:00 CT (release timing not stated; historically after close the day before). Oct 7 supplemental: US oil $87.50/bbl, US gas $1.45/Mcf, intl oil $98.50/bbl, Egypt tax barrels 36 MBoe/d, 10.5M shares bought back at $42.78, $25M dry hole costs"
+    }
+   ],
+   "sources": [
+    "https://www.globenewswire.com/news-release/2026/10/07/3376853/0/en/index.html",
+    "https://finviz.com/news/400071/apa-corporation-provides-third-quarter-2026-supplemental-information-and-schedules-results-conference-call-for-nov-5-at-10-am-central-time"
+   ]
   }
  },
  "clusters": {
   "memory": {
    "updated": "2026-10-13",
-   "verdict": "Peak earnings, not yet peak pricing: Q4 2026 contract prices still rising (DRAM +10-15%, NAND +15-20%). 2027 split: DRAM stays short, NAND supply catches up from 2H27. Stocks are volatile and have sold off three times since July without fundamental change.",
+   "verdict": "Still pricing up into year-end: TrendForce (2026-09-30) sees 4Q26 conventional DRAM contract prices +10-15% and NAND +15-20% q/q, with enterprise SSD the only category accelerating; but consumer demand is weakening (smartphone builds shrinking, PC brands cutting SSD capacity). Samsung's Q3 preliminary (~2026-10-07/08) guided record operating profit of about KRW 107.4T on KRW 195T sales and says supply stays tight into 2028; Micron (2026-09-30) guided FQ1 revenue $61.5B but gross margin slightly lower at 86.25% (from 87.0%) and raised FY27 capex. Supply response is building: Samsung P5 Ph1 DRAM/HBM equipment move-in reportedly pulled forward to May-June 2027 (output from 2028); hyperscaler capex updates come 2026-10-28/29.",
    "signals": [
     {
      "signal": "Contract prices turn negative quarter on quarter",
      "status": "ok"
     },
     {
-     "signal": "Cloud provider cuts 2027 capex",
+     "signal": "Cloud provider cuts 2027 capex (MSFT/GOOGL/META 10-28, AMZN 10-29)",
      "status": "watch"
     },
     {
-     "signal": "Competitors pull new capacity forward",
+     "signal": "Competitors pull new capacity forward (Samsung P5 tool move-in reportedly May-Jun 2027)",
      "status": "watch"
     },
     {
-     "signal": "Micron guides margin down",
-     "status": "ok"
+     "signal": "Micron guides margin down (FQ1 GM guide 86.25% vs 87.0%)",
+     "status": "watch"
     },
     {
      "signal": "SanDisk ends allocation / enterprise SSD prices fall",
@@ -177,21 +1212,259 @@
      "status": "watch"
     },
     {
-     "signal": "Consumer OEM inventory build",
+     "signal": "Consumer OEM inventory build / SSD content cuts",
      "status": "watch"
     }
    ]
   },
   "storage_hdd": {
    "updated": "2026-10-13",
-   "verdict": "Different cycle from memory: few suppliers, slow capacity additions, AI bulk-storage demand reported locked in through 2028. Main risk is a slowdown in data-centre spending.",
+   "verdict": "Still supply-tight. Both majors guided the September quarter to ~$4.1B revenue (WDC GM 55-56%; Seagate EPS $7.30), lead times are reported at up to two years, and capacity is committed into 2028. A possible first crack in supply discipline: on 2026-10-02 Nikkei reported (not yet confirmed by Toshiba) Toshiba (~11% share) will roughly double AI data-centre HDD capacity by its FY2027 with a ~¥60B (~$380M) Philippines expansion (STX -12%, WDC -10% that day; tikr.com, blocksandfiles.com). WDC's June-quarter exabyte growth also slowed to 22% y/y from ~30%. The WDC (10-22) and STX (~10-28) reports are the next checks.",
    "signals": [
     {
-     "signal": "HDD lead times shorten",
+     "signal": "HDD lead times shorten (currently reported up to two years; capacity committed into 2028)",
      "status": "ok"
     },
     {
-     "signal": "HAMR ramp slips",
+     "signal": "HAMR ramp slips (Seagate Mozaic 4+ ramping at cloud customers; WDC 44TB HAMR due 1H CY2027)",
+     "status": "ok"
+    },
+    {
+     "signal": "A supplier announces meaningful new HDD capacity (Nikkei reported 2026-10-02 that Toshiba plans to roughly double AI data-centre HDD capacity by FY2027; Toshiba has not confirmed)",
+     "status": "watch"
+    },
+    {
+     "signal": "Nearline price per TB gains slow or turn negative (WDC blended +high teens y/y in June qtr)",
+     "status": "ok"
+    },
+    {
+     "signal": "Exabyte shipment growth slows below ~20% y/y (WDC 22% in June qtr, down from ~30%)",
+     "status": "watch"
+    },
+    {
+     "signal": "WDC or Seagate guide revenue or gross margin down quarter on quarter",
+     "status": "ok"
+    },
+    {
+     "signal": "2029-2031 LTAs stall on pricing, or customers cut contracted volumes",
+     "status": "watch"
+    },
+    {
+     "signal": "A large cloud provider cuts or flattens its 2027 capex",
+     "status": "watch"
+    }
+   ]
+  },
+  "mrna_vaccines": {
+   "updated": "2026-10-13",
+   "verdict": "Moderna is now valued on its cancer vaccine, not on its respiratory vaccines. Q2 2026 revenue was only $145M, with a $782M loss and $6.9B in cash. The Phase 3 INTerpath-001 trial met its primary endpoint in August, and mFLUSIVA was approved on 2026-08-05. Full Phase 3 data on 2026-10-24 is the next binary event. Citi cut the stock to sell on 2026-09-30, saying it would take about $26B a year in cancer sales to justify a price near $200. The norovirus Phase 3 interim analysis has already missed its early-success criteria (Q2 release).",
+   "signals": [
+    {
+     "signal": "Full INTerpath-001 Phase 3 data at ESMO (2026-10-24) disappoints on effect size or safety",
+     "status": "watch"
+    },
+    {
+     "signal": "No intismeran filing plan, or the FDA declines to review it",
+     "status": "watch"
+    },
+    {
+     "signal": "HHS/FDA/CDC restricts mRNA vaccine approvals or recommendations (mFLUSIVA 65+, mRNA-1083 US refile)",
+     "status": "watch"
+    },
+    {
+     "signal": "mFLUSIVA rejected by the FDA",
+     "status": "ok"
+    },
+    {
+     "signal": "Norovirus Phase 3 (mRNA-1403) interim analysis misses",
+     "status": "fired"
+    },
+    {
+     "signal": "Moderna cuts its 2026 revenue or year-end cash guidance, or raises equity",
+     "status": "ok"
+    }
+   ]
+  },
+  "ai_servers": {
+   "updated": "2026-10-13",
+   "verdict": "Demand is still accelerating. In fiscal Q2 2027 (reported 2026-09-01), Dell booked a record $60.9B of AI orders against $16.4B of AI server revenue, lifting its backlog to $95B, and raised FY27 AI server guidance to $74B and revenue guidance to $192B. Nvidia guided its next quarter to $108B. The risks are execution and margins: rising DRAM, NAND and CPU costs and shortages, and large customers looking at buying from ODMs. The next read on cloud capex is Microsoft on 2026-10-28.",
+   "signals": [
+    {
+     "signal": "Dell AI backlog declines quarter on quarter (orders below shipments)",
+     "status": "ok"
+    },
+    {
+     "signal": "Dell cuts FY27 AI server revenue or EPS guidance",
+     "status": "ok"
+    },
+    {
+     "signal": "Memory and component costs compress ISG operating margin (15.0% in Q2)",
+     "status": "watch"
+    },
+    {
+     "signal": "Component shortages push backlog conversion into later quarters",
+     "status": "watch"
+    },
+    {
+     "signal": "A large cloud provider or AI lab cuts or flattens its 2027 capex",
+     "status": "watch"
+    },
+    {
+     "signal": "Large AI customers shift purchases to ODMs or Super Micro",
+     "status": "watch"
+    }
+   ]
+  },
+  "oil_refining": {
+   "updated": "2026-10-13",
+   "verdict": "Refining is in a war-driven supercycle. The USGC 3-2-1 crack averaged $71/bbl in September 2026 (diesel $104, versus $26 in September 2025), and the diesel crack hit a record $102.20 on 2026-08-17 and an intraday $108 in early September, because Persian Gulf outages and strikes on Russian refineries left global refinery throughput about 5M bpd lower year on year. US distillate stocks were 105.1M bbl in the week to 2026-10-02 (12-13% below the 5-year average), gasoline 5% below, and utilization 92.7% after a 96.8% peak in September. RBN says cracks turned down in early October but were still more than 2.5 times October 2025. Iran talks (Trump ruled out a strike before the 2026-11-03 midterms) are now the main risk to margins. Structural support: Valero's Benicia closure (145k bpd, idled by April 2026) and lower US operable capacity (18.03M bpd); offsets: Dangote now at 700k bpd and exporting. EPA's final 2026-27 RFS (26.81B RINs, 70% SRE reallocation) keeps D4 RINs strong.",
+   "signals": [
+    {
+     "signal": "US-Iran deal or ceasefire reopens Persian Gulf product exports",
+     "status": "watch"
+    },
+    {
+     "signal": "Russia lifts diesel export ban / Ukrainian refinery strikes stop",
+     "status": "ok"
+    },
+    {
+     "signal": "USGC 3-2-1 crack falls below $40/bbl monthly average",
+     "status": "ok"
+    },
+    {
+     "signal": "US distillate inventories return to the 5-year average",
+     "status": "ok"
+    },
+    {
+     "signal": "Early-October crack pullback deepens through Q4",
+     "status": "watch"
+    },
+    {
+     "signal": "China fuel export quotas raised sharply",
+     "status": "watch"
+    },
+    {
+     "signal": "EPA changes the RVO or grants large new SREs (RIN price collapse)",
+     "status": "ok"
+    },
+    {
+     "signal": "Dangote second 750k bpd unit or other new capacity pulled forward from 2028",
+     "status": "ok"
+    }
+   ]
+  },
+  "freight_intermodal": {
+   "updated": "2026-10-13",
+   "verdict": "Demand is turning up and capacity is tight, but costs arrive before price increases. On 2026-09-16 J.B. Hunt guided Q3 EPS 5-10% below Q2's $1.91 because of driver costs (about $25M) and fuel (at least $10M). Truck freight is about 32% dearer than intermodal (Sonar), and contract repricing starts with the October-Q4 bid season (about 10% of contracts). The UP-NS merger is under STB review, targeting mid-2027.",
+   "signals": [
+    {
+     "signal": "Truck-intermodal price gap stays above about 25% (supports truck-to-rail conversion)",
+     "status": "ok"
+    },
+    {
+     "signal": "Driver/fuel cost inflation forces a profit warning",
+     "status": "fired"
+    },
+    {
+     "signal": "Q4 intermodal bid season delivers contract rate increases",
+     "status": "watch"
+    },
+    {
+     "signal": "Intermodal load volumes fall year over year",
+     "status": "ok"
+    },
+    {
+     "signal": "UP-NS merger approved with terms harmful to BNSF/J.B. Hunt",
+     "status": "watch"
+    },
+    {
+     "signal": "Truckload capacity loosens (falling spot rates)",
+     "status": "ok"
+    }
+   ]
+  },
+  "us_steel": {
+   "updated": "2026-10-13",
+   "verdict": "Earnings are near a cycle high but slightly below hopes. On 2026-09-17 Nucor guided Q3 EPS to $5.55-5.65 (versus $6.17 consensus and $2.63 a year earlier) and Steel Dynamics to $5.34-5.38 (versus $5.66 consensus and $2.74 a year earlier). Both cited higher selling prices; Steel Dynamics cited record shipments and lower scrap costs, while raw-material and recycling earnings fall. Results come Oct 19 (STLD) and Oct 26 (NUE).",
+   "signals": [
+    {
+     "signal": "Quarterly guidance below consensus",
+     "status": "fired"
+    },
+    {
+     "signal": "Realized steel selling prices fall quarter on quarter",
+     "status": "ok"
+    },
+    {
+     "signal": "Steel shipments decline",
+     "status": "ok"
+    },
+    {
+     "signal": "Metal spreads narrow (scrap up versus steel price)",
+     "status": "watch"
+    },
+    {
+     "signal": "Raw materials/recycling earnings keep falling",
+     "status": "watch"
+    }
+   ]
+  },
+  "custody_banks": {
+   "updated": "2026-10-13",
+   "verdict": "Late-upcycle but still accelerating into Q3 prints: in July both raised FY26 guidance on deposits and market levels - STT to NII +14-15% (from +8-10%), fees +12-13%, expenses ~+8%; Q2 AUC/A $57.9T (+18% YoY), deposits $319.5B (+13%) (https://www.nasdaq.com/articles/state-street-q2-earnings-call-highlights, https://www.sec.gov/Archives/edgar/data/0000093751/000009375126000387/exhibit992-2q26earningsrel.htm); BNY to NII +12-13% (from +10%) with expenses raised to +6-7% (https://www.hudson-labs.com/research/bny-q3-2026-earnings-revenue-preview-guidance-key-metrics). The risk has shifted from NII to expense creep and to deposit/market-level reversal; STT reports 2026-10-14, BNY 2026-10-15 (BNY Q3 consensus ~$5.55B revenue, GAAP EPS ~$2.27).",
+   "signals": [
+    {
+     "signal": "STT or BNY cuts FY26 NII guidance or guides 2027 NII down on rate cuts / deposit outflows",
+     "status": "watch"
+    },
+    {
+     "signal": "Period-end deposits fall quarter on quarter at STT or BNY",
+     "status": "ok"
+    },
+    {
+     "signal": "Expense guidance raised again without matching fee/NII raise (operating leverage below STT ~500bp target)",
+     "status": "watch"
+    },
+    {
+     "signal": "Servicing fee growth slows below mid-single digits despite AUC/A growth (fee-rate compression)",
+     "status": "ok"
+    },
+    {
+     "signal": "Equity market drawdown cuts AUC/A and AUM levels quarter on quarter",
+     "status": "ok"
+    },
+    {
+     "signal": "Organic fee growth / net new servicing wins stall (BNY 1H26 organic fee growth 4.5%)",
+     "status": "ok"
+    }
+   ]
+  },
+  "ai_power_infrastructure": {
+   "updated": "2026-10-13",
+   "verdict": "Order and backlog phase still expanding, with no sign yet of a peak: at Q2 (reported 2026-07-22) GEV gas-turbine backlog plus slot reservations hit 116 GW (from 100 GW in Q1; target >=125 GW by YE26), Power orders $16.7B (+134% organic), data-centre orders >$5B YTD (https://www.turbomachinerymag.com/view/ge-vernova-gas-turbine-backlog-hits-116-gw-as-power-orders-more-than-double); PWR record backlog $53B with FY26 revenue guide raised to $39.3-39.7B (https://www.nasdaq.com/articles/quanta-services-q2-earnings-call-highlights); VRT Q2 sales +24% and FY26 guide raised to $13.8-14.2B, 30-32% organic (https://www.sec.gov/Archives/edgar/data/0001674101/000162828026050323/q22026exhibit991vrt07292026.htm). The whole cluster depends on hyperscaler capex (Moody's: ~$785B in 2026, approaching $1T in 2027, https://datacenterdynamics.com/en/news/moodys-hyperscaler-capex-forecasts-marked-up-by-85bn-to-close-in-on-1trn-by-2027/); late-October hyperscaler and Q3 company prints are the next test.",
+   "signals": [
+    {
+     "signal": "A top-4 hyperscaler cuts or flattens 2027 capex guidance",
+     "status": "watch"
+    },
+    {
+     "signal": "GEV slot reservations stop converting / backlog+reservations falls or misses 125 GW YE26 target",
+     "status": "ok"
+    },
+    {
+     "signal": "Vertiv orders or book-to-bill decline; supply-chain timing slips persist beyond 2H26",
+     "status": "watch"
+    },
+    {
+     "signal": "Quanta backlog declines quarter on quarter or large-load/data-centre projects deferred",
+     "status": "ok"
+    },
+    {
+     "signal": "Utility grid-capex plans cut or rate cases/large-load tariffs block data-centre interconnects",
+     "status": "ok"
+    },
+    {
+     "signal": "Any of GEV/PWR/VRT lowers FY26 guidance",
      "status": "ok"
     }
    ]
