@@ -415,6 +415,55 @@ def chart3(series, w=760, h=220):
             "end": [series[-1][1], series[-1][2], series[-1][3]]}
 
 
+CORR_GROUP = 0.7
+
+
+def basket_correlation():
+    """How the basket stocks move together (daily returns, about a year). Information only; None if unavailable.
+    Cached 1 h. avg = average pairwise correlation; eff = effective number of independent bets
+    (weights^2-sum over correlations: 20 identical stocks = 1, 20 unrelated stocks = 20)."""
+    def load():
+        import stress_test as st
+        run = latest_run() or {}
+        w = {k: float(v) for k, v in (((run.get("reconcile") or {}).get("weights")) or {}).items() if fnum(v)}
+        if not w:
+            syms = [x["symbol"] for x in watchlist()]
+            w = {x: 1.0 / len(syms) for x in syms} if syms else {}
+        if len(w) < 2:
+            return None
+        closes, errs = st.fetch_dated_closes(sorted(w))
+        usable = [x for x in w if len(closes.get(x, {})) >= st.MIN_DAYS]
+        if len(usable) < 2:
+            return None
+        dates = sorted(set.intersection(*(set(closes[x]) for x in usable)))
+        if len(dates) < 60:
+            return None
+        r = {x: st._returns(closes[x], dates) for x in usable}
+        tot = sum(w[x] for x in usable)
+        wn = {x: w[x] / tot for x in usable}
+        rho = {}
+        for i, a in enumerate(usable):
+            for b in usable[i + 1:]:
+                c = st._corr(r[a], r[b])
+                rho[(a, b)] = rho[(b, a)] = c if c is not None else 0.0
+        pairs = sorted({tuple(sorted(k)) for k in rho}, key=lambda k: -rho[k])
+        avg = sum(rho[k] for k in pairs) / len(pairs)
+        denom = sum(wn[a] * wn[a] for a in usable) + sum(wn[a] * wn[b] * rho[(a, b)] for a, b in rho)
+        eff = 1.0 / denom if denom > 0 else float(len(usable))
+        groups, used = [], set()
+        for seed in sorted(usable, key=lambda x: -wn[x]):
+            if seed in used:
+                continue
+            g = [seed] + [x for x in usable if x != seed and x not in used and rho[(seed, x)] >= CORR_GROUP]
+            if len(g) > 1:
+                used.update(g)
+                groups.append(g)
+        return {"n": len(usable), "days": len(dates) - 1, "avg": round(avg, 2), "eff": round(eff, 1),
+                "top": [(a, b, round(rho[(a, b)], 2)) for a, b in pairs[:5]],
+                "groups": groups, "left_out": sorted(set(w) - set(usable))}
+    return cached("basket_corr", 3600, load)
+
+
 def holdings_risk():
     """The same crash scenarios as the weekly basket check, but on the real positions and their real weights
     (cash counts as 0%). {'empty': True} until something is bought. Cached 30 min: it downloads a year of prices."""
