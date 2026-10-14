@@ -173,6 +173,7 @@ def holding_rows(p, desk_names, wl):
         n = desk_names.get(s) or {}
         rows.append({"symbol": s, "value": float(x["market_value"]), "share": float(x["market_value"]) / eq * 100,
                      "gain": float(x.get("unrealized_plpc") or 0) * 100, "since": since, "day": min(day, 182),
+                     "price": float(x.get("current_price") or 0), "today": float(x.get("change_today") or 0) * 100,
                      "hold_pct": min(100, round(day / 182 * 100)), "state": state, "above": above, "dd": dd,
                      "next": n.get("next_earnings"), "thesis": n.get("thesis_short") or thesis.get(s, ""),
                      "kill": n.get("kill_criteria") or [], "cluster": n.get("cluster", ""),
@@ -508,6 +509,32 @@ def live_json(me):
     except Exception:  # noqa: BLE001 - the page keeps what it shows
         return Response('{"error": 1}', status=503, mimetype="application/json")
     return Response(json.dumps(v), mimetype="application/json")
+
+
+@dashboard_bp.route("/holdings-live.json")
+@need_login
+def holdings_live(me):
+    """Price, today's move, value, share and gain per held stock as ready-to-show text (the page script copies them in)."""
+    lang = me["lang"]
+    try:
+        lp = D.live_positions()
+    except Exception:  # noqa: BLE001 - the page keeps what it shows
+        return Response('{"error": 1}', status=503, mimetype="application/json")
+    eq = lp["eq"] or 1.0
+    rows = {}
+    for sym, x in lp["rows"].items():
+        rows[sym] = {"price": X.money(x["price"], lang), "today": X.pct(x["today"], lang, dec=2),
+                     "value": X.money(x["value"], lang), "share": X.pct(x["value"] / eq * 100, lang, sign=False),
+                     "gain": X.pct(x["gain"], lang), "now": X.pct(x["gain"], lang),
+                     "cls": {"gain": "pos" if x["gain"] >= 0 else "neg", "today": "pos" if x["today"] >= 0 else "neg"}}
+    try:
+        from zoneinfo import ZoneInfo
+        now = datetime.datetime.now(ZoneInfo("Europe/Luxembourg"))
+    except Exception:  # noqa: BLE001
+        now = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=2)
+    out = {"rows": rows, "cash": X.money(lp["cash"], lang), "open": lp["open"],
+           "badge": X.t("live_open" if lp["open"] else "live_closed", lang, t=now.strftime("%H:%M:%S"))}
+    return Response(json.dumps(out), mimetype="application/json")
 
 
 @dashboard_bp.route("/holdings")
