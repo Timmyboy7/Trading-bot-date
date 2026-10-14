@@ -490,8 +490,16 @@ def risk(me):
         for x in m["scen"]:
             x["hold"] = by.get(x["key"])
             x["h_bar"] = round(abs(x["hold"]) / mx * 100, 1) if x["hold"] is not None else 0
+    sev = None
+    if m:
+        sb, _ = safe(D.severe_basket)
+        sh = hold.get("severe") if hold.get("scen") else None
+        if sb is not None:
+            mx = max(abs(sb), abs(sh or 0), 25)
+            sev = {"basket": sb, "hold": sh, "spy": -25.0, "b_bar": round(abs(sb) / mx * 100, 1),
+                   "h_bar": round(abs(sh or 0) / mx * 100, 1), "s_bar": round(25 / mx * 100, 1)}
     return render("risk.html", me, page="risk", m=m, serr=rerr or werr, run_date=(run or {}).get("run_date", ""),
-                  hold=hold, herr=herr)
+                  hold=hold, herr=herr, sev=sev)
 
 
 @dashboard_bp.route("/activity")
