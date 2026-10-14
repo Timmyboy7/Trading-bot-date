@@ -204,6 +204,8 @@ def risk_model(run, wl, desk_names):
         names = next((w for n, w in worst.items() if k.replace("_", " ") in n.lower() or n.lower().startswith(k.split("_")[0])), [])
         scen.append({"key": k, "label": labels.get(k, (k, k)), "basket": b, "spy": s, "limit": lim, "status": status,
                      "level": v.get("level", ""), "names": ", ".join(names[:3]) if isinstance(names, list) else ""})
+    for x in scen:
+        x["hold"], x["h_bar"] = None, 0
     scen.sort(key=lambda x: (x["basket"] - x["limit"]) / (abs(x["limit"]) or 1))   # closest to its limit first
     mx = max([abs(x["basket"]) for x in scen] + [abs(x["limit"]) for x in scen] + [10])
     for x in scen:
@@ -248,26 +250,6 @@ def risk_model(run, wl, desk_names):
                           "trigger": r.get("watch_trigger") or r.get("trigger") or r.get("watch") or ""})
     return {"scen": scen, "sectors": sec, "themes": th, "checks": checks, "risks": risks,
             "ok": sum(1 for c in checks if c[1]), "beta": beta}
-
-
-def holdings_risk_model(h):
-    """Scenario rows for the 'what we hold today' block (same shape and status rule as the basket block)."""
-    labels = {"market_crash": ("Market crash", "Marktcrash"), "ai_bust": ("AI bust", "KI-Blase platzt"),
-              "rate_shock": ("Interest rates up", "Zinsen steigen"), "oil_crash": ("Oil price crash", "Ölpreis-Absturz"),
-              "oil_spike": ("Oil price jump", "Ölpreis-Sprung"), "momentum_reversal": ("Momentum reversal", "Trendwende der Gewinner")}
-    scen = []
-    for x in h.get("scen") or []:
-        b, lim = x["basket"], x["limit"]
-        x = dict(x, label=labels.get(x["key"], (x["key"], x["key"])),
-                 status="over" if b < lim else ("near" if b <= lim * 0.92 else "within"))
-        scen.append(x)
-    scen.sort(key=lambda x: (x["basket"] - x["limit"]) / (abs(x["limit"]) or 1))
-    mx = max([abs(x["basket"]) for x in scen] + [abs(x["limit"]) for x in scen] + [10])
-    for x in scen:
-        x["b_bar"] = round(abs(x["basket"]) / mx * 100, 1)
-        x["s_bar"] = round(abs(x["spy"] or 0) / mx * 100, 1)
-        x["l_bar"] = round(abs(x["limit"]) / mx * 100, 1)
-    return dict(h, scen=scen)
 
 
 def basket_model(run, wl, desk_names):
@@ -502,8 +484,12 @@ def risk(me):
     m = risk_model(run, wl or [], desk_names()) if run else None
     hold, herr = safe(D.holdings_risk, {})
     hold = hold or {}
-    if hold.get("scen"):
-        hold = holdings_risk_model(hold)
+    if m and hold.get("scen"):
+        by = {x["key"]: x["basket"] for x in hold["scen"]}
+        mx = max([abs(x["basket"]) for x in m["scen"]] + [abs(x["limit"]) for x in m["scen"]] + [10])
+        for x in m["scen"]:
+            x["hold"] = by.get(x["key"])
+            x["h_bar"] = round(abs(x["hold"]) / mx * 100, 1) if x["hold"] is not None else 0
     return render("risk.html", me, page="risk", m=m, serr=rerr or werr, run_date=(run or {}).get("run_date", ""),
                   hold=hold, herr=herr)
 
