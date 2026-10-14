@@ -627,7 +627,7 @@ def activity(me):
         for o in row["orders"]:
             if isinstance(o, dict) and o.get("symbol"):
                 tag, title = X.explain_order(o, lang)
-                items.append({"tag": tag, "title": title, "why": o.get("reason", ""),
+                items.append({"tag": tag, "title": title, "why": o.get("reason", ""), "checks": o.get("checks", ""),
                               "amount": o.get("amount_usd") if o.get("status") != "skipped" else None})
         for d in row["decisions"]:
             if isinstance(d, dict) and d.get("symbol") and d.get("action") not in (None, ""):
@@ -637,7 +637,21 @@ def activity(me):
         items = [i for i in items if not want or i["tag"] == want]
         if items:
             days.append({"at": row["at"], "test": row["mode"] != "executed", "mode": row["mode"], "entries": items})
-    return render("activity.html", me, page="activity", days=days, f=f, serr=serr)
+    sc, _ = safe(D.wait_scorecard)
+    lang = me["lang"]
+    score = None
+    if sc and sc.get("total"):
+        rules = [{"label": X.t("wr_" + k, lang), "n": r["n"], "bought": r["bought"], "helped": r["helped"],
+                  "avg": X.pct(r["avg"], lang) if r["avg"] is not None else "–",
+                  "usd": X.money(r["usd"], lang, sign=True) if r["bought"] else "–",
+                  "good": (r["usd"] > 0) if r["bought"] else None}
+                 for k, r in sc["summary"].items()]
+        cs = [{"symbol": c["symbol"], "label": X.t("wr_" + c["rule"], lang), "day": c["day"], "price": X.money(c["price"], lang),
+               "bought": c["bought"], "buy_price": X.money(c["buy_price"], lang) if c["bought"] else "",
+               "buy_day": c.get("buy_day", ""), "diff": X.pct(c["diff"], lang) if c["bought"] else "",
+               "good": (c["diff"] > 0) if c["bought"] else None} for c in sc["cases"]]
+        score = {"rules": rules, "cases": cs, "total": sc["total"]}
+    return render("activity.html", me, page="activity", days=days, f=f, serr=serr, score=score)
 
 
 @dashboard_bp.route("/reports")

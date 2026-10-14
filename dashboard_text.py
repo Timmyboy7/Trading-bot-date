@@ -19,6 +19,16 @@ T = {
     "value": ("Portfolio value", "Depotwert"), "paid_in": ("paid in", "eingezahlt"),
     "on": ("on", "bei"), "vs_spy": ("Versus the S&P 500", "Im Vergleich zum S&P 500"),
     "ahead": ("Ahead by", "Voraus um"), "behind": ("Behind by", "Zurück um"),
+    "sc_title": ("Did waiting pay off?", "Hat Abwarten sich gelohnt?"),
+    "sc_intro": ("When a timing rule made us skip a buy, we note the price. When the stock is bought later, we compare: positive = bought cheaper than on the day we first waited.", "Wenn eine Timing-Regel einen Kauf aufgeschoben hat, merken wir uns den Kurs. Wird die Aktie später gekauft, vergleichen wir: positiv = billiger gekauft als am ersten Warte-Tag."),
+    "sc_rule": ("Rule", "Regel"), "sc_waited": ("Waited", "Gewartet"), "sc_bought": ("Bought later", "Später gekauft"),
+    "sc_cheaper": ("Cheaper", "Billiger"), "sc_avg": ("Avg. difference", "Ø Unterschied"), "sc_usd": ("Effect", "Effekt"),
+    "sc_still": ("still waiting", "wartet noch"),
+    "sc_empty": ("No waits judged yet. Results appear once a skipped stock has been bought.", "Noch keine Wartefälle bewertet. Ergebnisse erscheinen, sobald eine zurückgestellte Aktie gekauft wurde."),
+    "sc_caveat": ("{n} case(s) so far. This only means something after many cases (30+). Information only.", "Bisher {n} Fall/Fälle. Aussagekräftig erst nach vielen Fällen (30+). Nur zur Information."),
+    "wr_dayDrop": ("Big one-day drop", "Großer Tagesverlust"), "wr_knife": ("Falling knife", "Fallendes Messer"),
+    "wr_spike": ("Price spike", "Kurssprung"), "wr_news": ("News / earnings", "News / Quartalszahlen"),
+    "checks_label": ("Checked at purchase", "Geprüft beim Kauf"),
     "price": ("Price", "Kurs"), "today": ("Today", "Heute"),
     "inv_title": ("Invested in stocks", "In Aktien investiert"), "put_into": ("put into stocks", "in Aktien eingesetzt"),
     "vs_spy_same": ("Versus the S&P 500, same purchases", "Im Vergleich zum S&P 500, gleiche Käufe"),
@@ -303,6 +313,9 @@ def explain_order(o, lang):
         if m:
             return "WAIT", (f"{sym}: gewartet – Kurssprung +{m.group(1)} % in 5 Tagen" if de
                             else f"{sym}: waited — jumped {m.group(1)}% in 5 days")
+        m = re.search(r"down (\d+)% in one day", r)
+        if m:
+            return "WAIT", (f"{sym}: gewartet – heute −{m.group(1)} %" if de else f"{sym}: waited — fell {m.group(1)}% today")
         m = re.search(r"down (\d+)% in 10 days", r)
         if m:
             return "WAIT", (f"{sym}: gewartet – Kurssturz −{m.group(1)} % in 10 Tagen" if de
