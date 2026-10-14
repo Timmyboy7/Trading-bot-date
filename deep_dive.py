@@ -64,7 +64,12 @@ def parse_notes(text):
     """{symbol: {thesis, risk_exposure, score}} from lines 'SYM|thesis|risk_exposure' or
     'SYM:score|thesis|risk_exposure' (one Make text aggregator, row separator New row)."""
     out = {}
-    for line in re.split(r"[\r\n]+", str(text or "")):
+    t = str(text or "")
+    # records are normally one per line; tolerate other separators Make may use (",", '","', ";")
+    # by splitting before each 'SYM:score|' or 'SYM|' record start
+    t = re.sub(r'(?:"\s*,\s*"|[,;])\s*(?=[A-Z][A-Z.\-]{0,5}(?::[0-9.]+)?\|)', "\n", t)
+    for line in re.split(r"[\r\n]+", t):
+        line = line.strip().strip('"').strip()
         parts = [p.strip() for p in line.split("|")]
         head = (parts[0] if parts else "").split(":", 1)
         sym = head[0].strip()
