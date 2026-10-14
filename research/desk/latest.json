@@ -1643,7 +1643,7 @@
   "STT": {
    "cluster": "custody_banks",
    "next_earnings": "2026-10-14",
-   "earnings_confirmed": true,
+   "earnings_confirmed": false,
    "catalysts": [
     {
      "date": "2026-10-14",
@@ -1666,7 +1666,10 @@
     "https://www.sec.gov/Archives/edgar/data/0000093751/000009375126000387/stt2q26earningspresentat.htm",
     "https://beta.earningswhispers.com/go/w/STT",
     "https://www.aaii.com/investingideas/article/515595-what-you-need-to-know-about-state-street-corporations-q3-earnings",
-    "https://www.northerntrust.com/united-states/pr/2026/northern-trust-corporation-to-webcast-third-quarter-2026-earnings-conference-call"
+    "https://www.northerntrust.com/united-states/pr/2026/northern-trust-corporation-to-webcast-third-quarter-2026-earnings-conference-call",
+    "https://www.benzinga.com/news/26/10/62361764/state-street-q3-2026-earnings-call-transcript",
+    "https://za.investing.com/news/stock-market-news/earnings-call-transcript-state-street-tops-q3-2026-eps-view-but-shares-fall-93CH-4504885",
+    "https://www.newsquawk.com/headlines/state-street-stt-q3-2026-usd-eps-369-exp-368-revenue-4bln-exp-403bln-nii-864mln-exp-8541mln"
    ],
    "earnings_preview": "Q3 EPS consensus is about $3.62-3.68 (Earnings Whispers $3.65, whisper $3.75) on revenue of about $4.04B, versus Q2 EPS $3.65, revenue $4.048B, servicing fees $1.468B and NII $860M. A Q3 revenue below about $3.9B, NII falling sequentially from $860M, or any cut to the July-raised full-year guidance (fee revenue +12-13%, NII +14-15%, expenses about +8%, about 500bp positive operating leverage) would weaken the case.",
    "researched_on": "2026-10-13",
@@ -1705,7 +1708,12 @@
      "ticker": "BLK",
      "why": "compete with SSGA/SPDR ETFs on management fees and flows"
     }
-   ]
+   ],
+   "earnings_review": {
+    "date": "2026-10-14",
+    "verdict": "intact",
+    "summary": "Q3 2026: EPS $3.69 vs consensus ~$3.65-3.68 (small beat); revenue ~$4.00B vs ~$4.03-4.04B (about 1% miss, other fee revenue hit by ~$30M late-September marks); NII $864M, up from $860M in Q2 and ahead of ~$854M expected. Guidance raised: FY2026 fee revenue +13-14% (was +12-13%), NII +15-16% (was +14-15%), expenses ~+8-8.5%, operating leverage >500bp (Q3 ~530bp). Record AUC/A $59.2T, AUM $6.3T; CET1 11%; payout ~70% YTD, FY payout guided toward ~80%. Watch: servicing fee sales fell to $68M from $87M in Q2 (management guides Q4 >$100M); Q3 average deposits not stated (Q4 guided $275-280B). No kill criterion hit as stated fact; the 6-12 month case is unchanged. Shares fell ~7% premarket on the revenue miss and fee mix."
+   }
   },
   "BNY": {
    "cluster": "custody_banks",
