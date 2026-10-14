@@ -498,14 +498,17 @@ def risk(me):
             mx = max(abs(sb), abs(sh or 0), 25)
             sev = {"basket": sb, "hold": sh, "spy": -25.0, "b_bar": round(abs(sb) / mx * 100, 1),
                    "h_bar": round(abs(sh or 0) / mx * 100, 1), "s_bar": round(25 / mx * 100, 1)}
-    cor, cor_err = safe(D.basket_correlation)
-    if cor:
-        cor["level"] = "well" if cor["avg"] < 0.3 else ("mod" if cor["avg"] < 0.5 else "one")
-        cor["bar"] = round(min(max(cor["avg"], 0), 1) * 100, 1)
+    cors = []
+    for key, fn in (("corr_basket", D.basket_correlation), ("corr_hold", D.holdings_correlation)):
+        c, cerr = safe(fn)
+        if c:
+            c["level"] = "well" if c["avg"] < 0.3 else ("mod" if c["avg"] < 0.5 else "one")
+            c["bar"] = round(min(max(c["avg"], 0), 1) * 100, 1)
+        cors.append({"title": key, "c": c, "err": bool(cerr), "empty_key": "corr_hold_none" if key == "corr_hold" else "corr_err"})
     shd, shd_err = safe(D.shadow_low_ai)
     shc = D.chart3(shd["series"]) if shd and shd.get("series") else None
     return render("risk.html", me, page="risk", m=m, serr=rerr or werr, run_date=(run or {}).get("run_date", ""),
-                  hold=hold, herr=herr, sev=sev, cor=cor, cor_err=cor_err, shd=shd, shd_err=shd_err, shc=shc)
+                  hold=hold, herr=herr, sev=sev, cors=cors, shd=shd, shd_err=shd_err, shc=shc)
 
 
 @dashboard_bp.route("/activity")
