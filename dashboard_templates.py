@@ -80,7 +80,7 @@ OVERVIEW = """{% extends 'base.html' %}{% block body %}
 {% if spy_value %}<div class="note"><div style="font-size:13px;color:var(--teal-ink);font-weight:600;text-transform:uppercase;letter-spacing:.06em">{{ t('vs_spy') }}</div>
 <div style="font-size:20px;font-weight:700;margin-top:6px">{{ t('ahead') if excess >= 0 else t('behind') }} {{ money(excess|abs, dec=2) }}</div>
 
-<div style="font-size:13px;color:#33475B;margin-top:8px;line-height:1.45">{{ t('spy_asof', d=date(spy_asof)) if spy_asof else '' }}{% if spy_flat %} {{ t('spy_flat') }}{% endif %}</div></div>{% endif %}
+<div style="font-size:13px;color:#33475B;margin-top:8px;line-height:1.45">{{ t('spy_asof') }}</div></div>{% endif %}
 <dl style="margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;font-size:14px">
 <div><dt style="color:var(--muted)">{{ t('started') }}</dt><dd style="margin:2px 0 0;font-weight:600">{{ date(p.start) if p.start else '—' }}</dd></div>
 <div><dt style="color:var(--muted)">{{ t('monthly') }}</dt><dd style="margin:2px 0 0;font-weight:600">{{ money(p.deposits[1][1] if p.deposits|length > 1 else 100, dec=0) }}</dd></div>
