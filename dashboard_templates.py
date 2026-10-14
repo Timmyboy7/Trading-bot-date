@@ -97,7 +97,7 @@ OVERVIEW = """{% extends 'base.html' %}{% block body %}
 <div class="legend"><span><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke="#0B6E66" stroke-width="3"/></svg>{{ t('your_basket') }}</span>
 <span><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke="#7D8899" stroke-width="2.5"/></svg>{{ t('spy_line') }}</span>
 <span><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke="#A9B3C1" stroke-width="1.5" stroke-dasharray="4 4"/></svg>{{ t('paid_in')|capitalize }}</span></div>
-{% else %}<p class="sub">{{ t('nothing_yet') }}</p>{% endif %}</figure></section>
+{% else %}<p class="sub">{{ t('chart_wait') if n_held else t('nothing_yet') }}</p>{% endif %}</figure></section>
 {% endif %}
 <div class="grid">
 <div class="tile"><div class="k">{{ t('next_decision') }}</div><div class="v">20:00</div><div class="s">{{ t('daily_check') }}</div></div>
