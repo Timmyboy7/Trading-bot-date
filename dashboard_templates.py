@@ -40,23 +40,23 @@ button.primary{font:inherit;font-size:16px;font-weight:600;min-height:48px;borde
 """
 
 BASE = """<!doctype html><html lang="{{ lang }}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Basket — {{ t(page) if page else 'Basket' }}</title><meta name="robots" content="noindex">
+<title>{{ t(page) ~ ' — ' if page else '' }}Wunschik Capital</title><meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>""" + CSS + """</style></head><body class="{{ 'large' if me and me.large else '' }}">
 <header class="top"><div class="in">
-<a class="brand" href="/app/"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="11" width="5" height="10" rx="1" fill="#5FD3C6"/><rect x="8.5" y="6" width="5" height="15" rx="1" fill="#5FD3C6"/><rect x="16" y="1" width="5" height="20" rx="1" fill="#5FD3C6"/></svg>Basket</a>
+<a class="brand" href="/app/"><svg width="24" height="24" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="11" fill="#5FD3C6"/><text x="11" y="15.4" text-anchor="middle" font-family="Public Sans, sans-serif" font-size="12.5" font-weight="700" fill="#0E1A2B">W</text></svg>Wunschik Capital</a>
 <nav class="main" aria-label="Main">{% for k, href in nav %}<a href="{{ href }}" class="{{ 'on' if page == k else '' }}">{{ t(k) }}</a>{% endfor %}</nav>
 <div class="who"><span class="pill">{{ t('owner') if me.owner else t('viewer') }}</span><a href="/app/profile" style="color:#E3E8EF;text-decoration:none">{{ me.name }}</a><a href="/app/logout">{{ t('sign_out') }}</a></div>
 </div></header>
 <main>{% block body %}{% endblock %}</main></body></html>"""
 
 LOGIN = """<!doctype html><html lang="{{ lang }}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Basket — {{ t('sign_in') }}</title><meta name="robots" content="noindex">
+<title>Wunschik Capital — {{ t('sign_in') }}</title><meta name="robots" content="noindex">
 <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet"><style>""" + CSS + """
 body{background:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
 .box{width:100%;max-width:400px;background:#fff;border-radius:16px;padding:36px 32px}</style></head><body>
 <form class="box stack" method="post" action="/app/login?lang={{ lang }}">
-<div class="brand" style="color:var(--ink)"><svg width="24" height="24" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="11" width="5" height="10" rx="1" fill="#0B6E66"/><rect x="8.5" y="6" width="5" height="15" rx="1" fill="#0B6E66"/><rect x="16" y="1" width="5" height="20" rx="1" fill="#0B6E66"/></svg>Basket</div>
+<div class="brand" style="color:var(--ink)"><svg width="26" height="26" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="11" fill="#0B6E66"/><text x="11" y="15.4" text-anchor="middle" font-family="Public Sans, sans-serif" font-size="12.5" font-weight="700" fill="#FFFFFF">W</text></svg>Wunschik Capital</div>
 <div><h1 style="font-size:22px">{{ t('sign_in') }}</h1><p class="sub">{{ t('private') }}</p></div>
 {% if msg %}<p class="err" role="alert">{{ t(msg) }}</p>{% endif %}
 {% if not configured %}<p class="err">No users configured yet (DASH_USERS on Render).</p>{% endif %}

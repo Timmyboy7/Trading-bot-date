@@ -1,5 +1,5 @@
 """
-Private dashboard (2026-10-14): a read-only website for the family, at /app.
+Wunschik Capital — private family dashboard (2026-10-14): a read-only website for the family, at /app.
 
   - Logins from env: DASH_USERS = "tim:owner:Tim:en,mama:viewer:Mama:de" (user:role:name:lang)
     and one DASH_PW_<USER> per user (plain text or a werkzeug hash), e.g. DASH_PW_MAMA.
