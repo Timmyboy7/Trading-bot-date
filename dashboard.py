@@ -441,6 +441,10 @@ def overview(me):
         rows = holding_rows(p, dn, wl or [])
         ctx.update(p=p, eq=eq, gain=eq - p["paid_in"], gain_pct=(eq / p["paid_in"] - 1) * 100 if p["paid_in"] else 0,
                    spy_value=sh.get("spy_value"), excess=(eq - sh["spy_value"]) if sh.get("spy_value") else None,
+                   spy_gain=(sh["spy_value"] - p["paid_in"]) if sh.get("spy_value") else None,
+                   spy_gain_pct=sh.get("spy_gain_pct"), spy_asof=sh.get("as_of_close"),
+                   spy_flat=bool(sh.get("as_of_close") and p.get("start") and sh["as_of_close"] <= p["start"]),
+                   cash=float(p["account"]["cash"]), stocks_value=eq - float(p["account"]["cash"]),
                    chart=D.chart(p["series"]), rows=rows[:5], n_held=len(rows),
                    cash_pct=float(p["account"]["cash"]) / eq * 100 if eq else 0,
                    in_hold=sum(1 for r in rows if r["day"] < 182),
