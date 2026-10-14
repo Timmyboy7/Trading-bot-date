@@ -203,6 +203,21 @@ def _history():
             for t, e in zip(ts, eq) if e is not None]
 
 
+def spy_at(ts):
+    """S&P 500 fund (SPY) price at a moment (first minute bar at or after ts), None if unavailable. Cached 1 day."""
+    def load():
+        r = requests.get(f"{rb.DATA_BASE}/v2/stocks/SPY/bars", headers=rb.HEADERS, timeout=15,
+                         params={"timeframe": "1Min", "start": ts, "limit": 1, "feed": rb.DATA_FEED})
+        bars = (r.json().get("bars") or []) if r.status_code == 200 else []
+        if not bars:
+            raise RuntimeError("no minute bar")       # not cached: tried again next time
+        return float(bars[0]["c"])
+    try:
+        return cached(f"spy_at_{ts}", 86400, load)
+    except Exception:  # noqa: BLE001 - benchmark falls back to the daily price
+        return None
+
+
 def portfolio():
     """Everything the Overview / Holdings pages need, in the bot's own (savings-plan) view."""
     def load():
@@ -225,7 +240,10 @@ def portfolio():
         except requests.RequestException as e:
             closes, _ = {}, errors.append(f"bars: {e}")
         ind = {s: rb.indicators(closes.get(s), since.get(s)) for s in held if closes.get(s)}
-        shadow = rb.spy_shadow(vacct["equity"], closes.get("SPY"), deposits, bool(start))
+        first_px = None
+        if fills and start and str(fills[0].get("transaction_time") or "")[:10] == start:
+            first_px = spy_at(str(fills[0]["transaction_time"]))      # benchmark enters when we did, not at the close
+        shadow = rb.spy_shadow(vacct["equity"], closes.get("SPY"), deposits, bool(start), first_px=first_px)
         paid_in = sum(a for _, a in deposits)
         series = build_series(_history(), closes.get("SPY") or [], deposits, start) if start else []
         return {"account": vacct, "reserve": reserve, "positions": positions, "since": since,

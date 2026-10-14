@@ -574,13 +574,13 @@ def virtual_account(account, deposits):
     return {"equity": float(account["equity"]) - reserve, "cash": float(account["cash"]) - reserve}, reserve
 
 
-def spy_shadow(equity, spy_series, deposits, started):
+def spy_shadow(equity, spy_series, deposits, started, first_px=None):
     """The same deposits, on the same dates, put into SPY instead - vs the account."""
     if not started or not spy_series:
         return {"note": "no trades yet - the shadow starts with the first fill"}
     units = 0.0
-    for d, amt in deposits:
-        px = next((c for day, c in spy_series if day >= d.isoformat()), spy_series[-1][1])
+    for i, (d, amt) in enumerate(deposits):
+        px = first_px if (i == 0 and first_px) else next((c for day, c in spy_series if day >= d.isoformat()), spy_series[-1][1])
         units += amt / px
     spy_value = units * spy_series[-1][1]
     paid_in = sum(a for _, a in deposits)
