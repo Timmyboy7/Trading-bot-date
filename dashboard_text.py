@@ -86,6 +86,8 @@ T = {
     "news_watch": ("News risk watch", "Nachrichten-Risiko"),
     "news_watch_note": ("An AI risk analyst reads the week's headlines. Headlines alone can only raise a warning; the basket is only made safer when prices confirm it.",
                         "Ein KI-Risikoanalyst liest die Schlagzeilen der Woche. Schlagzeilen allein lösen nur eine Warnung aus; der Korb wird erst sicherer gemacht, wenn die Kurse es bestätigen."),
+    "rk_prices": ("What prices say", "Was die Kurse sagen"),
+    "rk_news": ("What the headlines say", "Was die Schlagzeilen sagen"),
     "act_if": ("Would act if", "Würde handeln, wenn"),
     "chk_spread": ("Spread out", "Breit gestreut"), "chk_limits": ("Crash limits held", "Crash-Grenzen eingehalten"),
     "chk_beta": ("Market sensitivity", "Schwankung gegenüber Markt"), "chk_theme": ("Theme concentration", "Themen-Konzentration"),
@@ -228,3 +230,91 @@ def explain_decision(d, lang):
            "none": ("Tiefenprüfung: Fehlalarm – nichts zu tun", "Deep dive: false alarm — nothing to do")}.get(
         action, ("Tiefenprüfung", "Deep dive"))
     return ("SELL" if action == "exit" else "CHECK"), f"{sym}: {txt[0] if de else txt[1]}"
+
+
+# --------------------------------------------------------------------------- news risk watch (plain words)
+# The weekly risk analyst writes in data-field shorthand ("USO ret_1m_pct -2.0"). These helpers turn that
+# into sentences a family member can read. Pure text clean-up: nothing is added that the analyst did not say.
+
+_RISK_NAMES = {"oil": ("Oil", "Öl"), "ai": ("AI & chip stocks", "KI & Chip-Aktien"),
+               "rates": ("Interest rates", "Zinsen"), "market": ("Overall market", "Gesamtmarkt"),
+               "politics": ("Politics & geopolitics", "Politik & Geopolitik"),
+               "geopolitics": ("Politics & geopolitics", "Politik & Geopolitik")}
+_RISK_LEVELS = {"low": ("Low", "Niedrig"), "elevated": ("Elevated", "Erhöht"), "high": ("High", "Hoch"),
+                "moderate": ("Moderate", "Mäßig"), "medium": ("Moderate", "Mäßig")}
+_FUNDS = {"USO": ("oil fund", "Öl-Fonds"), "SMH": ("chip-stock fund", "Chip-Aktien-Fonds"),
+          "TLT": ("long-term bond fund", "Staatsanleihen-Fonds"), "SPY": ("S&P 500 fund", "S&P-500-Fonds"),
+          "MTUM": ("momentum fund", "Momentum-Fonds"), "QQQ": ("Nasdaq fund", "Nasdaq-Fonds"),
+          "GLD": ("gold fund", "Gold-Fonds"), "XLE": ("energy-stock fund", "Energie-Fonds")}
+_SPAN = {"1w": ("1-week move", "1-Wochen-Bewegung"), "1m": ("1-month move", "1-Monats-Bewegung"),
+         "3m": ("3-month move", "3-Monats-Bewegung")}
+_NUMRE = r"([+\-−]?\d+(?:\.\d+)?)"
+
+
+def risk_name(key, lang):
+    k = (key or "").strip().lower()
+    return _RISK_NAMES.get(k, (k.replace("_", " ").title(),) * 2)[1 if lang == "de" else 0]
+
+
+def risk_level(key, lang):
+    k = (key or "").strip().lower()
+    return _RISK_LEVELS.get(k, (k.title(),) * 2)[1 if lang == "de" else 0]
+
+
+def _sgn(s):
+    return s.replace("−", "-")
+
+
+def plain_risk(text, lang="en", trigger=False):
+    """Replace data-field shorthand with words; add % signs; label the index funds once."""
+    if not text:
+        return ""
+    de = 1 if lang == "de" else 0
+    s = str(text)
+    s = re.sub(r"ret_(1w|1m|3m)_pct\s*" + _NUMRE,
+               lambda m: f"{_SPAN[m.group(1)][de]} {_sgn(m.group(2))}%", s)
+    s = re.sub(r"from_1y_high_pct\s*" + _NUMRE,
+               lambda m: ("at its 1-year high" if not de else "auf dem 1-Jahres-Hoch") if float(_sgn(m.group(1))) == 0
+               else (f"{abs(float(_sgn(m.group(1)))):g}% below its 1-year high" if not de
+                     else f"{abs(float(_sgn(m.group(1)))):g}% unter dem 1-Jahres-Hoch"), s)
+    s = re.sub(r"vol_1m(?:_pct)?\s*" + _NUMRE,
+               lambda m: ("1-month volatility " if not de else "1-Monats-Schwankung ") + f"{m.group(1)}%", s)
+    s = re.sub(r"vol_1y(?:_pct)?\s*" + _NUMRE,
+               lambda m: ("1-year volatility " if not de else "1-Jahres-Schwankung ") + f"{m.group(1)}%", s)
+    s = re.sub(r"ret_(1w|1m|3m)_pct", lambda m: _SPAN[m.group(1)][de], s)
+    s = s.replace("from_1y_high_pct", "distance from its 1-year high" if not de else "Abstand zum 1-Jahres-Hoch")
+    s = s.replace("vol_1m_pct", "1-month volatility" if not de else "1-Monats-Schwankung")
+    s = s.replace("vol_1m", "1-month volatility" if not de else "1-Monats-Schwankung")
+    s = s.replace("vol_1y", "1-year volatility" if not de else "1-Jahres-Schwankung")
+    if trigger:
+        s = re.sub(r"\b(above|below)\s*" + _NUMRE + r"(?![\d%.])",
+                   lambda m: f"{m.group(1)} {_sgn(m.group(2))}%", s)
+        if de:
+            s = re.sub(r"\babove\b", "über", re.sub(r"\bbelow\b", "unter", s)).replace(" or ", " oder ")
+    for sym, lab in _FUNDS.items():
+        s = re.sub(rf"\b{sym}\b", f"{sym} ({lab[de]})", s, count=1)
+    s = s.replace(" (at the high)", "")
+    if de:
+        s = re.sub(r"(\d)\.(\d)", r"\1,\2", s)
+    s = re.sub(r"\b(20\d\d)-(\d\d)-(\d\d)\b", lambda m: date(f"{m.group(1)}-{m.group(2)}-{m.group(3)}", lang), s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def split_risk(text):
+    """-> (prices, headlines, bottom line): the analyst usually writes 'prices... Headlines on <date>: ... <verdict>.'"""
+    t_ = re.sub(r"\s+", " ", str(text or "")).strip()
+    if not t_:
+        return "", "", ""
+    parts = re.split(r"(?<=[.!?])\s+(?=[A-Z])", t_)
+    prices, news = [], []
+    seen_news = False
+    for p in parts:
+        if re.match(r"Headlines? (on|for|from)\b", p) or re.match(r"(Offsetting|Mixed|Several|The headlines)\b", p):
+            seen_news = True
+        (news if seen_news else prices).append(p)
+    bottom = ""
+    if news and len(news) > 1:
+        bottom = news.pop()
+    elif not news and len(prices) > 1:
+        bottom = prices.pop()
+    return " ".join(prices), " ".join(news), bottom
