@@ -46,7 +46,7 @@ BASE = """<!doctype html><html lang="{{ lang }}"><head><meta charset="utf-8"><me
 <header class="top"><div class="in">
 <a class="brand" href="/app/"><svg width="24" height="24" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="11" fill="#5FD3C6"/><text x="11" y="15.4" text-anchor="middle" font-family="Public Sans, sans-serif" font-size="12.5" font-weight="700" fill="#0E1A2B">W</text></svg>Wunschik Capital</a>
 <nav class="main" aria-label="Main">{% for k, href in nav %}<a href="{{ href }}" class="{{ 'on' if page == k else '' }}">{{ t(k) }}</a>{% endfor %}</nav>
-<div class="who"><span class="pill">{{ t('owner') if me.owner else t('viewer') }}</span><a href="/app/profile" style="color:#E3E8EF;text-decoration:none">{{ me.name }}</a><a href="/app/logout">{{ t('sign_out') }}</a></div>
+<div class="who">{% if me.owner %}<span class="pill">{{ t('owner') }}</span>{% endif %}<a href="/app/profile" style="color:#E3E8EF;text-decoration:none">{{ me.name }}</a><a href="/app/logout">{{ t('sign_out') }}</a></div>
 </div></header>
 <main>{% block body %}{% endblock %}</main></body></html>"""
 
