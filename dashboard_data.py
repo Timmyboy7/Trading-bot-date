@@ -543,7 +543,7 @@ def chart_px(h, since=None, w=760, ht=220):
     if len(months) > 1 and months[1]["x"] - months[0]["x"] < w / 18:   # first stub month too close to the next
         months = months[1:]
     dec = 0 if hi - lo >= 8 else 2
-    return {"a": pts(1), "b": pts(2), "w": w, "h": ht, "mark": mark, "months": months, "dec": dec,
+    return {"a": pts(1), "b": pts(2), "w": w, "h": ht, "lo": lo, "hi": hi, "mark": mark, "months": months, "dec": dec,
             "grid": [(round(yy(v), 1), v) for v in ticks], "first": rows[0][0], "last": rows[-1][0],
             "end": round(yy(rows[-1][1]), 1), "end_b": round(yy(rows[-1][2]), 1),
             "start_y": round(yy(rows[0][1]), 1)}
