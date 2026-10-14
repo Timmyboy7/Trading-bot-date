@@ -112,7 +112,9 @@ def render(name, me, **ctx):
     return tpl.render(me=me, lang=lang, nav=NAV, page=ctx.pop("page", ""), csrf=csrf_token(),
                       t=lambda k, **kw: X.t(k, lang, **kw), money=lambda v, **kw: X.money(v, lang, **kw),
                       pct=lambda v, **kw: X.pct(v, lang, **kw), date=lambda v: X.date(v, lang),
-                      tag=lambda k: X.TAGS.get(k, (k, k))[1 if lang == "de" else 0], **ctx)
+                      tag=lambda k: X.TAGS.get(k, (k, k))[1 if lang == "de" else 0],
+                      plain=lambda v, trig=False: X.plain_risk(v, lang, trig),
+                      rname=lambda v: X.risk_name(v, lang), rlevel=lambda v: X.risk_level(v, lang), **ctx)
 
 
 def need_login(fn):
@@ -233,8 +235,10 @@ def risk_model(run, wl, desk_names):
     risks = []
     for r in ((run.get("risk_view") or {}).get("risks") or []):
         if isinstance(r, dict):
+            raw = r.get("evidence") or r.get("why") or r.get("summary") or ""
+            pr, nw, bt = X.split_risk(raw)
             risks.append({"name": r.get("risk", ""), "level": str(r.get("level", "")).lower(),
-                          "text": r.get("evidence") or r.get("why") or r.get("summary") or "",
+                          "text": raw, "prices": pr, "news": nw, "bottom": bt,
                           "trigger": r.get("watch_trigger") or r.get("trigger") or r.get("watch") or ""})
     return {"scen": scen, "sectors": sec, "themes": th, "checks": checks, "risks": risks,
             "ok": sum(1 for c in checks if c[1]), "beta": beta}
