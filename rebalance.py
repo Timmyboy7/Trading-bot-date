@@ -479,7 +479,8 @@ def plan(basket_rows, account, positions, ind, since, last_orders, hold=(), exit
             elif DAY_DROP_PCT > 0 and i and i.get("ret1") is not None and i["ret1"] <= -DAY_DROP_PCT:
                 wait = f"big drop today: down {abs(i['ret1']):.0%} in one day"
             if wait and waits_allowed:
-                skipped.append({"symbol": sym, "reason": wait + f" - waits at most {MAX_WAIT_DAYS} days after the weekly run"})
+                skipped.append({"symbol": sym, "reason": wait + f" - waits at most {MAX_WAIT_DAYS} days after the weekly run",
+                                "price": round(i["close"], 4) if i and i.get("close") else None})   # for the 'did waiting pay off?' scorecard
                 continue
             in_buildup = not held or held_days(sym) < TRANCHES * TRANCHE_DAYS
             if not in_buildup and i and i["sma"] and i["close"] < i["sma"]:

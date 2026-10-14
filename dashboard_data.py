@@ -254,7 +254,8 @@ def portfolio():
         for f in fills:
             try:
                 fills_min.append((str(f.get("transaction_time") or ""), str(f.get("side") or ""),
-                                  float(f.get("qty") or 0) * float(f.get("price") or 0)))
+                                  float(f.get("qty") or 0) * float(f.get("price") or 0), str(f.get("symbol") or ""),
+                                  float(f.get("qty") or 0)))
             except (TypeError, ValueError):
                 continue
         return {"fills": fills_min, "spy_daily": closes.get("SPY") or [],
@@ -273,7 +274,7 @@ def invested_twin():
         daily = dict(p.get("spy_daily") or [])
         buys = sells = units = 0.0
         ok = True
-        for ts, side, amt in p.get("fills") or []:
+        for ts, side, amt, *_ in p.get("fills") or []:
             if amt <= 0 or side not in ("buy", "sell"):
                 continue
             px = spy_at(ts[:16] + ":00Z") if len(ts) >= 16 else None
@@ -290,6 +291,65 @@ def invested_twin():
                 units -= amt / px
         return {"buys": buys, "sells": sells, "units": units, "ok": ok}
     return cached("invested_twin", 60, load)
+
+
+WAIT_RULES = (("dayDrop", "big drop today"), ("knife", "falling knife"), ("spike", "spike"),
+              ("news", "deep dive"), ("news", "earnings"))
+
+
+def wait_scorecard():
+    """Did waiting pay off? Every time a timing rule made a real (executed) run skip a buy we noted the price; when the
+    stock was bought later, compare. Positive = bought cheaper than on the day we first waited. Information only."""
+    def load():
+        p = portfolio()
+        buys = {}                                   # symbol -> [(date, qty, amount)] real buy fills
+        for ts, side, amt, sym, qty in p.get("fills") or []:
+            if side == "buy" and sym and qty > 0:
+                buys.setdefault(sym, []).append((ts[:10], qty, amt))
+        episodes = {}                               # symbol -> first wait since its last buy
+        for row in trades(300):
+            if row["mode"] != "executed":
+                continue
+            day = str(row["at"])[:10]
+            for o in row["orders"]:
+                if not (isinstance(o, dict) and o.get("status") == "skipped" and o.get("symbol")):
+                    continue
+                sym, reason = o["symbol"], str(o.get("reason", "")).lower()
+                rule = next((k for k, w in WAIT_RULES if w in reason), None)
+                px = fnum(o.get("price"))
+                if not rule or not px:
+                    continue
+                prior = episodes.get(sym)
+                if prior and not any(d > prior["day"] for d, _, _ in buys.get(sym, [])):
+                    continue                        # same waiting episode, already noted
+                episodes[sym] = {"symbol": sym, "rule": rule, "day": day, "price": px}
+        cases = []
+        for e in episodes.values():
+            later = sorted(b for b in buys.get(e["symbol"], []) if b[0] > e["day"])
+            if later:
+                d0 = later[0][0]
+                same = [b for b in later if b[0] == d0]
+                qty, amt = sum(b[1] for b in same), sum(b[2] for b in same)
+                pb = amt / qty
+                e.update(bought=True, buy_day=d0, buy_price=pb, diff=(e["price"] - pb) / e["price"] * 100,
+                         usd=amt * (e["price"] / pb - 1))
+            else:
+                e.update(bought=False)
+            cases.append(e)
+        cases.sort(key=lambda c: c["day"], reverse=True)
+        summary = {}
+        for c in cases:
+            r = summary.setdefault(c["rule"], {"n": 0, "bought": 0, "helped": 0, "diff": 0.0, "usd": 0.0})
+            r["n"] += 1
+            if c["bought"]:
+                r["bought"] += 1
+                r["helped"] += 1 if c["diff"] > 0 else 0
+                r["diff"] += c["diff"]
+                r["usd"] += c["usd"]
+        for r in summary.values():
+            r["avg"] = r["diff"] / r["bought"] if r["bought"] else None
+        return {"cases": cases[:12], "summary": summary, "total": len(cases)}
+    return cached("wait_scorecard", 300, load)
 
 
 def live_numbers():
