@@ -129,6 +129,8 @@ T = {
     "corr_basket": ("The weekly basket (target)", "Der Wochenkorb (Ziel)"),
     "corr_hold": ("What we hold today", "Was wir heute besitzen"),
     "corr_hold_none": ("Needs at least two stocks held. Fills in after the first purchases.", "Braucht mindestens zwei gehaltene Aktien. Füllt sich nach den ersten Käufen."),
+    "px_today": ("on the day", "am Tag"),
+    "px_asof": ("last close {d}", "letzter Schlusskurs {d}"),
     "px_title": ("The last year", "Das letzte Jahr"),
     "px_bought": ("we bought here", "hier gekauft"),
     "px_none": ("The price history could not be loaded right now.", "Der Kursverlauf konnte gerade nicht geladen werden."),
