@@ -250,6 +250,26 @@ def risk_model(run, wl, desk_names):
             "ok": sum(1 for c in checks if c[1]), "beta": beta}
 
 
+def holdings_risk_model(h):
+    """Scenario rows for the 'what we hold today' block (same shape and status rule as the basket block)."""
+    labels = {"market_crash": ("Market crash", "Marktcrash"), "ai_bust": ("AI bust", "KI-Blase platzt"),
+              "rate_shock": ("Interest rates up", "Zinsen steigen"), "oil_crash": ("Oil price crash", "Ölpreis-Absturz"),
+              "oil_spike": ("Oil price jump", "Ölpreis-Sprung"), "momentum_reversal": ("Momentum reversal", "Trendwende der Gewinner")}
+    scen = []
+    for x in h.get("scen") or []:
+        b, lim = x["basket"], x["limit"]
+        x = dict(x, label=labels.get(x["key"], (x["key"], x["key"])),
+                 status="over" if b < lim else ("near" if b <= lim * 0.92 else "within"))
+        scen.append(x)
+    scen.sort(key=lambda x: (x["basket"] - x["limit"]) / (abs(x["limit"]) or 1))
+    mx = max([abs(x["basket"]) for x in scen] + [abs(x["limit"]) for x in scen] + [10])
+    for x in scen:
+        x["b_bar"] = round(abs(x["basket"]) / mx * 100, 1)
+        x["s_bar"] = round(abs(x["spy"] or 0) / mx * 100, 1)
+        x["l_bar"] = round(abs(x["limit"]) / mx * 100, 1)
+    return dict(h, scen=scen)
+
+
 def basket_model(run, wl, desk_names):
     rec = run.get("reconcile") or {}
     weights = rec.get("weights") or {}
@@ -480,7 +500,12 @@ def risk(me):
     run, rerr = sheet_part(D.latest_run, {})
     wl, werr = sheet_part(D.watchlist, [])
     m = risk_model(run, wl or [], desk_names()) if run else None
-    return render("risk.html", me, page="risk", m=m, serr=rerr or werr, run_date=(run or {}).get("run_date", ""))
+    hold, herr = safe(D.holdings_risk, {})
+    hold = hold or {}
+    if hold.get("scen"):
+        hold = holdings_risk_model(hold)
+    return render("risk.html", me, page="risk", m=m, serr=rerr or werr, run_date=(run or {}).get("run_date", ""),
+                  hold=hold, herr=herr)
 
 
 @dashboard_bp.route("/activity")

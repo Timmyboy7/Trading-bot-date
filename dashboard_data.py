@@ -318,6 +318,37 @@ def company_names():
     return names
 
 
+# --------------------------------------------------------------------------- risk of what we actually hold
+
+def holdings_risk():
+    """The same crash scenarios as the weekly basket check, but on the real positions and their real weights
+    (cash counts as 0%). {'empty': True} until something is bought. Cached 30 min: it downloads a year of prices."""
+    def load():
+        import stress_test as st
+        import reconcile_basket as rc
+        p = portfolio()
+        pos = [x for x in p["positions"] if float(x.get("market_value") or 0) > 0]
+        eq = float(p["account"]["equity"]) or 0.0
+        if not pos or eq <= 0:
+            return {"empty": True}
+        mv = {x["symbol"]: float(x["market_value"]) for x in pos}
+        invested = min(sum(mv.values()) / eq, 1.0)
+        res = st.compute(sorted(mv), weights={s: v / eq for s, v in mv.items()}, news={})
+        if "error" in res:
+            return {"error": res["error"], "errors": res.get("errors", [])}
+        scen = []
+        for sc in res["scenarios"]:
+            port = sc["basket_pct"] * invested          # cash earns 0
+            spy = sc["spy_pct"]
+            lim = spy * rc.RISK_MULT[0] if spy <= -0.5 else rc.RISK_ABS_FLOOR[0]
+            scen.append({"key": sc["name"], "basket": round(port, 1), "spy": spy, "limit": round(lim, 1),
+                         "names": ", ".join(x["symbol"] for x in sc["worst"])})
+        return {"empty": False, "scen": scen, "n": len(mv), "invested_pct": invested * 100,
+                "cash_pct": (1 - invested) * 100, "beta": round(res["exposures"]["beta_spy_simple"] * invested, 2),
+                "skipped": res.get("summary", {}).get("skipped") or [], "errors": res.get("errors", [])}
+    return cached("holdings_risk", 1800, load)
+
+
 # --------------------------------------------------------------------------- downloads
 
 def audit_log_csv():
