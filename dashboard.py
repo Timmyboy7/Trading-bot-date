@@ -97,7 +97,7 @@ def _headers(resp):
     resp.headers["Cache-Control"] = "no-store"
     nonce = getattr(g, "csp_nonce", None)      # set only when a page renders its own small script
     resp.headers["Content-Security-Policy"] = (
-        "default-src 'none'; " + (f"script-src 'nonce-{nonce}'; " if nonce else "") + "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "default-src 'none'; " + (f"script-src 'nonce-{nonce}'; connect-src 'self'; " if nonce else "") + "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src https://fonts.gstatic.com; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'")
     return resp
 
@@ -452,6 +452,43 @@ def overview(me):
     ctx["basket_n"] = len(wl or []) or 20
     ctx["risk"] = risk_model(run, wl or [], dn) if run else None
     return render("overview.html", me, page="overview", **ctx)
+
+
+@dashboard_bp.route("/live.json")
+@need_login
+def live_json(me):
+    """Overview numbers as ready-to-show text (the page script only copies them in). Same formulas as the page."""
+    lang = me["lang"]
+    try:
+        n = D.live_numbers()
+    except Exception:  # noqa: BLE001 - the page keeps what it shows
+        return Response('{"error": 1}', status=503, mimetype="application/json")
+    eq, cash, paid = n["eq"], n["cash"], n["paid_in"]
+    gain = eq - paid
+    gain_pct = (eq / paid - 1) * 100 if paid else 0.0
+    cash_pct = cash / eq * 100 if eq else 0.0
+    out = {"eq": X.money(eq, lang), "gain_line": f"{X.money(gain, lang, sign=True)} ({X.pct(gain_pct, lang)})",
+           "pf_worth": X.money(eq, lang), "pf_growth": f"{X.money(gain, lang, sign=True)} ({X.pct(gain_pct, lang, dec=2)})",
+           "stocks_amt": X.money(eq - cash, lang), "stocks_pct": X.pct(100 - cash_pct, lang, sign=False),
+           "cash_amt": X.money(cash, lang), "cash_pct": X.pct(cash_pct, lang, sign=False),
+           "cash2_amt": X.money(cash, lang), "cash2_pct": X.pct(cash_pct, lang, sign=False),
+           "w_inv": f"{max(100 - cash_pct, 0):.1f}%", "w_cash": f"{max(cash_pct, 0):.1f}%",
+           "cls": {"gain_line": "pos" if gain >= 0 else "neg", "pf_growth": "pos" if gain >= 0 else "neg"}, "open": n["open"]}
+    sv = n.get("spy_value")
+    if sv:
+        sg = sv - paid
+        ex = eq - sv
+        out.update(excess=f"{X.t('ahead' if ex >= 0 else 'behind', lang)} {X.money(abs(ex), lang, dec=2)}", spy_worth=X.money(sv, lang),
+                   spy_growth=f"{X.money(sg, lang, sign=True)} ({X.pct((sv / paid - 1) * 100 if paid else 0, lang, dec=2)})")
+        out["cls"]["spy_growth"] = "pos" if sg >= 0 else "neg"
+    try:
+        from zoneinfo import ZoneInfo
+        now = datetime.datetime.now(ZoneInfo("Europe/Luxembourg"))
+    except Exception:  # noqa: BLE001
+        now = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=2)
+    out["badge"] = X.t("live_open" if n["open"] else "live_closed", lang, t=now.strftime("%H:%M:%S"))
+    resp = Response(json.dumps(out), mimetype="application/json")
+    return resp
 
 
 @dashboard_bp.route("/holdings")
