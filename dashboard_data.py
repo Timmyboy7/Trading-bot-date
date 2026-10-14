@@ -478,6 +478,49 @@ def holdings_correlation():
     return cached("hold_corr", 3600, load)
 
 
+def price_history(sym):
+    """About a year of the stock's price next to the S&P 500, both as % change since the first day shown.
+    Dividend-adjusted closes. None if no data. Cached 1 h per stock."""
+    def load():
+        import stress_test as st
+        closes, errs = st.fetch_dated_closes([sym, "SPY"])
+        a, b = closes.get(sym) or {}, closes.get("SPY") or {}
+        days = sorted(d for d in a if d in b)
+        if len(days) < 20:
+            return None
+        a0, b0 = a[days[0]], b[days[0]]
+        rows = [(d, (a[d] / a0 - 1) * 100, (b[d] / b0 - 1) * 100) for d in days]
+        hi = max(a.values()); lo = min(a.values())
+        return {"rows": rows, "ret": rows[-1][1], "spy_ret": rows[-1][2], "last": a[days[-1]],
+                "from_high": (a[days[-1]] / hi - 1) * 100, "from_low": (a[days[-1]] / lo - 1) * 100}
+    return cached(f"px_{sym}", 3600, load)
+
+
+def chart_px(h, since=None, w=760, ht=220):
+    """SVG data for price_history(): stock line, S&P line, 0% baseline, optional purchase marker."""
+    rows = h["rows"]
+    vals = [v for _, x, y in rows for v in (x, y)] + [0.0]
+    lo, hi = min(vals), max(vals)
+    pad = (hi - lo) * 0.08 or 5
+    lo, hi = lo - pad, hi + pad
+    n = len(rows) - 1
+
+    def yy(v):
+        return ht - (v - lo) / (hi - lo) * ht
+
+    def pts(i):
+        return " ".join(f"{k * w / n:.1f},{yy(r[i]):.1f}" for k, r in enumerate(rows))
+    mark = None
+    if since:
+        k = next((i for i, r in enumerate(rows) if r[0] >= str(since)[:10]), None)
+        if k is not None:
+            mark = round(k * w / n, 1)
+    step = (hi - lo) / 4
+    grid = [(round(yy(v), 1), v) for v in (lo + step * i for i in (0.5, 1.5, 2.5, 3.5))]
+    return {"a": pts(1), "b": pts(2), "w": w, "h": ht, "grid": grid, "zero": round(yy(0.0), 1), "mark": mark,
+            "first": rows[0][0], "last": rows[-1][0], "end": round(yy(rows[-1][1]), 1)}
+
+
 def holdings_risk():
     """The same crash scenarios as the weekly basket check, but on the real positions and their real weights
     (cash counts as 0%). {'empty': True} until something is bought. Cached 30 min: it downloads a year of prices."""

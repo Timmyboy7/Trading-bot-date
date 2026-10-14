@@ -473,7 +473,12 @@ def stock(me, sym):
     wl, werr = sheet_part(D.watchlist, [])
     p, _ = safe(D.portfolio)
     st = stock_model(sym, run or {}, wl or [], desk_names(), p, me["lang"]) if sym else None
-    return render("stock.html", me, page="basket", st=st, sym=sym)
+    px, perr, pxc = None, None, None
+    if sym:
+        px, perr = safe(lambda: D.price_history(sym))
+        if px:
+            pxc = D.chart_px(px, (st or {}).get("own", {}) and st["own"].get("since"))
+    return render("stock.html", me, page="basket", st=st, sym=sym, px=px, pxc=pxc, perr=perr)
 
 
 @dashboard_bp.route("/risk")
