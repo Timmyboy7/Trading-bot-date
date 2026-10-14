@@ -320,6 +320,31 @@ def company_names():
 
 # --------------------------------------------------------------------------- risk of what we actually hold
 
+SEVERE_AI = {"market": -0.25, "ai": -0.30}   # S&P -25%, semis about -55% (30 points worse than the market)
+
+
+def _severe_loss(res, share=1.0):
+    """AI-bubble loss in % for a stress_test.compute() result; share = invested fraction (cash earns 0)."""
+    tot = sum(p["weight"] * (p["ai_model_market"] * SEVERE_AI["market"] + p["ai"] * SEVERE_AI["ai"])
+              for p in res["per_symbol"])
+    return round(tot * 100 * share, 1)
+
+
+def severe_basket():
+    """Severe AI scenario on the weekly basket at its target weights (information only); None if unavailable."""
+    def load():
+        import stress_test as st
+        run = latest_run() or {}
+        w = ((run.get("reconcile") or {}).get("weights")) or {}
+        syms = [x["symbol"] for x in watchlist()]
+        if not syms:
+            return None
+        weights = {s: float(w.get(s) or 0) for s in syms}
+        res = st.compute(syms, weights=weights if sum(weights.values()) > 0 else None, news={})
+        return None if "error" in res else _severe_loss(res)
+    return cached("severe_basket", 1800, load)
+
+
 def holdings_risk():
     """The same crash scenarios as the weekly basket check, but on the real positions and their real weights
     (cash counts as 0%). {'empty': True} until something is bought. Cached 30 min: it downloads a year of prices."""
@@ -343,7 +368,7 @@ def holdings_risk():
             lim = spy * rc.RISK_MULT[0] if spy <= -0.5 else rc.RISK_ABS_FLOOR[0]
             scen.append({"key": sc["name"], "basket": round(port, 1), "spy": spy, "limit": round(lim, 1),
                          "names": ", ".join(x["symbol"] for x in sc["worst"])})
-        return {"empty": False, "scen": scen, "n": len(mv), "invested_pct": invested * 100,
+        return {"empty": False, "scen": scen, "n": len(mv), "severe": _severe_loss(res, invested), "invested_pct": invested * 100,
                 "cash_pct": (1 - invested) * 100, "beta": round(res["exposures"]["beta_spy_simple"] * invested, 2),
                 "skipped": res.get("summary", {}).get("skipped") or [], "errors": res.get("errors", [])}
     return cached("holdings_risk", 1800, load)
