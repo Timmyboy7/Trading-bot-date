@@ -13,6 +13,7 @@ Pages: /app/ (overview), /app/holdings, /app/basket, /app/risk, /app/activity, /
 """
 import datetime
 import hmac
+import json
 import os
 import re
 import secrets
@@ -21,7 +22,7 @@ from collections import defaultdict
 
 import jinja2
 import requests
-from flask import Blueprint, Response, abort, redirect, request, session
+from flask import Blueprint, Response, abort, g, redirect, request, session
 from werkzeug.security import check_password_hash
 
 import dashboard_data as D
@@ -94,8 +95,9 @@ def _headers(resp):
     resp.headers["X-Content-Type-Options"] = "nosniff"
     resp.headers["Referrer-Policy"] = "no-referrer"
     resp.headers["Cache-Control"] = "no-store"
+    nonce = getattr(g, "csp_nonce", None)      # set only when a page renders its own small script
     resp.headers["Content-Security-Policy"] = (
-        "default-src 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "default-src 'none'; " + (f"script-src 'nonce-{nonce}'; " if nonce else "") + "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src https://fonts.gstatic.com; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'")
     return resp
 
@@ -110,6 +112,12 @@ def _names():
     return v or {}
 
 
+def _nonce():
+    if not getattr(g, "csp_nonce", None):
+        g.csp_nonce = secrets.token_urlsafe(16)
+    return g.csp_nonce
+
+
 def render(name, me, **ctx):
     lang = me["lang"] if me else request.args.get("lang", "en")
     ENV.loader = jinja2.DictLoader(TEMPLATES)
@@ -118,7 +126,7 @@ def render(name, me, **ctx):
                       t=lambda k, **kw: X.t(k, lang, **kw), money=lambda v, **kw: X.money(v, lang, **kw),
                       pct=lambda v, **kw: X.pct(v, lang, **kw), date=lambda v: X.date(v, lang),
                       tag=lambda k: X.TAGS.get(k, (k, k))[1 if lang == "de" else 0],
-                      nm=lambda sym: _names().get(str(sym).upper(), ""),
+                      nm=lambda sym: _names().get(str(sym).upper(), ""), nonce=_nonce,
                       plain=lambda v, trig=False: X.plain_risk(v, lang, trig),
                       rname=lambda v: X.risk_name(v, lang), rlevel=lambda v: X.risk_level(v, lang), **ctx)
 
@@ -478,6 +486,11 @@ def stock(me, sym):
         px, perr = safe(lambda: D.price_history(sym))
         if px:
             pxc = D.chart_px(px, (st or {}).get("own", {}) and st["own"].get("since"))
+            rows = px["rows"]
+            pxj = json.dumps({"lang": me["lang"], "w": pxc["w"], "h": pxc["h"], "lo": pxc["lo"], "hi": pxc["hi"],
+                              "d": [r[0] for r in rows], "a": [round(r[1], 2) for r in rows],
+                              "b": [round(r[2], 2) for r in rows], "t": [X.t(k, me["lang"]) for k in ("px_tip_stock", "px_tip_spy")]})
+            pxc["json"] = pxj
     return render("stock.html", me, page="basket", st=st, sym=sym, px=px, pxc=pxc, perr=perr)
 
 
