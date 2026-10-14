@@ -302,6 +302,70 @@ def basket_model(run, wl, desk_names):
             "changes": sum(1 for a in (run.get("actions") or []) if isinstance(a, dict) and a.get("action") in ("added", "dropped", "swapped"))}
 
 
+def stock_model(sym, run, wl, desk_names, p, lang):
+    """Everything we know about one stock: basket row or contender, the Sunday research, ranking facts, own position."""
+    m = basket_model(run or {}, wl or [], desk_names) if wl else {"rows": [], "contenders": []}
+    row = next((r for r in m["rows"] if r["symbol"] == sym), None)
+    con = next((c for c in m["contenders"] if c["symbol"] == sym), None)
+    rk = next((r for r in ((run or {}).get("ranking") or []) if isinstance(r, dict) and r.get("symbol") == sym), None)
+    n = desk_names.get(sym) or {}
+    w = next((x for x in (wl or []) if x["symbol"] == sym), None)
+    if not (row or con or rk or n):
+        return None
+    rank = (row or con or {}).get("rank")
+    if rank is None and rk:
+        rank = [r.get("symbol") for r in (run.get("ranking") or []) if isinstance(r, dict)].index(sym) + 1
+    reasons = {a.get("symbol"): a.get("reason", "") for a in ((run or {}).get("actions") or []) if isinstance(a, dict)}
+    today = datetime.date.today().isoformat()
+    facts = []
+    if rank:
+        facts.append(("f_rank", f"#{rank}"))
+    score = (row or {}).get("score") or (con or {}).get("score") or (w or {}).get("score")
+    if score:
+        facts.append(("f_score", f"{float(score):.2f}"))
+    if row and row.get("weight"):
+        facts.append(("f_weight", X.pct(row["weight"], lang, sign=False)))
+    if w and w.get("target_price"):
+        facts.append(("f_target", X.money(w["target_price"], lang)))
+    if w and w.get("conviction"):
+        facts.append(("f_conv", w["conviction"]))
+    if w and w.get("added_on"):
+        facts.append(("f_added", str(w["added_on"])[:10]))
+    if n.get("next_earnings"):
+        facts.append(("f_next", X.date(n["next_earnings"], lang)))
+    for key, label, frac in (("ret_3m", "f_r3", True), ("ret_6m", "f_r6", True), ("drawdown_from_52w_high", "f_dd", True)):
+        v = fnum_safe((rk or {}).get(key))
+        if v is not None:
+            facts.append((label, X.pct(abs(v) * 100 if key.startswith("draw") else v * 100, lang, sign=not key.startswith("draw"))))
+    v = fnum_safe((rk or {}).get("rsi14"))
+    if v is not None:
+        facts.append(("f_rsi", f"{v:.0f}"))
+    if w and w.get("risk_exposure"):
+        facts.append(("f_risk", w["risk_exposure"]))
+    own = None
+    if p:
+        own = next((r for r in holding_rows(p, desk_names, wl or []) if r["symbol"] == sym), None)
+    sources = []
+    for u in (n.get("sources") or [])[:8]:
+        if isinstance(u, str) and u.startswith(("https://", "http://")):
+            sources.append({"url": u, "host": re.sub(r"^www\.", "", u.split("/")[2])})
+    return {"symbol": sym, "in_basket": bool(row), "rank": rank, "sector": (row or con or w or rk or {}).get("sector", ""),
+            "cluster": (n.get("cluster") or "").replace("_", " "),
+            "blocker": (con or {}).get("why"),
+            "thesis": n.get("thesis_short") or (row or con or {}).get("thesis") or (w or {}).get("reasoning") or (rk or {}).get("thesis_summary", ""),
+            "reasoning": (w or {}).get("reasoning", ""), "decision": reasons.get(sym, ""), "note": (row or {}).get("note", ""),
+            "kill": n.get("kill_criteria") or [], "facts": facts, "own": own, "sources": sources,
+            "catalysts": [c for c in (n.get("catalysts") or []) if str(c.get("date", "")) >= today][:5],
+            "researched": n.get("researched_on")}
+
+
+def fnum_safe(v):
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
 def desk_names():
     v, _ = safe(lambda: (D.desk().get("names") or {}), {})
     return v or {}
@@ -389,6 +453,19 @@ def basket(me):
     wl, werr = sheet_part(D.watchlist, [])
     m = basket_model(run or {}, wl or [], desk_names()) if wl else None
     return render("basket.html", me, page="basket", m=m, serr=werr or rerr)
+
+
+@dashboard_bp.route("/stock/<sym>")
+@need_login
+def stock(me, sym):
+    sym = sym.upper()
+    if not re.fullmatch(r"[A-Z][A-Z.\-]{0,5}", sym):
+        sym = ""
+    run, rerr = sheet_part(D.latest_run, {})
+    wl, werr = sheet_part(D.watchlist, [])
+    p, _ = safe(D.portfolio)
+    st = stock_model(sym, run or {}, wl or [], desk_names(), p, me["lang"]) if sym else None
+    return render("stock.html", me, page="basket", st=st, sym=sym)
 
 
 @dashboard_bp.route("/risk")

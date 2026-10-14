@@ -135,7 +135,7 @@ HOLDINGS = """{% extends 'base.html' %}{% block body %}
 <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px">
 <div class="prose" style="font-size:15px"><h2 style="font-size:16px">{{ t('why_own') }}</h2><p>{{ sel.thesis or '—' }}</p>
 <h2 style="font-size:16px;margin-top:14px">{{ t('sell_if') }}</h2>{% if sel.kill %}<ul>{% for k in sel.kill %}<li>{{ k }}</li>{% endfor %}</ul>{% else %}<p>—</p>{% endif %}
-<p class="sub" style="font-size:13px">{{ t('checked_daily') }}</p></div>
+<p class="sub" style="font-size:13px">{{ t('checked_daily') }}</p><p><a href="/app/stock/{{ sel.symbol }}">{{ t('full_research') }} →</a></p></div>
 <div style="display:flex;flex-direction:column;gap:10px;font-size:14px"><h2 style="font-size:16px">{{ t('rules_now') }}</h2>
 <div class="tile" style="display:flex;justify-content:space-between;padding:12px 14px"><span>{{ t('above_avg') }}</span><strong class="{{ 'pos' if sel.above else 'neg' }}">{{ t('yes') if sel.above else t('no') }}</strong></div>
 <div class="tile" style="display:flex;justify-content:space-between;padding:12px 14px"><span>{{ t('below_high') }}</span><strong>{{ pct(sel.dd) if sel.dd is not none else '—' }} <span style="font-weight:400;color:var(--muted)">({{ t('sell_rule_25') }})</span></strong></div>
@@ -151,13 +151,13 @@ BASKET = """{% extends 'base.html' %}{% block body %}
 {% if serr %}<div class="warnbox">{{ t(serr) }}</div>{% endif %}
 {% if m %}<section class="card tbl" aria-labelledby="in"><div style="padding:22px 24px 10px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px"><h2 id="in">{{ t('in_basket') }} ({{ m.rows|length }})</h2><span class="sub" style="margin:0;font-size:13px">{{ t('score_note') }}</span></div>
 <div class="scroll"><table style="min-width:900px"><thead><tr><th scope="col" style="padding-left:24px">{{ t('rank') }}</th><th scope="col">{{ t('stock') }}</th><th scope="col">{{ t('sector_theme') }}</th><th scope="col" style="width:170px">{{ t('score') }}</th><th class="r" scope="col">{{ t('target_share') }}</th><th scope="col">{{ t('note') }}</th></tr></thead><tbody>
-{% for r in m.rows %}<tr><td class="mono" style="padding-left:24px;color:var(--muted)">{{ r.rank or '—' }}</td><th scope="row" style="font-weight:400"><strong class="mono">{{ r.symbol }}</strong><div style="font-size:12px;color:var(--muted);max-width:340px">{{ r.thesis[:140] }}</div></th>
+{% for r in m.rows %}<tr><td class="mono" style="padding-left:24px;color:var(--muted)">{{ r.rank or '—' }}</td><th scope="row" style="font-weight:400"><a href="/app/stock/{{ r.symbol }}" class="mono" style="font-weight:700;color:var(--ink)">{{ r.symbol }}</a><div style="font-size:12px;color:var(--muted);max-width:340px">{{ r.thesis[:140] }}</div></th>
 <td style="color:#33475B">{{ r.sector }}{% if r.theme %} · {{ r.theme }}{% endif %}</td><td><div style="display:flex;align-items:center;gap:10px"><div class="bar" style="flex:1 1 auto"><div style="width:{{ r.bar }}%"></div></div><span class="mono" style="font-size:13px">{{ '%.2f'|format(r.score) if r.score else '—' }}</span></div></td>
 <td class="r mono">{{ pct(r.weight, sign=False) }}</td><td>{% if r.note %}<span class="badge {{ 'b-grey' if r.note == 'Filled a free place' else 'b-warn' }}">{{ r.note }}</span>{% endif %}</td></tr>{% endfor %}</tbody></table></div></section>
 <div class="row"><section class="card" style="flex:1 1 480px;min-width:0" aria-labelledby="con"><h2 id="con">{{ t('knocking') }}</h2><p class="sub" style="font-size:13px">{{ t('knocking_note') }}</p>
-<div class="list">{% for c in m.contenders %}<div class="item"><span class="mono" style="flex:0 0 36px;color:var(--muted)">{{ c.rank }}</span><div style="flex:1 1 auto;min-width:0"><strong class="mono">{{ c.symbol }}</strong> <span style="color:var(--muted);font-size:13px">{{ c.sector }}</span><div class="why">{{ c.thesis[:160] }}</div></div><span class="badge {{ 'b-warn' if c.why in ('blk_red','blk_theme','blk_sector','blk_unc') else 'b-grey' }}" style="height:fit-content">{{ t(c.why) }}</span></div>{% else %}<p class="sub">—</p>{% endfor %}</div></section>
+<div class="list">{% for c in m.contenders %}<div class="item"><span class="mono" style="flex:0 0 36px;color:var(--muted)">{{ c.rank }}</span><div style="flex:1 1 auto;min-width:0"><a href="/app/stock/{{ c.symbol }}" class="mono" style="font-weight:700;color:var(--ink)">{{ c.symbol }}</a> <span style="color:var(--muted);font-size:13px">{{ c.sector }}</span><div class="why">{{ c.thesis[:160] }}</div></div><span class="badge {{ 'b-warn' if c.why in ('blk_red','blk_theme','blk_sector','blk_unc') else 'b-grey' }}" style="height:fit-content">{{ t(c.why) }}</span></div>{% else %}<p class="sub">—</p>{% endfor %}</div></section>
 <section class="card" style="flex:1 1 480px;min-width:0" aria-labelledby="dr"><h2 id="dr">{{ t('dropping') }}</h2><p class="sub" style="font-size:13px">{{ t('dropping_note') }}</p>
-<div class="list">{% for d in m.drops %}<div class="item"><span class="mono" style="flex:0 0 36px;color:var(--muted)">{{ d.rank or '—' }}</span><div><strong class="mono">{{ d.symbol }}</strong>{% if d.note %} <span class="badge b-warn">{{ d.note }}</span>{% endif %}<div class="why">{{ d.reason }}</div></div></div>{% endfor %}</div></section></div>
+<div class="list">{% for d in m.drops %}<div class="item"><span class="mono" style="flex:0 0 36px;color:var(--muted)">{{ d.rank or '—' }}</span><div><a href="/app/stock/{{ d.symbol }}" class="mono" style="font-weight:700;color:var(--ink)">{{ d.symbol }}</a>{% if d.note %} <span class="badge b-warn">{{ d.note }}</span>{% endif %}<div class="why">{{ d.reason }}</div></div></div>{% endfor %}</div></section></div>
 {% endif %}{% endblock %}"""
 
 RISK = """{% extends 'base.html' %}{% block body %}
@@ -290,6 +290,33 @@ HOW = """{% extends 'base.html' %}{% block body %}<div style="max-width:900px;wi
 <div class="warnbox">{{ 'Wichtig: Derzeit ist das ein Test mit Spielgeld. Es wird kein echtes Geld angelegt, und niemand legt Geld für andere an. Nichts hier ist eine Anlageberatung. Vergangene Ergebnisse versprechen keine zukünftigen.' if lang == 'de' else 'Important: this is currently a test with play money. No real money is invested and nobody invests for anyone else. Nothing here is investment advice. Past results do not promise future results.' }}</div>
 {% if lang == 'de' %}""" + HOW_DE + """{% else %}""" + HOW_EN + """{% endif %}</div>{% endblock %}"""
 
+STOCK = """{% extends 'base.html' %}{% block body %}
+<div><a href="/app/basket" style="font-size:14px">{{ t('back_basket') }}</a></div>
+{% if not st %}<div class="card"><h1 style="font-size:24px"><span class="mono">{{ sym }}</span></h1><p class="sub" style="margin:0">{{ t('no_research') }}</p></div>
+{% else %}<section class="card" style="padding:28px;display:flex;flex-direction:column;gap:22px" aria-labelledby="sk">
+<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;align-items:flex-start"><div><h1 id="sk" style="font-size:28px;margin:0"><span class="mono">{{ st.symbol }}</span>{% if st.cluster %} · <span style="font-weight:500">{{ st.cluster }}</span>{% endif %}</h1>
+<p class="sub" style="margin:6px 0 0">{{ st.sector }}</p></div>
+<span class="badge {{ 'b-ok' if st.in_basket else 'b-grey' }}" style="font-size:13px;padding:6px 12px">{% if st.in_basket %}{{ t('st_in', r=st.rank or '—') }}{% elif st.rank %}{{ t('st_out', r=st.rank) }}{% else %}{{ t('st_none') }}{% endif %}</span></div>
+{% if st.own %}<div class="tile" style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px"><div><strong>{{ t('own_it') }}</strong> <span style="color:var(--muted)">{{ t('own_since', d=date(st.own.since) if st.own.since else '—', v=money(st.own.value), g=pct(st.own.gain)) }}</span></div><a href="/app/holdings?s={{ st.symbol }}">{{ t('see_holding') }}</a></div>{% endif %}
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:28px">
+<div class="prose" style="font-size:15px">
+<h2 style="font-size:16px">{{ t('why_here') if st.in_basket else t('why_not') }}</h2>
+{% if st.blocker %}<p><span class="badge b-warn">{{ t(st.blocker) }}</span></p>{% endif %}
+<p>{{ st.thesis or '—' }}</p>
+{% if st.reasoning and st.reasoning != st.thesis %}<p style="color:#33475B">{{ st.reasoning }}</p>{% endif %}
+{% if st.decision %}<h2 style="font-size:16px;margin-top:14px">{{ t('week_decision') }}</h2><p>{{ st.decision }}</p>{% endif %}
+{% if st.note %}<p><span class="badge b-warn">{{ st.note }}</span></p>{% endif %}
+<h2 style="font-size:16px;margin-top:14px">{{ t('sell_if') }}</h2>{% if st.kill %}<ul>{% for k in st.kill %}<li>{{ k }}</li>{% endfor %}</ul>{% else %}<p>—</p>{% endif %}
+</div>
+<div style="display:flex;flex-direction:column;gap:10px;font-size:14px"><h2 style="font-size:16px">{{ t('key_facts') }}</h2>
+{% for label, val in st.facts %}<div class="tile" style="display:flex;justify-content:space-between;gap:12px;padding:12px 14px"><span>{{ t(label) }}</span><strong style="text-align:right">{{ val }}</strong></div>{% endfor %}
+{% if st.catalysts %}<h2 style="font-size:16px;margin-top:6px">{{ t('coming_up') }}</h2><ul class="list" style="margin:0">{% for c in st.catalysts %}<li style="padding:8px 0;display:flex;gap:12px"><span class="mono" style="color:var(--muted);min-width:90px">{{ date(c.date) }}</span><span>{{ c.event }}</span></li>{% endfor %}</ul>{% endif %}
+</div></div>
+{% if st.sources %}<div><h2 style="font-size:16px">{{ t('sources') }}</h2><ul style="margin:6px 0 0;padding-left:20px;font-size:13px;line-height:1.7">{% for u in st.sources %}<li><a href="{{ u.url }}" rel="noopener noreferrer" target="_blank">{{ u.host }}</a></li>{% endfor %}</ul></div>{% endif %}
+{% if st.researched %}<p class="sub" style="margin:0;font-size:13px">{{ t('researched_on') }} {{ date(st.researched) }}</p>{% endif %}
+</section>{% endif %}
+{% endblock %}"""
+
 TEMPLATES = {"base.html": BASE, "login.html": LOGIN, "overview.html": OVERVIEW, "holdings.html": HOLDINGS,
              "basket.html": BASKET, "risk.html": RISK, "activity.html": ACTIVITY, "reports.html": REPORTS,
-             "profile.html": PROFILE, "how.html": HOW}
+             "profile.html": PROFILE, "how.html": HOW, "stock.html": STOCK}
