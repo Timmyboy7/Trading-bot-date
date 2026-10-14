@@ -246,11 +246,34 @@ def portfolio():
         shadow = rb.spy_shadow(vacct["equity"], closes.get("SPY"), deposits, bool(start), first_px=first_px)
         paid_in = sum(a for _, a in deposits)
         series = build_series(_history(), closes.get("SPY") or [], deposits, start) if start else []
-        return {"account": vacct, "reserve": reserve, "positions": positions, "since": since,
+        spy_units = None
+        sp = closes.get("SPY")
+        if isinstance(shadow, dict) and shadow.get("spy_value") and sp:
+            spy_units = shadow["spy_value"] / sp[-1][1]
+        return {"spy_units": spy_units, "account": vacct, "reserve": reserve, "positions": positions, "since": since,
                 "ind": ind, "shadow": shadow, "paid_in": paid_in, "deposits": deposits,
                 "start": start, "series": series, "errors": errors,
                 "market_open": None}
     return cached("portfolio", 120, load)
+
+
+def live_numbers():
+    """The few numbers the Overview refreshes by itself: fresh account + live S&P 500 price on top of the cached
+    portfolio(). Shared by all viewers, cached 8 s so the Alpaca calls stay a handful per minute."""
+    def load():
+        p = portfolio()
+        vacct, _ = rb.virtual_account(rb._get("/v2/account"), p["deposits"])
+        try:
+            lp = rb.live_prices(["SPY"])
+        except requests.RequestException:
+            lp = {}
+        px = (lp.get("SPY") or {}).get("price")
+        units = p.get("spy_units")
+        sh = p["shadow"] if isinstance(p["shadow"], dict) else {}
+        spy_value = units * px if (units and px) else sh.get("spy_value")
+        return {"eq": float(vacct["equity"]), "cash": float(vacct["cash"]), "paid_in": p["paid_in"],
+                "spy_value": spy_value, "open": bool(px)}
+    return cached("live_numbers", 8, load)
 
 
 def build_series(history, spy, deposits, start):

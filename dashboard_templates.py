@@ -69,23 +69,23 @@ body{background:var(--ink);min-height:100vh;display:flex;align-items:center;just
 
 OVERVIEW = """{% extends 'base.html' %}{% block body %}
 <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px">
-<h1>{{ t(greet) }}, {{ me.name }}</h1><p class="sub" style="margin:0">{{ t('paper_note') }}</p></div>
+<h1>{{ t(greet) }}, {{ me.name }}</h1><p class="sub" style="margin:0">{{ t('paper_note') }}{% if p %} · <span id="lv-badge"></span>{% endif %}</p></div>
 {% if err %}<div class="warnbox">{{ t('data_issue') }}: <span class="mono" style="font-size:12px">{{ err }}</span></div>{% endif %}
 {% if p %}
 <section class="card row" aria-label="Performance" style="padding:28px;gap:32px">
 <div style="flex:1 1 300px;display:flex;flex-direction:column;gap:20px;min-width:0">
 <div><div class="k" style="color:var(--muted);font-weight:500">{{ t('value') }}</div>
-<div class="big mono">{{ money(eq) }}</div>
-<div style="margin-top:6px"><span class="{{ 'pos' if gain >= 0 else 'neg' }}" style="font-weight:600">{{ money(gain, sign=True) }} ({{ pct(gain_pct) }})</span> <span style="color:var(--muted)">{{ t('on') }} {{ money(p.paid_in, dec=0) }} {{ t('paid_in') }}</span></div></div>
+<div class="big mono" id="lv-eq">{{ money(eq) }}</div>
+<div style="margin-top:6px"><span id="lv-gain_line" class="{{ 'pos' if gain >= 0 else 'neg' }}" style="font-weight:600">{{ money(gain, sign=True) }} ({{ pct(gain_pct) }})</span> <span style="color:var(--muted)">{{ t('on') }} {{ money(p.paid_in, dec=0) }} {{ t('paid_in') }}</span></div></div>
 {% if spy_value %}<div class="note"><div style="font-size:13px;color:var(--teal-ink);font-weight:600;text-transform:uppercase;letter-spacing:.06em">{{ t('vs_spy') }}</div>
-<div style="font-size:20px;font-weight:700;margin-top:6px">{{ t('ahead') if excess >= 0 else t('behind') }} {{ money(excess|abs, dec=2) }}</div>
+<div id="lv-excess" style="font-size:20px;font-weight:700;margin-top:6px">{{ t('ahead') if excess >= 0 else t('behind') }} {{ money(excess|abs, dec=2) }}</div>
 
 <div style="font-size:13px;color:#33475B;margin-top:8px;line-height:1.45">{{ t('spy_asof') }}</div></div>{% endif %}
 <dl style="margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;font-size:14px">
 <div><dt style="color:var(--muted)">{{ t('started') }}</dt><dd style="margin:2px 0 0;font-weight:600">{{ date(p.start) if p.start else '—' }}</dd></div>
 <div><dt style="color:var(--muted)">{{ t('monthly') }}</dt><dd style="margin:2px 0 0;font-weight:600">{{ money(p.deposits[1][1] if p.deposits|length > 1 else 100, dec=0) }}</dd></div>
 <div><dt style="color:var(--muted)">{{ t('held') }}</dt><dd style="margin:2px 0 0;font-weight:600">{{ n_held }} {{ t('of') }} {{ basket_n }}</dd></div>
-<div><dt style="color:var(--muted)">{{ t('cash') }}</dt><dd style="margin:2px 0 0;font-weight:600">{{ money(cash) }} <span style="font-weight:400;color:var(--muted)">({{ pct(cash_pct, sign=False) }})</span></dd></div></dl></div>
+<div><dt style="color:var(--muted)">{{ t('cash') }}</dt><dd style="margin:2px 0 0;font-weight:600"><span id="lv-cash_amt">{{ money(cash) }}</span> <span style="font-weight:400;color:var(--muted)">(<span id="lv-cash_pct">{{ pct(cash_pct, sign=False) }}</span>)</span></dd></div></dl></div>
 <figure style="flex:2 1 520px;margin:0;min-width:0;display:flex;flex-direction:column;gap:12px">
 <figcaption style="font-weight:600">{{ t('since_start') }}</figcaption>
 {% if chart %}<svg viewBox="-8 -12 {{ chart.w + 16 }} {{ chart.h + 30 }}" style="width:100%;height:auto;display:block" role="img" aria-label="{{ t('since_start') }}">
@@ -100,11 +100,11 @@ OVERVIEW = """{% extends 'base.html' %}{% block body %}
 <span><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke="#A9B3C1" stroke-width="1.5" stroke-dasharray="4 4"/></svg>{{ t('paid_in')|capitalize }}</span></div>
 {% else %}<p class="sub">{{ t('chart_wait') if n_held else t('nothing_yet') }}</p>{% endif %}
 <div><div style="font-weight:600;margin-bottom:6px">{{ t('split_title') }}</div>
-<div style="display:flex;height:16px;border-radius:4px;overflow:hidden;background:var(--soft)" role="img" aria-label="{{ t('split_title') }}"><div style="width:{{ [100 - cash_pct, 0]|max }}%;background:#0B6E66"></div><div style="width:{{ [cash_pct, 0]|max }}%;background:#A9B3C1"></div></div>
-<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 18px;margin-top:8px;font-size:14px"><span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#0B6E66;margin-right:6px"></span>{{ t('split_inv') }} <strong class="mono">{{ money(stocks_value) }}</strong> <span style="color:var(--muted)">({{ pct(100 - cash_pct, sign=False) }}) · {{ n_held }} {{ t('stocks') }}</span></span><span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#A9B3C1;margin-right:6px"></span>{{ t('split_cash') }} <strong class="mono">{{ money(cash) }}</strong> <span style="color:var(--muted)">({{ pct(cash_pct, sign=False) }})</span></span></div></div>
+<div style="display:flex;height:16px;border-radius:4px;overflow:hidden;background:var(--soft)" role="img" aria-label="{{ t('split_title') }}"><div id="lv-w_inv" style="width:{{ [100 - cash_pct, 0]|max }}%;background:#0B6E66"></div><div id="lv-w_cash" style="width:{{ [cash_pct, 0]|max }}%;background:#A9B3C1"></div></div>
+<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 18px;margin-top:8px;font-size:14px"><span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#0B6E66;margin-right:6px"></span>{{ t('split_inv') }} <strong class="mono" id="lv-stocks_amt">{{ money(stocks_value) }}</strong> <span style="color:var(--muted)">(<span id="lv-stocks_pct">{{ pct(100 - cash_pct, sign=False) }}</span>) · {{ n_held }} {{ t('stocks') }}</span></span><span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#A9B3C1;margin-right:6px"></span>{{ t('split_cash') }} <strong class="mono" id="lv-cash2_amt">{{ money(cash) }}</strong> <span style="color:var(--muted)">(<span id="lv-cash2_pct">{{ pct(cash_pct, sign=False) }}</span>)</span></span></div></div>
 {% if spy_value %}<div class="scroll"><table style="width:100%;font-size:14px;border-collapse:collapse;min-width:420px"><thead><tr style="color:var(--muted);text-align:right"><th scope="col" style="text-align:left;font-weight:500;padding:6px 0"></th><th scope="col" style="font-weight:500;padding:6px 0">{{ t('paid_in_c') }}</th><th scope="col" style="font-weight:500;padding:6px 0">{{ t('worth_now') }}</th><th scope="col" style="font-weight:500;padding:6px 0">{{ t('growth') }}</th></tr></thead><tbody>
-<tr style="text-align:right"><th scope="row" style="text-align:left;font-weight:600;padding:9px 0;border-top:1px solid var(--soft)">{{ t('our_pf') }}</th><td class="mono">{{ money(p.paid_in) }}</td><td class="mono">{{ money(eq) }}</td><td class="mono {{ 'pos' if gain >= 0 else 'neg' }}" style="font-weight:600">{{ money(gain, sign=True) }} ({{ pct(gain_pct, dec=2) }})</td></tr>
-<tr style="text-align:right"><th scope="row" style="text-align:left;font-weight:600;padding:9px 0;border-top:1px solid var(--soft)">{{ t('spy_row') }}</th><td class="mono">{{ money(p.paid_in) }}</td><td class="mono">{{ money(spy_value) }}</td><td class="mono {{ 'pos' if spy_gain >= 0 else 'neg' }}" style="font-weight:600">{{ money(spy_gain, sign=True) }} ({{ pct(spy_gain_pct, dec=2) }})</td></tr></tbody></table></div>{% endif %}</figure></section>
+<tr style="text-align:right"><th scope="row" style="text-align:left;font-weight:600;padding:9px 0;border-top:1px solid var(--soft)">{{ t('our_pf') }}</th><td class="mono">{{ money(p.paid_in) }}</td><td class="mono" id="lv-pf_worth">{{ money(eq) }}</td><td id="lv-pf_growth" class="mono {{ 'pos' if gain >= 0 else 'neg' }}" style="font-weight:600">{{ money(gain, sign=True) }} ({{ pct(gain_pct, dec=2) }})</td></tr>
+<tr style="text-align:right"><th scope="row" style="text-align:left;font-weight:600;padding:9px 0;border-top:1px solid var(--soft)">{{ t('spy_row') }}</th><td class="mono">{{ money(p.paid_in) }}</td><td class="mono" id="lv-spy_worth">{{ money(spy_value) }}</td><td id="lv-spy_growth" class="mono {{ 'pos' if spy_gain >= 0 else 'neg' }}" style="font-weight:600">{{ money(spy_gain, sign=True) }} ({{ pct(spy_gain_pct, dec=2) }})</td></tr></tbody></table></div>{% endif %}</figure></section>
 {% endif %}
 <div class="grid">
 <div class="tile"><div class="k">{{ t('next_decision') }}</div><div class="v">20:00</div><div class="s">{{ t('daily_check') }}</div></div>
@@ -122,7 +122,14 @@ OVERVIEW = """{% extends 'base.html' %}{% block body %}
 <section class="card" style="flex:2 1 320px;min-width:0" aria-labelledby="bg"><div style="display:flex;justify-content:space-between;gap:12px"><h2 id="bg">{{ t('biggest') }}</h2><a href="/app/holdings" style="font-weight:600">{{ t('all_holdings') }}</a></div>
 {% if rows %}<div class="list">{% for r in rows %}<div><div style="display:flex;justify-content:space-between;font-size:14px"><span><strong class="mono">{{ r.symbol }}</strong></span><span class="mono">{{ pct(r.share, sign=False) }}</span></div><div class="bar" style="margin-top:6px"><div style="width:{{ [r.share * 10, 100]|min }}%"></div></div></div>{% endfor %}</div>
 {% else %}<p class="sub">{{ t('nothing_yet') }}</p>{% endif %}</section></div>
-{% endblock %}"""
+
+{% if p %}<script nonce="{{ nonce() }}">(function(){var b=document.getElementById('lv-badge'),T=null,fails=0;
+function ap(d){for(var k in d){if(k==='cls'||k==='open'||k==='badge')continue;var e=document.getElementById('lv-'+k);if(!e)continue;if(k.indexOf('w_')===0)e.style.width=d[k];else e.textContent=d[k]}
+var c=d.cls||{};for(var k2 in c){var e2=document.getElementById('lv-'+k2);if(e2){e2.classList.remove('pos','neg');e2.classList.add(c[k2])}}
+if(b){b.textContent=d.badge;b.style.color=d.open?'#0B6E66':''}}
+function tick(){if(document.hidden){T=setTimeout(tick,10000);return}
+fetch('/app/live.json',{credentials:'same-origin',headers:{'Accept':'application/json'}}).then(function(r){if(!r.ok||(r.headers.get('content-type')||'').indexOf('json')<0)throw 0;return r.json()}).then(function(d){fails=0;ap(d);T=setTimeout(tick,d.open?10000:60000)}).catch(function(){fails++;T=setTimeout(tick,Math.min(60000,10000*(fails+1)))})}
+T=setTimeout(tick,3000)})();</script>{% endif %}{% endblock %}"""
 
 HOLDINGS = """{% extends 'base.html' %}{% block body %}
 <div><h1>{{ t('holdings') }}</h1><p class="sub">{% if p %}{{ rows|length }} {{ t('stocks') }} · {{ t('cash') }} {{ money(p.account.cash|float) }}. {% endif %}{{ t('click_stock') }}</p></div>
