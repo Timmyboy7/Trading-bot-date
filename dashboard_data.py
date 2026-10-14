@@ -489,38 +489,64 @@ def price_history(sym):
         if len(days) < 20:
             return None
         a0, b0 = a[days[0]], b[days[0]]
-        rows = [(d, (a[d] / a0 - 1) * 100, (b[d] / b0 - 1) * 100) for d in days]
+        rows = [(d, a[d], b[d] / b0 * a0) for d in days]          # S&P 500 scaled to start at the stock's price
         hi = max(a.values()); lo = min(a.values())
         prev = a[days[-2]]
-        return {"rows": rows, "day": (a[days[-1]] / prev - 1) * 100, "last_date": days[-1], "ret": rows[-1][1], "spy_ret": rows[-1][2], "last": a[days[-1]],
+        return {"rows": rows, "day": (a[days[-1]] / prev - 1) * 100, "last_date": days[-1], "ret": (a[days[-1]] / a0 - 1) * 100, "spy_ret": (b[days[-1]] / b0 - 1) * 100, "last": a[days[-1]],
                 "from_high": (a[days[-1]] / hi - 1) * 100, "from_low": (a[days[-1]] / lo - 1) * 100}
     return cached(f"px_{sym}", 3600, load)
 
 
+def _nice_ticks(lo, hi, n=5):
+    """Round axis values (1-2-5 steps) covering [lo, hi]."""
+    import math
+    span = (hi - lo) or abs(hi) or 1.0
+    raw = span / n
+    mag = 10 ** math.floor(math.log10(raw))
+    step = next(m * mag for m in (1, 2, 2.5, 5, 10) if m * mag >= raw)
+    t0 = math.floor(lo / step) * step
+    out, v = [], t0
+    while v < hi + step * 0.999:
+        out.append(round(v, 6))
+        v += step
+    return out
+
+
 def chart_px(h, since=None, w=760, ht=220):
-    """SVG data for price_history(): stock line, S&P line, 0% baseline, optional purchase marker."""
+    """SVG data for price_history(): price axis in dollars, month ticks on the date axis, stock line, the S&P 500
+    line scaled to start at the same price, optional purchase marker."""
     rows = h["rows"]
-    vals = [v for _, x, y in rows for v in (x, y)] + [0.0]
-    lo, hi = min(vals), max(vals)
-    pad = (hi - lo) * 0.08 or 5
-    lo, hi = lo - pad, hi + pad
+    vals = [v for _, x, y in rows for v in (x, y)]
+    ticks = _nice_ticks(min(vals), max(vals))
+    lo, hi = ticks[0], ticks[-1]
     n = len(rows) - 1
 
     def yy(v):
         return ht - (v - lo) / (hi - lo) * ht
 
+    def xx(k):
+        return k * w / n
+
     def pts(i):
-        return " ".join(f"{k * w / n:.1f},{yy(r[i]):.1f}" for k, r in enumerate(rows))
+        return " ".join(f"{xx(k):.1f},{yy(r[i]):.1f}" for k, r in enumerate(rows))
     mark = None
     if since:
         k = next((i for i, r in enumerate(rows) if r[0] >= str(since)[:10]), None)
         if k is not None:
-            mark = round(k * w / n, 1)
-    step = (hi - lo) / 4
-    grid = [(round(yy(v), 1), v) for v in (lo + step * i for i in (0.5, 1.5, 2.5, 3.5))]
-    return {"a": pts(1), "b": pts(2), "w": w, "h": ht, "grid": grid, "zero": round(yy(0.0), 1), "mark": mark,
-            "first": rows[0][0], "last": rows[-1][0], "end": round(yy(rows[-1][1]), 1),
-            "end_b": round(yy(rows[-1][2]), 1)}
+            mark = round(xx(k), 1)
+    months, seen = [], None
+    for k, r in enumerate(rows):
+        ym = r[0][:7]
+        if ym != seen:
+            seen = ym
+            months.append({"x": round(xx(k), 1), "iso": r[0], "m": int(r[0][5:7]), "y": r[0][:4]})
+    if len(months) > 1 and months[1]["x"] - months[0]["x"] < w / 18:   # first stub month too close to the next
+        months = months[1:]
+    dec = 0 if hi - lo >= 8 else 2
+    return {"a": pts(1), "b": pts(2), "w": w, "h": ht, "mark": mark, "months": months, "dec": dec,
+            "grid": [(round(yy(v), 1), v) for v in ticks], "first": rows[0][0], "last": rows[-1][0],
+            "end": round(yy(rows[-1][1]), 1), "end_b": round(yy(rows[-1][2]), 1),
+            "start_y": round(yy(rows[0][1]), 1)}
 
 
 def holdings_risk():
