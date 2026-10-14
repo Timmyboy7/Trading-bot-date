@@ -5,6 +5,13 @@ import requests
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
+# Private dashboard (/app): signed session cookie. Set DASH_SECRET on Render, otherwise a
+# random key is used and everyone is logged out whenever the server restarts.
+import secrets as _secrets
+app.secret_key = os.environ.get("DASH_SECRET") or _secrets.token_hex(32)
+app.config.update(SESSION_COOKIE_SECURE=os.environ.get("DASH_INSECURE_COOKIE") != "1",
+                  SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax",
+                  PERMANENT_SESSION_LIFETIME=datetime.timedelta(days=30))
 
 import traceback
 
@@ -35,6 +42,7 @@ _register("backtest", "backtest_bp")
 _register("rebalance", "rebalance_bp")
 _register("deep_dive", "deep_dive_bp")
 _register("alarm", "alarm_bp")
+_register("dashboard", "dashboard_bp")
 
 ALPACA_KEY = os.environ.get("ALPACA_API_KEY")
 ALPACA_SECRET = os.environ.get("ALPACA_API_SECRET")
