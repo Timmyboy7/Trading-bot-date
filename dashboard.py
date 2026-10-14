@@ -135,9 +135,9 @@ def safe(fn, default=None):
 
 def sheet_part(fn, default):
     if not D.sheets_configured():
-        return default, "need_sheet"
+        return default, "need_sheet:" + D.sheets_problem()
     v, err = safe(fn, default)
-    return v, ("sheet_error" if err else None)
+    return v, (f"sheet_error:{err}" if err else None)
 
 
 # --------------------------------------------------------------------------- view models

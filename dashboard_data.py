@@ -89,6 +89,32 @@ def sheets_configured():
     return bool(os.environ.get("GOOGLE_SA_JSON") and SHEET_ID)
 
 
+def sheets_problem():
+    """Plain-words reason why the sheet connection is not usable (names/shape only, never values)."""
+    out = []
+    raw = os.environ.get("GOOGLE_SA_JSON")
+    if not raw:
+        out.append("GOOGLE_SA_JSON is empty or missing")
+    else:
+        try:
+            info = json.loads(raw)
+            if not isinstance(info, dict) or not info.get("private_key") or not info.get("client_email"):
+                out.append("GOOGLE_SA_JSON is JSON but lacks client_email/private_key")
+        except ValueError:
+            out.append(f"GOOGLE_SA_JSON is not valid JSON (it starts with '{raw.strip()[:1]}', "
+                       f"{len(raw)} characters; the whole file must be pasted, starting with '{{')")
+    if not SHEET_ID:
+        out.append("DASH_SHEET_ID is empty or missing")
+    if out:
+        odd = sorted(k for k in os.environ
+                     if k not in ("GOOGLE_SA_JSON", "DASH_SHEET_ID")
+                     and (k.upper().startswith(("GOOG", "GOGG", "DASH_SH")) or "SA_JSON" in k.upper()
+                          or "SHEET" in k.upper()))
+        if odd:
+            out.append("similar names found on the server: " + ", ".join(odd))
+    return "; ".join(out)
+
+
 def _sheets_token():
     if _TOKEN["v"] and time.time() < _TOKEN["exp"] - 60:
         return _TOKEN["v"]
