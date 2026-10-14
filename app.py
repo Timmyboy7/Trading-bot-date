@@ -34,6 +34,7 @@ _register("fair_value", "fair_bp")
 _register("backtest", "backtest_bp")
 _register("rebalance", "rebalance_bp")
 _register("deep_dive", "deep_dive_bp")
+_register("alarm", "alarm_bp")
 
 ALPACA_KEY = os.environ.get("ALPACA_API_KEY")
 ALPACA_SECRET = os.environ.get("ALPACA_API_SECRET")

@@ -119,6 +119,7 @@ FILL_WAIT_SEC = _env("REBAL_FILL_WAIT_SEC", 12)
 REBUY_GATED = ("trend", "stop")                      # re-buy needs the buy-back signal
 WEEK_BLOCKED = ("exit",)                             # re-buy waits for the next weekly run
 LOOKBACK_DAYS = 420
+LIVE_PRICE = os.environ.get("REBAL_LIVE_PRICE", "1") not in ("0", "false", "False", "")
 
 
 # --------------------------------------------------------------------------- input
@@ -273,8 +274,32 @@ def last_own_orders(days=200):
     return out
 
 
-def daily_closes(symbols, today=None):
-    """{symbol: [(date, close), ...]} split-adjusted, completed days only (today's bar dropped)."""
+def live_prices(symbols, today=None):
+    """{symbol: {"price", "prev_close"}} from Alpaca snapshots, only for names that traded today
+    (UTC date; the US session 13:30-20:00 UTC never crosses midnight). Empty when the market is shut."""
+    today = (today or datetime.datetime.now(datetime.timezone.utc).date()).isoformat()
+    out = {}
+    syms = sorted(set(symbols))
+    for i in range(0, len(syms), 100):
+        r = requests.get(f"{DATA_BASE}/v2/stocks/snapshots", headers=HEADERS,
+                         params={"symbols": ",".join(syms[i:i + 100]), "feed": DATA_FEED}, timeout=20)
+        if r.status_code != 200:
+            continue
+        for s, snap in (r.json() or {}).items():
+            t = (snap or {}).get("latestTrade") or {}
+            prev = (snap.get("prevDailyBar") or {}).get("c")
+            if t.get("p") and str(t.get("t", ""))[:10] == today:
+                out[s] = {"price": float(t["p"]), "prev_close": float(prev) if prev else None}
+    return out
+
+
+def daily_closes(symbols, today=None, live=None):
+    """{symbol: [(date, close), ...]} split-adjusted, completed days only (today's bar dropped).
+    live (default REBAL_LIVE_PRICE=1, only when today is not given): while the market trades,
+    today's latest price is appended as the newest point, so the trend exit, spike / falling-knife
+    waits and the deep dive's price shock see TODAY's move, not just yesterday's close."""
+    live = LIVE_PRICE if live is None else live
+    live = live and today is None
     today = today or datetime.date.today()
     start = (today - datetime.timedelta(days=LOOKBACK_DAYS)).isoformat()
     out = {}
@@ -296,7 +321,16 @@ def daily_closes(symbols, today=None):
             if not token:
                 break
     iso = today.isoformat()
-    return {s: [x for x in v if x[0] < iso] for s, v in out.items()}
+    out = {s: [x for x in v if x[0] < iso] for s, v in out.items()}
+    if live and out:
+        try:
+            lp = live_prices(out, today)
+        except requests.RequestException:
+            lp = {}
+        for s, x in lp.items():
+            if out.get(s):
+                out[s].append((iso, x["price"]))
+    return out
 
 
 # --------------------------------------------------------------------------- indicators
