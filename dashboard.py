@@ -627,7 +627,7 @@ def activity(me):
         for o in row["orders"]:
             if isinstance(o, dict) and o.get("symbol"):
                 tag, title = X.explain_order(o, lang)
-                items.append({"tag": tag, "title": title, "why": o.get("reason", ""),
+                items.append({"tag": tag, "title": title, "why": o.get("reason", ""), "checks": o.get("checks", ""),
                               "amount": o.get("amount_usd") if o.get("status") != "skipped" else None})
         for d in row["decisions"]:
             if isinstance(d, dict) and d.get("symbol") and d.get("action") not in (None, ""):

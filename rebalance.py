@@ -31,6 +31,7 @@ the account match it. v1 written 2026-10-11 (equal weight, hard stop); v2
   Timing guards on buys (the deep dive adds more in step 12)
   - spike: up >= REBAL_SPIKE_PCT (15%) in 5 days -> wait
   - falling knife: down >= REBAL_KNIFE_PCT (15%) in 10 days -> wait
+  - big drop today: down >= REBAL_DAY_DROP_PCT (8%) versus yesterday's close -> wait (0 switches it off)
   - "hold" input from the deep dive -> wait
   Waits only work in the first REBAL_MAX_WAIT_DAYS (3) days after the weekly
   run; after that the buy goes through. Nothing can block a buy for good.
@@ -100,6 +101,7 @@ REBUY_NEAR_HIGH = _env("REBAL_REBUY_NEAR_HIGH", 0.03)
 HIGH_3M_DAYS = 63
 SPIKE_PCT = _env("REBAL_SPIKE_PCT", 0.15)            # +15% in 5 days
 KNIFE_PCT = _env("REBAL_KNIFE_PCT", 0.15)            # -15% in 10 days
+DAY_DROP_PCT = _env("REBAL_DAY_DROP_PCT", 0.08)      # -8% in one day (0 = off)
 TRANCHES = int(_env("REBAL_TRANCHES", 3))
 TRANCHE_DAYS = int(_env("REBAL_TRANCHE_DAYS", 7))
 HOLD_DAYS = int(_env("RECON_HOLD_DAYS", 182))
@@ -348,8 +350,23 @@ def indicators(series, since=None):
     def ret(n):
         return last / closes[-1 - n] - 1 if len(closes) > n and closes[-1 - n] else None
     return {"close": last, "date": series[-1][0], "sma": sma, "high_since": hi_since, "high_3m": hi3m,
-            "ret5": ret(5), "ret10": ret(10),
+            "ret1": ret(1), "ret5": ret(5), "ret10": ret(10),
             "dd_from_high": last / hi_since - 1 if hi_since else 0.0}
+
+
+def entry_checks(i, delayed=False):
+    """One line with the facts the timing rules looked at when a buy went out (the 'why now')."""
+    if not i:
+        return "no price data"
+
+    def r(v):
+        return "n/a" if v is None else f"{v:+.1%}"
+    avg = (f"{'above' if i['close'] >= i['sma'] else 'below'} the {SMA_DAYS}-day average ({i['close'] / i['sma'] - 1:+.1%})"
+           if i.get("sma") else f"{SMA_DAYS}-day average n/a")
+    day_rule = f" (waits at -{DAY_DROP_PCT:.0%})" if DAY_DROP_PCT > 0 else ""
+    return (f"today {r(i.get('ret1'))}{day_rule} | 5 days {r(i.get('ret5'))} (waits at +{SPIKE_PCT:.0%}) | "
+            f"10 days {r(i.get('ret10'))} (waits at -{KNIFE_PCT:.0%}) | {avg} | "
+            f"news/earnings check: {'was delayed, wait over' if delayed else 'no wait'}")
 
 
 def trend_broken(ind):
@@ -459,6 +476,8 @@ def plan(basket_rows, account, positions, ind, since, last_orders, hold=(), exit
                 wait = f"spike: up {i['ret5']:.0%} in 5 days"
             elif i and i["ret10"] is not None and i["ret10"] <= -KNIFE_PCT:
                 wait = f"falling knife: down {abs(i['ret10']):.0%} in 10 days"
+            elif DAY_DROP_PCT > 0 and i and i.get("ret1") is not None and i["ret1"] <= -DAY_DROP_PCT:
+                wait = f"big drop today: down {abs(i['ret1']):.0%} in one day"
             if wait and waits_allowed:
                 skipped.append({"symbol": sym, "reason": wait + f" - waits at most {MAX_WAIT_DAYS} days after the weekly run"})
                 continue
@@ -492,9 +511,12 @@ def plan(basket_rows, account, positions, ind, since, last_orders, hold=(), exit
     # new money only to names in a healthy trend: above the 150-day average, no spike, no falling knife
     unhealthy = {x for x in room if not ind.get(x) or (ind[x]["sma"] and ind[x]["close"] < ind[x]["sma"])
                  or (ind[x]["ret10"] is not None and ind[x]["ret10"] <= -KNIFE_PCT)
+                 or (DAY_DROP_PCT > 0 and ind[x].get("ret1") is not None and ind[x]["ret1"] <= -DAY_DROP_PCT)
                  or (ind[x]["ret5"] is not None and ind[x]["ret5"] >= SPIKE_PCT)}
     deployed = deploy_spare(buys, room, skipped, cash + proceeds, capital, stamp, unhealthy)
     scale = scale_buys(buys, cash + proceeds, capital)
+    for b in buys:                       # the facts behind "why now", kept with every buy
+        b["checks"] = entry_checks(ind.get(b["symbol"]), b["symbol"] in set(hold))
     return {"capital": round(capital, 2), "investable": round(investable, 2), "weights": weights,
             "sells": sells, "buys": buys, "skipped": skipped, "notes": notes, "buy_scale": scale,
             "deployed_spare": deployed}
@@ -726,7 +748,7 @@ def run(basket_rows, execute=False, hold=(), exits=()):
                      "sma_days": SMA_DAYS, "tranches": TRANCHES, "tranche_days": TRANCHE_DAYS,
                      "hold_days": HOLD_DAYS, "weight_ratio": WEIGHT_RATIO,
                      "monthly_deposit": MONTHLY_DEPOSIT, "paper_balance": PAPER_BALANCE, "spike_pct": SPIKE_PCT,
-                     "knife_pct": KNIFE_PCT, "max_wait_days": MAX_WAIT_DAYS, "capital_cap": CAPITAL_CAP},
+                     "knife_pct": KNIFE_PCT, "day_drop_pct": DAY_DROP_PCT, "max_wait_days": MAX_WAIT_DAYS, "capital_cap": CAPITAL_CAP},
     }
     slim = [{k: o.get(k) for k in ("symbol", "side", "kind", "amount_usd", "qty", "status", "reason", "error")
              if o.get(k) is not None} for o in orders]

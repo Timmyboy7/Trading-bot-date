@@ -19,6 +19,7 @@ T = {
     "value": ("Portfolio value", "Depotwert"), "paid_in": ("paid in", "eingezahlt"),
     "on": ("on", "bei"), "vs_spy": ("Versus the S&P 500", "Im Vergleich zum S&P 500"),
     "ahead": ("Ahead by", "Voraus um"), "behind": ("Behind by", "Zurück um"),
+    "checks_label": ("Checked at purchase", "Geprüft beim Kauf"),
     "price": ("Price", "Kurs"), "today": ("Today", "Heute"),
     "inv_title": ("Invested in stocks", "In Aktien investiert"), "put_into": ("put into stocks", "in Aktien eingesetzt"),
     "vs_spy_same": ("Versus the S&P 500, same purchases", "Im Vergleich zum S&P 500, gleiche Käufe"),
@@ -303,6 +304,9 @@ def explain_order(o, lang):
         if m:
             return "WAIT", (f"{sym}: gewartet – Kurssprung +{m.group(1)} % in 5 Tagen" if de
                             else f"{sym}: waited — jumped {m.group(1)}% in 5 days")
+        m = re.search(r"down (\d+)% in one day", r)
+        if m:
+            return "WAIT", (f"{sym}: gewartet – heute −{m.group(1)} %" if de else f"{sym}: waited — fell {m.group(1)}% today")
         m = re.search(r"down (\d+)% in 10 days", r)
         if m:
             return "WAIT", (f"{sym}: gewartet – Kurssturz −{m.group(1)} % in 10 Tagen" if de
