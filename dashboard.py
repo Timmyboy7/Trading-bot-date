@@ -448,47 +448,66 @@ def overview(me):
                    cash_pct=float(p["account"]["cash"]) / eq * 100 if eq else 0,
                    in_hold=sum(1 for r in rows if r["day"] < 182),
                    first_free=min([r["tax_free"] for r in rows if r["tax_free"]] or [None]))
+    if p:
+        try:
+            ctx["v"] = money_strings(D.live_numbers(), lang, len(rows))
+        except Exception:  # noqa: BLE001 - the page then omits the money block and says so
+            ctx["v"] = None
     ctx["week"] = week_items(tr or [], lang)
     ctx["basket_n"] = len(wl or []) or 20
     ctx["risk"] = risk_model(run, wl or [], dn) if run else None
     return render("overview.html", me, page="overview", **ctx)
 
 
-@dashboard_bp.route("/live.json")
-@need_login
-def live_json(me):
-    """Overview numbers as ready-to-show text (the page script only copies them in). Same formulas as the page."""
-    lang = me["lang"]
-    try:
-        n = D.live_numbers()
-    except Exception:  # noqa: BLE001 - the page keeps what it shows
-        return Response('{"error": 1}', status=503, mimetype="application/json")
+def money_strings(n, lang, n_held=0):
+    """Every money number of the Overview as ready-to-show text, from D.live_numbers(). The page prints it and
+    /live.json sends the same dict, so both always agree. Invested money (stocks) and cash are kept apart: the
+    S&P 500 comparison uses the same purchases in the S&P 500 (cash is not part of it)."""
+    m, pc = (lambda v, **kw: X.money(v, lang, **kw)), (lambda v, **kw: X.pct(v, lang, **kw))
     eq, cash, paid = n["eq"], n["cash"], n["paid_in"]
-    gain = eq - paid
-    gain_pct = (eq / paid - 1) * 100 if paid else 0.0
+    stocks = eq - cash
     cash_pct = cash / eq * 100 if eq else 0.0
-    out = {"eq": X.money(eq, lang), "gain_line": f"{X.money(gain, lang, sign=True)} ({X.pct(gain_pct, lang)})",
-           "pf_worth": X.money(eq, lang), "pf_growth": f"{X.money(gain, lang, sign=True)} ({X.pct(gain_pct, lang, dec=2)})",
-           "stocks_amt": X.money(eq - cash, lang), "stocks_pct": X.pct(100 - cash_pct, lang, sign=False),
-           "cash_amt": X.money(cash, lang), "cash_pct": X.pct(cash_pct, lang, sign=False),
-           "cash2_amt": X.money(cash, lang), "cash2_pct": X.pct(cash_pct, lang, sign=False),
-           "w_inv": f"{max(100 - cash_pct, 0):.1f}%", "w_cash": f"{max(cash_pct, 0):.1f}%",
-           "cls": {"gain_line": "pos" if gain >= 0 else "neg", "pf_growth": "pos" if gain >= 0 else "neg"}, "open": n["open"]}
+    gain = eq - paid
+    tw = n.get("twin")
+    px = n.get("spy_px")
+    v = {"stocks": m(stocks), "stocks_pct": pc(100 - cash_pct, sign=False), "cash_amt": m(cash), "cash_pct": pc(cash_pct, sign=False),
+         "cash2_amt": m(cash), "cash2_pct": pc(cash_pct, sign=False), "eq": m(eq), "stocks2": m(stocks),
+         "gain_line": f"{m(gain, sign=True)} ({pc((eq / paid - 1) * 100 if paid else 0.0)})",
+         "w_inv": f"{max(100 - cash_pct, 0):.1f}%", "w_cash": f"{max(cash_pct, 0):.1f}%", "open": n["open"],
+         "has_twin": False, "cls": {"gain_line": "pos" if gain >= 0 else "neg"}}
+    if tw and tw["buys"] > 0 and px:
+        net_in = tw["buys"] - tw["sells"]
+        twin_value = tw["units"] * px
+        g, tg = stocks - net_in, twin_value - net_in
+        ex = stocks - twin_value
+        v.update(has_twin=True, put_a=m(net_in), put_b=m(net_in), st_worth=m(stocks), tw_worth=m(twin_value),
+                 st_growth=f"{m(g, sign=True)} ({pc(g / tw['buys'] * 100, dec=2)})",
+                 tw_growth=f"{m(tg, sign=True)} ({pc(tg / tw['buys'] * 100, dec=2)})",
+                 inv_growth=f"{m(g, sign=True)} ({pc(g / tw['buys'] * 100, dec=2)})", inv_on=m(net_in),
+                 excess=f"{X.t('ahead' if ex >= 0 else 'behind', lang)} {m(abs(ex), dec=2)}")
+        v["cls"].update(st_growth="pos" if g >= 0 else "neg", tw_growth="pos" if tg >= 0 else "neg",
+                        inv_growth="pos" if g >= 0 else "neg")
     sv = n.get("spy_value")
     if sv:
-        sg = sv - paid
-        ex = eq - sv
-        out.update(excess=f"{X.t('ahead' if ex >= 0 else 'behind', lang)} {X.money(abs(ex), lang, dec=2)}", spy_worth=X.money(sv, lang),
-                   spy_growth=f"{X.money(sg, lang, sign=True)} ({X.pct((sv / paid - 1) * 100 if paid else 0, lang, dec=2)})")
-        out["cls"]["spy_growth"] = "pos" if sg >= 0 else "neg"
+        v.update(whole_a=m(eq), whole_b=m(sv))
     try:
         from zoneinfo import ZoneInfo
         now = datetime.datetime.now(ZoneInfo("Europe/Luxembourg"))
     except Exception:  # noqa: BLE001
         now = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=2)
-    out["badge"] = X.t("live_open" if n["open"] else "live_closed", lang, t=now.strftime("%H:%M:%S"))
-    resp = Response(json.dumps(out), mimetype="application/json")
-    return resp
+    v["badge"] = X.t("live_open" if n["open"] else "live_closed", lang, t=now.strftime("%H:%M:%S"))
+    return v
+
+
+@dashboard_bp.route("/live.json")
+@need_login
+def live_json(me):
+    """Overview numbers as ready-to-show text (the page script only copies them in)."""
+    try:
+        v = money_strings(D.live_numbers(), me["lang"])
+    except Exception:  # noqa: BLE001 - the page keeps what it shows
+        return Response('{"error": 1}', status=503, mimetype="application/json")
+    return Response(json.dumps(v), mimetype="application/json")
 
 
 @dashboard_bp.route("/holdings")

@@ -250,11 +250,46 @@ def portfolio():
         sp = closes.get("SPY")
         if isinstance(shadow, dict) and shadow.get("spy_value") and sp:
             spy_units = shadow["spy_value"] / sp[-1][1]
-        return {"spy_units": spy_units, "account": vacct, "reserve": reserve, "positions": positions, "since": since,
+        fills_min = []
+        for f in fills:
+            try:
+                fills_min.append((str(f.get("transaction_time") or ""), str(f.get("side") or ""),
+                                  float(f.get("qty") or 0) * float(f.get("price") or 0)))
+            except (TypeError, ValueError):
+                continue
+        return {"fills": fills_min, "spy_daily": closes.get("SPY") or [],
+                "spy_units": spy_units, "account": vacct, "reserve": reserve, "positions": positions, "since": since,
                 "ind": ind, "shadow": shadow, "paid_in": paid_in, "deposits": deposits,
                 "start": start, "series": series, "errors": errors,
                 "market_open": None}
     return cached("portfolio", 120, load)
+
+
+def invested_twin():
+    """What the same stock purchases would be worth had every dollar gone into the S&P 500 fund (SPY) at the moment of
+    the fill: {"buys", "sells", "units", "ok"}. Cash is not part of this. Fills are priced per minute (cached)."""
+    def load():
+        p = portfolio()
+        daily = dict(p.get("spy_daily") or [])
+        buys = sells = units = 0.0
+        ok = True
+        for ts, side, amt in p.get("fills") or []:
+            if amt <= 0 or side not in ("buy", "sell"):
+                continue
+            px = spy_at(ts[:16] + ":00Z") if len(ts) >= 16 else None
+            if not px:
+                px = daily.get(ts[:10])
+                ok = ok and bool(px)
+            if not px:
+                continue
+            if side == "buy":
+                buys += amt
+                units += amt / px
+            else:
+                sells += amt
+                units -= amt / px
+        return {"buys": buys, "sells": sells, "units": units, "ok": ok}
+    return cached("invested_twin", 60, load)
 
 
 def live_numbers():
@@ -268,11 +303,16 @@ def live_numbers():
         except requests.RequestException:
             lp = {}
         px = (lp.get("SPY") or {}).get("price")
+        last_close = (p.get("spy_daily") or [(None, None)])[-1][1]
         units = p.get("spy_units")
         sh = p["shadow"] if isinstance(p["shadow"], dict) else {}
         spy_value = units * px if (units and px) else sh.get("spy_value")
+        try:
+            twin = invested_twin()
+        except Exception:  # noqa: BLE001 - the page then shows the whole-account numbers only
+            twin = None
         return {"eq": float(vacct["equity"]), "cash": float(vacct["cash"]), "paid_in": p["paid_in"],
-                "spy_value": spy_value, "open": bool(px)}
+                "spy_value": spy_value, "spy_px": px or last_close, "twin": twin, "open": bool(px)}
     return cached("live_numbers", 8, load)
 
 
