@@ -19,6 +19,8 @@ T = {
     "value": ("Portfolio value", "Depotwert"), "paid_in": ("paid in", "eingezahlt"),
     "on": ("on", "bei"), "vs_spy": ("Versus the S&P 500", "Im Vergleich zum S&P 500"),
     "ahead": ("Ahead by", "Voraus um"), "behind": ("Behind by", "Zurück um"),
+    "split_title": ("Where the money is today", "Wo das Geld heute steckt"),
+    "split_inv": ("Invested in stocks", "In Aktien investiert"), "split_cash": ("Cash", "Bargeld"),
     "paid_in_c": ("Paid in", "Eingezahlt"), "worth_now": ("Worth now", "Wert heute"), "growth": ("Growth", "Zuwachs"),
     "our_pf": ("Our portfolio", "Unser Depot"), "spy_row": ("S&P 500, same deposits", "S&P 500, gleiche Einzahlungen"),
     "pf_split": ("Our portfolio: {s} in stocks and {c} in cash.", "Unser Depot: {s} in Aktien und {c} Bargeld."),
