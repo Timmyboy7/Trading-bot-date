@@ -35,6 +35,8 @@ T = {
     "picks20": ("Picks the 20 strongest stocks", "Wählt die 20 stärksten Aktien"),
     "this_week": ("This week in plain words", "Diese Woche, einfach erklärt"), "all_activity": ("All activity", "Alle Aktivitäten"),
     "biggest": ("Biggest positions", "Größte Positionen"), "all_holdings": ("All holdings", "Alle Positionen"),
+    "chart_wait": ("The first purchases are in. A line needs at least two days, so the chart starts after tomorrow's close and then grows every day.",
+                   "Die ersten Käufe sind erledigt. Für eine Linie braucht es mindestens zwei Tage: Die Grafik beginnt nach dem Handelsschluss morgen und wächst dann täglich."),
     "nothing_yet": ("Nothing has been bought yet. The first purchases appear here after the next daily run.",
                     "Noch nichts gekauft. Die ersten Käufe erscheinen hier nach dem nächsten Tageslauf."),
     "stocks": ("stocks", "Aktien"), "stock": ("Stock", "Aktie"), "gain": ("Gain", "Gewinn"),
