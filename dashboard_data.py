@@ -284,6 +284,40 @@ def desk():
     return cached("desk", 600, dd.load_desk)
 
 
+# --------------------------------------------------------------------------- company names
+
+_LEGAL = re.compile(r"[,\s]+(Inc\.?|Incorporated|Corp\.?|Corporation|Co\.?|Company|Ltd\.?|Limited|PLC|plc|N\.V\.|S\.A\.|LLC|L\.P\.)$")
+_SHARES = re.compile(r"\s+(Common Stock|Ordinary Shares?|Common Shares?|Class [A-C]( Common Stock| Ordinary Shares?| Shares?)?|"
+                     r"Depositary Shares?.*|American Depositary.*|Registered Shares?|Capital Stock|Shares of Beneficial Interest)$", re.I)
+
+
+def clean_name(n):
+    """'Micron Technology, Inc. Common Stock' -> 'Micron Technology'."""
+    n = (n or "").strip()
+    for _ in range(4):
+        m = _SHARES.sub("", n)
+        m = _LEGAL.sub("", m)
+        if m == n:
+            break
+        n = m
+    return re.sub(r"\s+(and|&)$", "", n.strip(" ,.")).strip()
+
+
+def company_names():
+    """{symbol: short company name} from Alpaca's asset list (cached a day); {} if unavailable."""
+    def load():
+        try:
+            assets = rb._get("/v2/assets", status="active", asset_class="us_equity")
+        except (requests.RequestException, ValueError):
+            return {}
+        return {a["symbol"].upper(): clean_name(a.get("name")) for a in assets
+                if isinstance(a, dict) and a.get("symbol") and a.get("name")}
+    names = cached("names", 86400, load)
+    if not names:
+        _C.pop("names", None)   # do not keep a failure for a day
+    return names
+
+
 # --------------------------------------------------------------------------- downloads
 
 def audit_log_csv():

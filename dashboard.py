@@ -105,6 +105,11 @@ def _headers(resp):
 ENV = jinja2.Environment(loader=jinja2.DictLoader({}), autoescape=True)
 
 
+def _names():
+    v, _ = safe(D.company_names, {})
+    return v or {}
+
+
 def render(name, me, **ctx):
     lang = me["lang"] if me else request.args.get("lang", "en")
     ENV.loader = jinja2.DictLoader(TEMPLATES)
@@ -113,6 +118,7 @@ def render(name, me, **ctx):
                       t=lambda k, **kw: X.t(k, lang, **kw), money=lambda v, **kw: X.money(v, lang, **kw),
                       pct=lambda v, **kw: X.pct(v, lang, **kw), date=lambda v: X.date(v, lang),
                       tag=lambda k: X.TAGS.get(k, (k, k))[1 if lang == "de" else 0],
+                      nm=lambda sym: _names().get(str(sym).upper(), ""),
                       plain=lambda v, trig=False: X.plain_risk(v, lang, trig),
                       rname=lambda v: X.risk_name(v, lang), rlevel=lambda v: X.risk_level(v, lang), **ctx)
 
