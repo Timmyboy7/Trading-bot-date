@@ -491,7 +491,8 @@ def price_history(sym):
         a0, b0 = a[days[0]], b[days[0]]
         rows = [(d, (a[d] / a0 - 1) * 100, (b[d] / b0 - 1) * 100) for d in days]
         hi = max(a.values()); lo = min(a.values())
-        return {"rows": rows, "ret": rows[-1][1], "spy_ret": rows[-1][2], "last": a[days[-1]],
+        prev = a[days[-2]]
+        return {"rows": rows, "day": (a[days[-1]] / prev - 1) * 100, "last_date": days[-1], "ret": rows[-1][1], "spy_ret": rows[-1][2], "last": a[days[-1]],
                 "from_high": (a[days[-1]] / hi - 1) * 100, "from_low": (a[days[-1]] / lo - 1) * 100}
     return cached(f"px_{sym}", 3600, load)
 
@@ -518,7 +519,8 @@ def chart_px(h, since=None, w=760, ht=220):
     step = (hi - lo) / 4
     grid = [(round(yy(v), 1), v) for v in (lo + step * i for i in (0.5, 1.5, 2.5, 3.5))]
     return {"a": pts(1), "b": pts(2), "w": w, "h": ht, "grid": grid, "zero": round(yy(0.0), 1), "mark": mark,
-            "first": rows[0][0], "last": rows[-1][0], "end": round(yy(rows[-1][1]), 1)}
+            "first": rows[0][0], "last": rows[-1][0], "end": round(yy(rows[-1][1]), 1),
+            "end_b": round(yy(rows[-1][2]), 1)}
 
 
 def holdings_risk():
