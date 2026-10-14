@@ -138,6 +138,9 @@ MONTHS_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct
 
 
 def t(key, lang, **kw):
+    if key.startswith(("need_sheet:", "sheet_error:")):
+        base, _, detail = key.partition(":")
+        return t(base, lang) + (f" [{detail}]" if detail else "")
     v = T.get(key, (key, key))[1 if lang == "de" else 0]
     return v.format(**kw) if kw else v
 
