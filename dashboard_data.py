@@ -345,6 +345,76 @@ def severe_basket():
     return cached("severe_basket", 1800, load)
 
 
+def shadow_low_ai():
+    """Information-only simulation: the weekly basket vs. a Low-AI variant vs. the S&P 500, same deposits, same
+    simple rules. None when there is no history yet. Cached 1 h (downloads about a year of prices)."""
+    def load():
+        import shadow as sh
+        import stress_test as st
+        rows = last_rows("Runs", "J", 60)
+        baskets, rank_by = [], {}
+        for r in rows:
+            d = _cell(r, 0)[:10]
+            rec = jparse(_cell(r, 3), {}) or {}
+            w = {k: float(v) for k, v in (rec.get("weights") or {}).items() if fnum(v)}
+            if not w:
+                syms = [x.strip().upper() for x in _cell(r, 1).split(",") if x.strip()]
+                w = {x: 1.0 / len(syms) for x in syms}
+            if d and w:
+                rk = [x.get("symbol") for x in (jparse(_cell(r, 7), []) or []) if isinstance(x, dict) and x.get("symbol")]
+                baskets.append((d, w, rk))
+        if not baskets:
+            return None
+        baskets.sort(key=lambda b: b[0])
+        syms = sorted({s for _, w, rk in baskets for s in list(w) + rk[:40]})
+        closes, errs = st.fetch_dated_closes(syms + list(st.FACTOR_ETFS))
+        res = st.compute(syms, closes=closes, news={})
+        if "error" in res:
+            raise RuntimeError(res["error"])
+        ai = {x["symbol"]: x["ai"] for x in res["per_symbol"]}
+        start = rb.START_DATE or baskets[0][0]
+        today = datetime.date.today()
+        deposits = rb.deposit_schedule(start, today)
+        low, swaps_by = [], {}
+        for d, w, rk in baskets:
+            lw, sw = sh.low_ai_basket(w, rk, ai)
+            low.append((d, lw))
+            swaps_by[d] = sw
+        cur = [(d, w) for d, w, _ in baskets]
+        days = sorted(d for d in (closes.get("SPY") or {}) if d >= start)
+        if len(days) < 2:
+            return {"points": len(days)}
+        a = sh.simulate(cur, closes, deposits, days)
+        b = sh.simulate(low, closes, deposits, days)
+        c = sh.spy_curve(closes["SPY"], deposits, days)
+        last = baskets[-1]
+        paid = sum(x for dd, x in deposits if dd.isoformat() <= days[-1])
+        return {"points": len(days), "series": [(days[i], a[i][1], b[i][1], c[i][1]) for i in range(len(days))],
+                "paid": round(paid, 2), "swaps": swaps_by[last[0]],
+                "ai_cur": round(sh.ai_exposure(last[1], ai), 2),
+                "ai_low": round(sh.ai_exposure(low[-1][1], ai), 2), "run_date": last[0],
+                "cut": sh.AI_CUT, "weeks": len(baskets)}
+    return cached("shadow_low_ai", 3600, load)
+
+
+def chart3(series, w=760, h=220):
+    """Three-line SVG data for [(date, a, b, c)] (current basket, Low-AI, S&P 500)."""
+    if len(series) < 2:
+        return None
+    vals = [v for row in series for v in row[1:4]]
+    lo, hi = min(vals), max(vals)
+    pad = (hi - lo) * 0.08 or 10
+    lo, hi = lo - pad, hi + pad
+    n = len(series) - 1
+
+    def pts(i):
+        return " ".join(f"{k * w / n:.1f},{h - (row[i] - lo) / (hi - lo) * h:.1f}" for k, row in enumerate(series))
+    grid = [(round(h - (v - lo) / (hi - lo) * h, 1), v) for v in (lo + (hi - lo) * f for f in (0.1, 0.5, 0.9))]
+    return {"a": pts(1), "b": pts(2), "c": pts(3), "w": w, "h": h, "grid": grid,
+            "first": series[0][0], "last": series[-1][0],
+            "end": [series[-1][1], series[-1][2], series[-1][3]]}
+
+
 def holdings_risk():
     """The same crash scenarios as the weekly basket check, but on the real positions and their real weights
     (cash counts as 0%). {'empty': True} until something is bought. Cached 30 min: it downloads a year of prices."""
