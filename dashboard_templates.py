@@ -73,38 +73,42 @@ OVERVIEW = """{% extends 'base.html' %}{% block body %}
 {% if err %}<div class="warnbox">{{ t('data_issue') }}: <span class="mono" style="font-size:12px">{{ err }}</span></div>{% endif %}
 {% if p %}
 <section class="card row" aria-label="Performance" style="padding:28px;gap:32px">
+{% if not v %}<p class="warnbox" style="flex:1 1 100%">{{ t('data_issue') }}</p>{% else %}
 <div style="flex:1 1 300px;display:flex;flex-direction:column;gap:20px;min-width:0">
-<div><div class="k" style="color:var(--muted);font-weight:500">{{ t('value') }}</div>
-<div class="big mono" id="lv-eq">{{ money(eq) }}</div>
-<div style="margin-top:6px"><span id="lv-gain_line" class="{{ 'pos' if gain >= 0 else 'neg' }}" style="font-weight:600">{{ money(gain, sign=True) }} ({{ pct(gain_pct) }})</span> <span style="color:var(--muted)">{{ t('on') }} {{ money(p.paid_in, dec=0) }} {{ t('paid_in') }}</span></div></div>
-{% if spy_value %}<div class="note"><div style="font-size:13px;color:var(--teal-ink);font-weight:600;text-transform:uppercase;letter-spacing:.06em">{{ t('vs_spy') }}</div>
-<div id="lv-excess" style="font-size:20px;font-weight:700;margin-top:6px">{{ t('ahead') if excess >= 0 else t('behind') }} {{ money(excess|abs, dec=2) }}</div>
-
-<div style="font-size:13px;color:#33475B;margin-top:8px;line-height:1.45">{{ t('spy_asof') }}</div></div>{% endif %}
+<div><div class="k" style="color:var(--muted);font-weight:500">{{ t('inv_title') }}</div>
+<div class="big mono" id="lv-stocks">{{ v.stocks }}</div>
+{% if v.has_twin %}<div style="margin-top:6px"><span id="lv-inv_growth" class="{{ v.cls.inv_growth }}" style="font-weight:600">{{ v.inv_growth }}</span> <span style="color:var(--muted)">{{ t('on') }} <span id="lv-inv_on">{{ v.inv_on }}</span> {{ t('put_into') }}</span></div>{% else %}<div style="margin-top:6px;color:var(--muted)">{{ t('nothing_yet') }}</div>{% endif %}</div>
+{% if v.has_twin %}<div class="note"><div style="font-size:13px;color:var(--teal-ink);font-weight:600;text-transform:uppercase;letter-spacing:.06em">{{ t('vs_spy_same') }}</div>
+<div id="lv-excess" style="font-size:20px;font-weight:700;margin-top:6px">{{ v.excess }}</div>
+<div style="font-size:13px;color:#33475B;margin-top:8px;line-height:1.45">{{ t('twin_note') }}</div></div>{% endif %}
+<div class="tile" style="padding:14px 16px;background:var(--bg)"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="color:var(--muted);font-size:14px">{{ t('cash_side') }}</span><span><strong class="mono" id="lv-cash_amt">{{ v.cash_amt }}</strong> <span style="color:var(--muted);font-size:14px">(<span id="lv-cash_pct">{{ v.cash_pct }}</span>)</span></span></div><div style="font-size:12px;color:var(--muted);margin-top:4px">{{ t('cash_side_note') }}</div></div>
 <dl style="margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;font-size:14px">
 <div><dt style="color:var(--muted)">{{ t('started') }}</dt><dd style="margin:2px 0 0;font-weight:600">{{ date(p.start) if p.start else '—' }}</dd></div>
 <div><dt style="color:var(--muted)">{{ t('monthly') }}</dt><dd style="margin:2px 0 0;font-weight:600">{{ money(p.deposits[1][1] if p.deposits|length > 1 else 100, dec=0) }}</dd></div>
 <div><dt style="color:var(--muted)">{{ t('held') }}</dt><dd style="margin:2px 0 0;font-weight:600">{{ n_held }} {{ t('of') }} {{ basket_n }}</dd></div>
-<div><dt style="color:var(--muted)">{{ t('cash') }}</dt><dd style="margin:2px 0 0;font-weight:600"><span id="lv-cash_amt">{{ money(cash) }}</span> <span style="font-weight:400;color:var(--muted)">(<span id="lv-cash_pct">{{ pct(cash_pct, sign=False) }}</span>)</span></dd></div></dl></div>
+<div><dt style="color:var(--muted)">{{ t('whole_acct') }}</dt><dd style="margin:2px 0 0;font-weight:600"><span id="lv-eq">{{ v.eq }}</span><div style="font-weight:400;font-size:13px"><span id="lv-gain_line" class="{{ v.cls.gain_line }}">{{ v.gain_line }}</span> <span style="color:var(--muted)">{{ t('on') }} {{ money(p.paid_in, dec=0) }} {{ t('paid_in') }}</span></div></dd></div></dl></div>
 <figure style="flex:2 1 520px;margin:0;min-width:0;display:flex;flex-direction:column;gap:12px">
-<figcaption style="font-weight:600">{{ t('since_start') }}</figcaption>
+{% if v.has_twin %}<div><div style="font-weight:600;margin-bottom:6px">{{ t('inv_vs_title') }}</div>
+<div class="scroll"><table style="width:100%;font-size:14px;border-collapse:collapse;min-width:420px"><thead><tr style="color:var(--muted);text-align:right"><th scope="col" style="text-align:left;font-weight:500;padding:6px 0"></th><th scope="col" style="font-weight:500;padding:6px 0">{{ t('put_in') }}</th><th scope="col" style="font-weight:500;padding:6px 0">{{ t('worth_now') }}</th><th scope="col" style="font-weight:500;padding:6px 0">{{ t('growth') }}</th></tr></thead><tbody>
+<tr style="text-align:right"><th scope="row" style="text-align:left;font-weight:600;padding:9px 0;border-top:1px solid var(--soft)">{{ t('our_stocks') }}</th><td class="mono" id="lv-put_a">{{ v.put_a }}</td><td class="mono" id="lv-st_worth">{{ v.st_worth }}</td><td id="lv-st_growth" class="mono {{ v.cls.st_growth }}" style="font-weight:600">{{ v.st_growth }}</td></tr>
+<tr style="text-align:right"><th scope="row" style="text-align:left;font-weight:600;padding:9px 0;border-top:1px solid var(--soft)">{{ t('spy_twin_row') }}</th><td class="mono" id="lv-put_b">{{ v.put_b }}</td><td class="mono" id="lv-tw_worth">{{ v.tw_worth }}</td><td id="lv-tw_growth" class="mono {{ v.cls.tw_growth }}" style="font-weight:600">{{ v.tw_growth }}</td></tr></tbody></table></div></div>{% endif %}
+<div><div style="font-weight:600;margin-bottom:6px">{{ t('split_title') }}</div>
+<div style="display:flex;height:16px;border-radius:4px;overflow:hidden;background:var(--soft)" role="img" aria-label="{{ t('split_title') }}"><div id="lv-w_inv" style="width:{{ v.w_inv }};background:#0B6E66"></div><div id="lv-w_cash" style="width:{{ v.w_cash }};background:#A9B3C1"></div></div>
+<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 18px;margin-top:8px;font-size:14px"><span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#0B6E66;margin-right:6px"></span>{{ t('split_inv') }} <strong class="mono" id="lv-stocks2">{{ v.stocks }}</strong> <span style="color:var(--muted)">(<span id="lv-stocks_pct">{{ v.stocks_pct }}</span>) · {{ n_held }} {{ t('stocks') }}</span></span><span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#A9B3C1;margin-right:6px"></span>{{ t('split_cash') }} <strong class="mono" id="lv-cash2_amt">{{ v.cash2_amt }}</strong> <span style="color:var(--muted)">(<span id="lv-cash2_pct">{{ v.cash2_pct }}</span>)</span></span></div></div>
+<div style="font-weight:600;margin-top:6px">{{ t('since_start') }}</div>
 {% if chart %}<svg viewBox="-8 -12 {{ chart.w + 16 }} {{ chart.h + 30 }}" style="width:100%;height:auto;display:block" role="img" aria-label="{{ t('since_start') }}">
-{% for y, v in chart.grid %}<line x1="0" y1="{{ y }}" x2="{{ chart.w }}" y2="{{ y }}" stroke="#E8ECF1"/><text x="{{ chart.w }}" y="{{ y - 4 }}" text-anchor="end" font-size="11" fill="#4A5568">{{ money(v, dec=0) }}</text>{% endfor %}
+{% for y, val in chart.grid %}<line x1="0" y1="{{ y }}" x2="{{ chart.w }}" y2="{{ y }}" stroke="#E8ECF1"/><text x="{{ chart.w }}" y="{{ y - 4 }}" text-anchor="end" font-size="11" fill="#4A5568">{{ money(val, dec=0) }}</text>{% endfor %}
 <polyline fill="none" stroke="#A9B3C1" stroke-width="1.5" stroke-dasharray="4 4" points="{{ chart.paid }}"/>
 <polyline fill="none" stroke="#7D8899" stroke-width="2.5" points="{{ chart.spy }}"/>
 <polyline fill="none" stroke="#0B6E66" stroke-width="3" points="{{ chart.basket }}"/>
 <circle cx="{{ chart.end[0] }}" cy="{{ chart.end[1] }}" r="5" fill="#0B6E66"/>
 <text x="0" y="{{ chart.h + 16 }}" font-size="11" fill="#4A5568">{{ date(chart.first) }}</text><text x="{{ chart.w }}" y="{{ chart.h + 16 }}" font-size="11" fill="#4A5568" text-anchor="end">{{ date(chart.last) }}</text></svg>
-<div class="legend"><span><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke="#0B6E66" stroke-width="3"/></svg>{{ t('your_basket') }}</span>
+<div class="legend"><span><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke="#0B6E66" stroke-width="3"/></svg>{{ t('whole_line') }}</span>
 <span><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke="#7D8899" stroke-width="2.5"/></svg>{{ t('spy_line') }}</span>
 <span><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke="#A9B3C1" stroke-width="1.5" stroke-dasharray="4 4"/></svg>{{ t('paid_in')|capitalize }}</span></div>
 {% else %}<p class="sub">{{ t('chart_wait') if n_held else t('nothing_yet') }}</p>{% endif %}
-<div><div style="font-weight:600;margin-bottom:6px">{{ t('split_title') }}</div>
-<div style="display:flex;height:16px;border-radius:4px;overflow:hidden;background:var(--soft)" role="img" aria-label="{{ t('split_title') }}"><div id="lv-w_inv" style="width:{{ [100 - cash_pct, 0]|max }}%;background:#0B6E66"></div><div id="lv-w_cash" style="width:{{ [cash_pct, 0]|max }}%;background:#A9B3C1"></div></div>
-<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 18px;margin-top:8px;font-size:14px"><span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#0B6E66;margin-right:6px"></span>{{ t('split_inv') }} <strong class="mono" id="lv-stocks_amt">{{ money(stocks_value) }}</strong> <span style="color:var(--muted)">(<span id="lv-stocks_pct">{{ pct(100 - cash_pct, sign=False) }}</span>) · {{ n_held }} {{ t('stocks') }}</span></span><span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#A9B3C1;margin-right:6px"></span>{{ t('split_cash') }} <strong class="mono" id="lv-cash2_amt">{{ money(cash) }}</strong> <span style="color:var(--muted)">(<span id="lv-cash2_pct">{{ pct(cash_pct, sign=False) }}</span>)</span></span></div></div>
-{% if spy_value %}<div class="scroll"><table style="width:100%;font-size:14px;border-collapse:collapse;min-width:420px"><thead><tr style="color:var(--muted);text-align:right"><th scope="col" style="text-align:left;font-weight:500;padding:6px 0"></th><th scope="col" style="font-weight:500;padding:6px 0">{{ t('paid_in_c') }}</th><th scope="col" style="font-weight:500;padding:6px 0">{{ t('worth_now') }}</th><th scope="col" style="font-weight:500;padding:6px 0">{{ t('growth') }}</th></tr></thead><tbody>
-<tr style="text-align:right"><th scope="row" style="text-align:left;font-weight:600;padding:9px 0;border-top:1px solid var(--soft)">{{ t('our_pf') }}</th><td class="mono">{{ money(p.paid_in) }}</td><td class="mono" id="lv-pf_worth">{{ money(eq) }}</td><td id="lv-pf_growth" class="mono {{ 'pos' if gain >= 0 else 'neg' }}" style="font-weight:600">{{ money(gain, sign=True) }} ({{ pct(gain_pct, dec=2) }})</td></tr>
-<tr style="text-align:right"><th scope="row" style="text-align:left;font-weight:600;padding:9px 0;border-top:1px solid var(--soft)">{{ t('spy_row') }}</th><td class="mono">{{ money(p.paid_in) }}</td><td class="mono" id="lv-spy_worth">{{ money(spy_value) }}</td><td id="lv-spy_growth" class="mono {{ 'pos' if spy_gain >= 0 else 'neg' }}" style="font-weight:600">{{ money(spy_gain, sign=True) }} ({{ pct(spy_gain_pct, dec=2) }})</td></tr></tbody></table></div>{% endif %}</figure></section>
+{% if v.whole_a %}<p class="sub" style="font-size:13px;margin:0">{{ t('whole_vs', a='<span id="lv-whole_a">' ~ v.whole_a ~ '</span>', b='<span id="lv-whole_b">' ~ v.whole_b ~ '</span>')|safe }}</p>{% endif %}
+</figure>{% endif %}</section>
 {% endif %}
 <div class="grid">
 <div class="tile"><div class="k">{{ t('next_decision') }}</div><div class="v">20:00</div><div class="s">{{ t('daily_check') }}</div></div>
