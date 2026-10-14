@@ -334,15 +334,15 @@ STOCK = """{% extends 'base.html' %}{% block body %}
 <div><h2 style="font-size:16px;margin:0 0 6px">{{ t('px_title') }}</h2>
 {% if pxc %}<div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin-bottom:8px"><span class="mono" style="font-size:30px;font-weight:700">{{ money(px.last) }}</span><span style="font-weight:600;color:{{ '#0B6E66' if px.day >= 0 else '#B4460F' }}">{{ pct(px.day) }} {{ t('px_today') }}</span><span class="sub" style="font-size:13px;margin:0">{{ t('px_asof', d=date(px.last_date)) }}</span></div>
 <div class="legend" style="margin-bottom:6px"><span><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke="#0B6E66" stroke-width="3"/></svg>{{ nm(st.symbol) or st.symbol }} · {{ pct(px.ret) }}</span><span><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke="#7D8899" stroke-width="2.5"/></svg>S&amp;P 500 · {{ pct(px.spy_ret) }}</span>{% if pxc.mark is not none %}<span><svg width="22" height="10" aria-hidden="true"><line x1="11" y1="0" x2="11" y2="10" stroke="#B4460F" stroke-width="2" stroke-dasharray="3 2"/></svg>{{ t('px_bought') }}</span>{% endif %}</div>
-<svg viewBox="-8 -12 {{ pxc.w + 96 }} {{ pxc.h + 30 }}" style="width:100%;height:auto;display:block" role="img" aria-label="{{ t('px_title') }}">
-{% for y, v in pxc.grid %}<line x1="0" y1="{{ y }}" x2="{{ pxc.w }}" y2="{{ y }}" stroke="#E8ECF1"/><text x="2" y="{{ y - 4 }}" font-size="11" fill="#4A5568">{{ pct(v, dec=0) }}</text>{% endfor %}
-<line x1="0" y1="{{ pxc.zero }}" x2="{{ pxc.w }}" y2="{{ pxc.zero }}" stroke="#A9B3C1" stroke-dasharray="4 4"/>
+<svg viewBox="-62 -12 {{ pxc.w + 150 }} {{ pxc.h + 34 }}" style="width:100%;height:auto;display:block" role="img" aria-label="{{ t('px_title') }}">
+{% for y, v in pxc.grid %}<line x1="0" y1="{{ y }}" x2="{{ pxc.w }}" y2="{{ y }}" stroke="#E8ECF1"/><text x="-8" y="{{ y + 4 }}" text-anchor="end" font-size="11" fill="#4A5568">{{ money(v, dec=pxc.dec) }}</text>{% endfor %}
+{% for mo in pxc.months %}<line x1="{{ mo.x }}" y1="{{ pxc.h }}" x2="{{ mo.x }}" y2="{{ pxc.h + 4 }}" stroke="#A9B3C1"/><text x="{{ mo.x }}" y="{{ pxc.h + 17 }}" text-anchor="middle" font-size="11" fill="#4A5568">{{ t('mon_' ~ mo.m) }}{% if mo.m == 1 or loop.first %} {{ mo.y[2:] }}{% endif %}</text>{% endfor %}
+<line x1="0" y1="{{ pxc.start_y }}" x2="{{ pxc.w }}" y2="{{ pxc.start_y }}" stroke="#A9B3C1" stroke-dasharray="4 4"/>
 {% if pxc.mark is not none %}<line x1="{{ pxc.mark }}" y1="0" x2="{{ pxc.mark }}" y2="{{ pxc.h }}" stroke="#B4460F" stroke-width="2" stroke-dasharray="3 3"/>{% endif %}
 <polyline fill="none" stroke="#7D8899" stroke-width="2" points="{{ pxc.b }}"/>
 <polyline fill="none" stroke="#0B6E66" stroke-width="3" points="{{ pxc.a }}"/>
 <circle cx="{{ pxc.w }}" cy="{{ pxc.end_b }}" r="4" fill="#7D8899"/><text x="{{ pxc.w + 10 }}" y="{{ pxc.end_b + 4 }}" font-size="12" fill="#4A5568">S&amp;P</text>
-<circle cx="{{ pxc.w }}" cy="{{ pxc.end }}" r="5.5" fill="#0B6E66"/><text x="{{ pxc.w + 10 }}" y="{{ pxc.end + 4 }}" font-size="13" font-weight="700" fill="#0B6E66">{{ money(px.last, dec=0 if px.last >= 100 else 2) }}</text>
-<text x="0" y="{{ pxc.h + 16 }}" font-size="11" fill="#4A5568">{{ date(pxc.first) }}</text><text x="{{ pxc.w }}" y="{{ pxc.h + 16 }}" font-size="11" fill="#4A5568" text-anchor="end">{{ date(pxc.last) }}</text></svg>
+<circle cx="{{ pxc.w }}" cy="{{ pxc.end }}" r="5.5" fill="#0B6E66"/><text x="{{ pxc.w + 10 }}" y="{{ pxc.end + 4 }}" font-size="13" font-weight="700" fill="#0B6E66">{{ money(px.last, dec=0 if px.last >= 100 else 2) }}</text></svg>
 <p class="sub" style="font-size:13px;margin:6px 0 0">{{ t('px_facts', hi=pct(px.from_high, dec=0), lo=pct(px.from_low, dec=0)) }}</p>
 {% else %}<p class="sub" style="font-size:13px;margin:0">{{ t('px_none') }}</p>{% endif %}</div>
 <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:28px">
