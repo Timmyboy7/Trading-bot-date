@@ -19,6 +19,7 @@ T = {
     "value": ("Portfolio value", "Depotwert"), "paid_in": ("paid in", "eingezahlt"),
     "on": ("on", "bei"), "vs_spy": ("Versus the S&P 500", "Im Vergleich zum S&P 500"),
     "ahead": ("Ahead by", "Voraus um"), "behind": ("Behind by", "Zurück um"),
+    "price": ("Price", "Kurs"), "today": ("Today", "Heute"),
     "inv_title": ("Invested in stocks", "In Aktien investiert"), "put_into": ("put into stocks", "in Aktien eingesetzt"),
     "vs_spy_same": ("Versus the S&P 500, same purchases", "Im Vergleich zum S&P 500, gleiche Käufe"),
     "twin_note": ("Each time we bought a stock, the same dollars would have gone into the S&P 500 at that very moment. Cash is not part of this comparison.",

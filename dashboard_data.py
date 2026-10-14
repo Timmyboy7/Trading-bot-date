@@ -316,6 +316,25 @@ def live_numbers():
     return cached("live_numbers", 8, load)
 
 
+def live_positions():
+    """Fresh position prices and values for the Holdings page: {symbol: {...}} plus equity and cash (virtual account).
+    Shared by all viewers, cached 8 s."""
+    def load():
+        p = portfolio()
+        pos = rb._get("/v2/positions")
+        n = live_numbers()
+        out = {}
+        for x in pos:
+            try:
+                out[x["symbol"]] = {"value": float(x["market_value"]), "price": float(x.get("current_price") or 0),
+                                    "gain": float(x.get("unrealized_plpc") or 0) * 100,
+                                    "today": float(x.get("change_today") or 0) * 100}
+            except (TypeError, ValueError, KeyError):
+                continue
+        return {"rows": out, "eq": n["eq"], "cash": n["cash"], "open": n["open"]}
+    return cached("live_positions", 8, load)
+
+
 def build_series(history, spy, deposits, start):
     """[(date, basket, spy_shadow, paid_in)] from the start date, in the bot's view."""
     if not start:

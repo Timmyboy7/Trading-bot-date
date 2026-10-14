@@ -136,20 +136,21 @@ fetch('/app/live.json',{credentials:'same-origin',headers:{'Accept':'application
 T=setTimeout(tick,3000)})();</script>{% endif %}{% endblock %}"""
 
 HOLDINGS = """{% extends 'base.html' %}{% block body %}
-<div><h1>{{ t('holdings') }}</h1><p class="sub">{% if p %}{{ rows|length }} {{ t('stocks') }} · {{ t('cash') }} {{ money(p.account.cash|float) }}. {% endif %}{{ t('click_stock') }}</p></div>
+<div><h1>{{ t('holdings') }}</h1><p class="sub">{% if p %}{{ rows|length }} {{ t('stocks') }} · {{ t('cash') }} <span id="h-cash">{{ money(p.account.cash|float) }}</span>. {% endif %}{{ t('click_stock') }}{% if p %} · <span id="lv-badge"></span>{% endif %}</p></div>
 {% if err %}<div class="warnbox">{{ t('data_issue') }}: <span class="mono" style="font-size:12px">{{ err }}</span></div>{% endif %}
-{% if rows %}<section class="card tbl"><div class="scroll"><table style="min-width:820px"><thead><tr>
-<th scope="col" style="padding-left:20px">{{ t('stock') }}</th><th class="r" scope="col">{{ t('value') }}</th><th class="r" scope="col">{{ t('share') }}</th><th class="r" scope="col">{{ t('gain') }}</th><th scope="col">{{ t('tax_hold') }}</th><th scope="col">{{ t('trend') }}</th><th scope="col">{{ t('next_event') }}</th></tr></thead><tbody>
+{% if rows %}<section class="card tbl"><div class="scroll"><table style="min-width:980px"><thead><tr>
+<th scope="col" style="padding-left:20px">{{ t('stock') }}</th><th class="r" scope="col">{{ t('price') }}</th><th class="r" scope="col">{{ t('today') }}</th><th class="r" scope="col">{{ t('value') }}</th><th class="r" scope="col">{{ t('share') }}</th><th class="r" scope="col">{{ t('gain') }}</th><th scope="col">{{ t('tax_hold') }}</th><th scope="col">{{ t('trend') }}</th><th scope="col">{{ t('next_event') }}</th></tr></thead><tbody>
 {% for r in rows %}<tr style="{{ 'background:#F1F8F7' if sel and sel.symbol == r.symbol else '' }}"><th scope="row" style="padding-left:20px;font-weight:400"><a href="/app/holdings?s={{ r.symbol }}" style="font-weight:600;color:var(--ink)">{{ nm(r.symbol) or r.symbol }}</a>{% if nm(r.symbol) %} <span class="mono" style="font-size:12px;color:var(--muted)">{{ r.symbol }}</span>{% endif %}</th>
-<td class="r mono">{{ money(r.value) }}</td><td class="r mono">{{ pct(r.share, sign=False) }}</td><td class="r mono {{ 'pos' if r.gain >= 0 else 'neg' }}" style="font-weight:600">{{ pct(r.gain) }}</td>
+<td class="r mono" id="h-{{ r.symbol }}-price">{{ money(r.price) }}</td><td class="r mono {{ 'pos' if r.today >= 0 else 'neg' }}" id="h-{{ r.symbol }}-today">{{ pct(r.today, dec=2) }}</td><td class="r mono" id="h-{{ r.symbol }}-value">{{ money(r.value) }}</td><td class="r mono" id="h-{{ r.symbol }}-share">{{ pct(r.share, sign=False) }}</td><td class="r mono {{ 'pos' if r.gain >= 0 else 'neg' }}" id="h-{{ r.symbol }}-gain" style="font-weight:600">{{ pct(r.gain) }}</td>
 <td style="min-width:150px"><div style="font-size:12px;color:var(--muted)">{{ t('day_of', d=r.day) }}</div><div class="bar" style="margin-top:5px"><div style="width:{{ r.hold_pct }}%;background:#4C6A8A"></div></div></td>
 <td><span class="badge {{ 'b-ok' if r.state == 'healthy' else 'b-warn' }}">{{ t(r.state) }}</span></td><td>{% if r.next %}{{ t('results') }} {{ date(r.next) }}{% else %}—{% endif %}</td></tr>{% endfor %}
 </tbody></table></div></section>
 {% if sel %}<section class="card" style="padding:28px;display:flex;flex-direction:column;gap:22px" aria-labelledby="sc">
 <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px"><div><h2 id="sc" style="font-size:24px">{{ nm(sel.symbol) or sel.symbol }}{% if nm(sel.symbol) %} <span class="mono" style="font-size:15px;color:var(--muted)">{{ sel.symbol }}</span>{% endif %}{% if sel.cluster %} · <span style="font-weight:500">{{ sel.cluster|replace('_', ' ') }}</span>{% endif %}</h2>
 <p class="sub">{{ t('started') }} {{ date(sel.since) }}</p></div>
-<div style="display:flex;gap:24px;flex-wrap:wrap"><div><div class="sub" style="margin:0;font-size:13px">{{ t('value') }}</div><div class="mono" style="font-size:20px;font-weight:600">{{ money(sel.value) }}</div></div>
-<div><div class="sub" style="margin:0;font-size:13px">{{ t('gain') }}</div><div class="mono {{ 'pos' if sel.gain >= 0 else 'neg' }}" style="font-size:20px;font-weight:600">{{ pct(sel.gain) }}</div></div></div></div>
+<div style="display:flex;gap:24px;flex-wrap:wrap"><div><div class="sub" style="margin:0;font-size:13px">{{ t('value') }}</div><div class="mono" id="h-{{ sel.symbol }}-value2" style="font-size:20px;font-weight:600">{{ money(sel.value) }}</div></div>
+<div><div class="sub" style="margin:0;font-size:13px">{{ t('price') }}</div><div class="mono" id="h-{{ sel.symbol }}-price2" style="font-size:20px;font-weight:600">{{ money(sel.price) }}</div></div>
+<div><div class="sub" style="margin:0;font-size:13px">{{ t('gain') }}</div><div class="mono {{ 'pos' if sel.gain >= 0 else 'neg' }}" id="h-{{ sel.symbol }}-gain2" style="font-size:20px;font-weight:600">{{ pct(sel.gain) }}</div></div></div></div>
 <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px">
 <div class="prose" style="font-size:15px"><h2 style="font-size:16px">{{ t('why_own') }}</h2><p>{{ sel.thesis or '—' }}</p>
 <h2 style="font-size:16px;margin-top:14px">{{ t('sell_if') }}</h2>{% if sel.kill %}<ul>{% for k in sel.kill %}<li>{{ k }}</li>{% endfor %}</ul>{% else %}<p>—</p>{% endif %}
@@ -157,12 +158,21 @@ HOLDINGS = """{% extends 'base.html' %}{% block body %}
 <div style="display:flex;flex-direction:column;gap:10px;font-size:14px"><h2 style="font-size:16px">{{ t('rules_now') }}</h2>
 <div class="tile" style="display:flex;justify-content:space-between;padding:12px 14px"><span>{{ t('above_avg') }}</span><strong class="{{ 'pos' if sel.above else 'neg' }}">{{ t('yes') if sel.above else t('no') }}</strong></div>
 <div class="tile" style="display:flex;justify-content:space-between;padding:12px 14px"><span>{{ t('below_high') }}</span><strong>{{ pct(sel.dd) if sel.dd is not none else '—' }} <span style="font-weight:400;color:var(--muted)">({{ t('sell_rule_25') }})</span></strong></div>
-<div class="tile" style="display:flex;justify-content:space-between;padding:12px 14px"><span>{{ t('stop') }}</span><strong>−35% <span style="font-weight:400;color:var(--muted)">({{ t('now') }} {{ pct(sel.gain) }})</span></strong></div>
+<div class="tile" style="display:flex;justify-content:space-between;padding:12px 14px"><span>{{ t('stop') }}</span><strong>−35% <span style="font-weight:400;color:var(--muted)">({{ t('now') }} <span id="h-{{ sel.symbol }}-now">{{ pct(sel.gain) }}</span>)</span></strong></div>
 <div class="tile" style="display:flex;justify-content:space-between;padding:12px 14px"><span>{{ t('tax_free') }}</span><strong>{{ date(sel.tax_free) }}</strong></div>
 {% if sel.catalysts %}<h2 style="font-size:16px;margin-top:6px">{{ t('coming_up') }}</h2><ul class="list" style="margin:0">{% for c in sel.catalysts %}<li style="padding:8px 0;display:flex;gap:12px"><span class="mono" style="color:var(--muted);min-width:90px">{{ date(c.date) }}</span><span>{{ c.event }}</span></li>{% endfor %}</ul>{% endif %}
 </div></div></section>{% endif %}
 {% else %}<div class="card"><p class="sub" style="margin:0">{{ t('nothing_yet') }}</p></div>{% endif %}
-{% endblock %}"""
+
+{% if rows %}<script nonce="{{ nonce() }}">(function(){var b=document.getElementById('lv-badge'),fails=0;
+function cl(e,c){e.classList.remove('pos','neg');e.classList.add(c)}
+function ap(d){var R=d.rows||{};for(var s in R){var r=R[s];for(var f in r){if(f==='cls')continue;var e=document.getElementById('h-'+s+'-'+f);if(e)e.textContent=r[f];if(f==='value'||f==='price'||f==='gain'){var e2=document.getElementById('h-'+s+'-'+f+'2');if(e2)e2.textContent=r[f]}}
+var c=r.cls||{};for(var k in c){[ 'h-'+s+'-'+k,'h-'+s+'-'+k+'2'].forEach(function(id){var x=document.getElementById(id);if(x)cl(x,c[k])})}}
+var ce=document.getElementById('h-cash');if(ce&&d.cash)ce.textContent=d.cash;
+if(b){b.textContent=d.badge;b.style.color=d.open?'#0B6E66':''}}
+function tick(){if(document.hidden){setTimeout(tick,10000);return}
+fetch('/app/holdings-live.json',{credentials:'same-origin',headers:{'Accept':'application/json'}}).then(function(r){if(!r.ok||(r.headers.get('content-type')||'').indexOf('json')<0)throw 0;return r.json()}).then(function(d){fails=0;ap(d);setTimeout(tick,d.open?10000:60000)}).catch(function(){fails++;setTimeout(tick,Math.min(60000,10000*(fails+1)))})}
+setTimeout(tick,3000)})();</script>{% endif %}{% endblock %}"""
 
 BASKET = """{% extends 'base.html' %}{% block body %}
 <div><h1>{{ t('basket') }}</h1><p class="sub" style="max-width:760px">{{ t('basket_intro') }}</p>{% if m %}<p class="sub">{{ t('basket_of') }} {{ date(m.run_date[:10]) }}</p>{% endif %}</div>
