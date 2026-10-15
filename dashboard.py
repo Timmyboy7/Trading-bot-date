@@ -172,7 +172,7 @@ def holding_rows(p, desk_names, wl):
         state = "healthy" if above and (dd is None or dd > -15) else ("near_rule" if dd is not None and dd <= -20 and not above else "watch")
         n = desk_names.get(s) or {}
         rows.append({"symbol": s, "value": float(x["market_value"]), "share": float(x["market_value"]) / eq * 100,
-                     "gain": float(x.get("unrealized_plpc") or 0) * 100, "since": since, "day": min(day, 182),
+                     "gain": float(x.get("unrealized_plpc") or 0) * 100, "gain_abs": float(x.get("unrealized_pl") or 0), "since": since, "day": min(day, 182),
                      "price": float(x.get("current_price") or 0), "today": float(x.get("change_today") or 0) * 100,
                      "hold_pct": min(100, round(day / 182 * 100)), "state": state, "above": above, "dd": dd,
                      "next": n.get("next_earnings"), "thesis": n.get("thesis_short") or thesis.get(s, ""),
@@ -525,8 +525,8 @@ def holdings_live(me):
     for sym, x in lp["rows"].items():
         rows[sym] = {"price": X.money(x["price"], lang), "today": X.pct(x["today"], lang, dec=2),
                      "value": X.money(x["value"], lang), "share": X.pct(x["value"] / eq * 100, lang, sign=False),
-                     "gain": X.pct(x["gain"], lang), "now": X.pct(x["gain"], lang),
-                     "cls": {"gain": "pos" if x["gain"] >= 0 else "neg", "today": "pos" if x["today"] >= 0 else "neg"}}
+                     "gain": X.pct(x["gain"], lang), "now": X.pct(x["gain"], lang), "gabs": X.money(x["gain_abs"], lang, sign=True),
+                     "cls": {"gain": "pos" if x["gain"] >= 0 else "neg", "gabs": "pos" if x["gain_abs"] >= 0 else "neg", "today": "pos" if x["today"] >= 0 else "neg"}}
     try:
         from zoneinfo import ZoneInfo
         now = datetime.datetime.now(ZoneInfo("Europe/Luxembourg"))

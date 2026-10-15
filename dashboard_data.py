@@ -388,6 +388,7 @@ def live_positions():
             try:
                 out[x["symbol"]] = {"value": float(x["market_value"]), "price": float(x.get("current_price") or 0),
                                     "gain": float(x.get("unrealized_plpc") or 0) * 100,
+                                    "gain_abs": float(x.get("unrealized_pl") or 0),
                                     "today": float(x.get("change_today") or 0) * 100}
             except (TypeError, ValueError, KeyError):
                 continue
