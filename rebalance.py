@@ -31,7 +31,7 @@ the account match it. v1 written 2026-10-11 (equal weight, hard stop); v2
   Timing guards on buys (the deep dive adds more in step 12)
   - spike: up >= REBAL_SPIKE_PCT (15%) in 5 days -> wait
   - falling knife: down >= REBAL_KNIFE_PCT (15%) in 10 days -> wait
-  - big drop today: down >= REBAL_DAY_DROP_PCT (8%) versus yesterday's close -> wait (0 switches it off)
+  - big drop today (OFF by default, REBAL_DAY_DROP_PCT=0.08 switches it on): down >= that much versus yesterday's close -> wait
   - "hold" input from the deep dive -> wait
   Waits only work in the first REBAL_MAX_WAIT_DAYS (3) days after the weekly
   run; after that the buy goes through. Nothing can block a buy for good.
@@ -101,7 +101,7 @@ REBUY_NEAR_HIGH = _env("REBAL_REBUY_NEAR_HIGH", 0.03)
 HIGH_3M_DAYS = 63
 SPIKE_PCT = _env("REBAL_SPIKE_PCT", 0.15)            # +15% in 5 days
 KNIFE_PCT = _env("REBAL_KNIFE_PCT", 0.15)            # -15% in 10 days
-DAY_DROP_PCT = _env("REBAL_DAY_DROP_PCT", 0.08)      # -8% in one day (0 = off)
+DAY_DROP_PCT = _env("REBAL_DAY_DROP_PCT", 0.0)       # -8% in one day would wait; OFF by default (we buy dips in later tranches), 0.08 switches it on
 TRANCHES = int(_env("REBAL_TRANCHES", 3))
 TRANCHE_DAYS = int(_env("REBAL_TRANCHE_DAYS", 7))
 HOLD_DAYS = int(_env("RECON_HOLD_DAYS", 182))
