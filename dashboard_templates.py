@@ -18,7 +18,7 @@ h1{margin:0;font-size:28px}h2{margin:0;font-size:18px}.sub{margin:6px 0 0;color:
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
 .tile .k{font-size:13px;color:var(--muted)}.tile .v{font-size:18px;font-weight:700;margin-top:6px}.tile .s{font-size:13px;color:var(--muted);margin-top:4px}
 .big{font-size:44px;font-weight:600;margin-top:4px}.pos{color:var(--teal)}.neg{color:var(--warn)}
-.note{background:var(--teal-bg);border-radius:10px;padding:16px 18px}.warnbox{background:#FFF4D6;color:#4D3A00;border-radius:12px;padding:14px 18px}
+.note{background:var(--teal-bg);border-radius:10px;padding:16px 18px}.note.neg{background:#FBE3DF}.note.neg .nk{color:#9B2A12!important}.note.neg #lv-excess{color:#B3361B}.warnbox{background:#FFF4D6;color:#4D3A00;border-radius:12px;padding:14px 18px}
 .tag{display:inline-block;min-width:64px;text-align:center;font-size:12px;font-weight:700;border-radius:6px;padding:4px 6px}
 .t-BUY{background:var(--teal-bg);color:var(--teal-ink)}.t-SELL{background:var(--warn-bg);color:var(--warn-ink)}.t-WAIT,.t-CHECK{background:var(--soft);color:#33475B}.t-ALARM{background:#FFF4D6;color:#6B4E00}
 .badge{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}.b-ok{background:var(--teal-bg);color:var(--teal-ink)}.b-warn{background:var(--warn-bg);color:var(--warn-ink)}.b-grey{background:var(--soft);color:#33475B}
@@ -79,9 +79,9 @@ OVERVIEW = """{% extends 'base.html' %}{% block body %}
 <div><div class="k" style="color:var(--muted);font-weight:500">{{ t('inv_title') }}</div>
 <div class="big mono" id="lv-stocks">{{ v.stocks }}</div>
 {% if v.has_twin %}<div style="margin-top:6px"><span id="lv-inv_growth" class="{{ v.cls.inv_growth }}" style="font-weight:600">{{ v.inv_growth }}</span> <span style="color:var(--muted)">{{ t('on') }} <span id="lv-inv_on">{{ v.inv_on }}</span> {{ t('put_into') }}</span></div>{% else %}<div style="margin-top:6px;color:var(--muted)">{{ t('nothing_yet') }}</div>{% endif %}</div>
-{% if v.has_twin %}<div class="note"><div style="font-size:13px;color:var(--teal-ink);font-weight:600;text-transform:uppercase;letter-spacing:.06em">{{ t('vs_spy_same') }}</div>
-<div id="lv-excess" class="{{ v.cls.excess }}" style="font-size:20px;font-weight:700;margin-top:6px">{{ v.excess }}</div>
-<div style="font-size:13px;color:#33475B;margin-top:8px;line-height:1.45">{{ t('twin_note') }}</div></div>{% endif %}
+{% if v.has_twin %}<div class="note {{ v.cls.excbox }}" id="lv-excbox"><div class="nk" style="font-size:13px;color:var(--teal-ink);font-weight:600;text-transform:uppercase;letter-spacing:.06em">{{ t('vs_spy_same') }}</div>
+<div id="lv-excess" style="font-size:22px;font-weight:700;margin-top:6px">{{ v.excess }}</div>
+<div class="nx" style="font-size:13px;color:#33475B;margin-top:8px;line-height:1.45">{{ t('twin_note') }}</div></div>{% endif %}
 <div class="tile" style="padding:14px 16px;background:var(--bg)"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="color:var(--muted);font-size:14px">{{ t('cash_side') }}</span><span><strong class="mono" id="lv-cash_amt">{{ v.cash_amt }}</strong> <span style="color:var(--muted);font-size:14px">(<span id="lv-cash_pct">{{ v.cash_pct }}</span>)</span></span></div><div style="font-size:12px;color:var(--muted);margin-top:4px">{{ t('cash_side_note') }}</div></div>
 <dl style="margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;font-size:14px">
 <div><dt style="color:var(--muted)">{{ t('started') }}</dt><dd style="margin:2px 0 0;font-weight:600">{{ date(p.start) if p.start else '—' }}</dd></div>
