@@ -13,6 +13,7 @@ nav.main a.on{color:#fff;font-weight:600;border-bottom-color:#5FD3C6}.who{displa
 .who a{color:#C9D2DE}.pill{background:#23344D;color:#fff;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600}
 main{max-width:1180px;margin:0 auto;padding:32px 24px 56px;display:flex;flex-direction:column;gap:24px}
 h1{margin:0;font-size:28px}h2{margin:0;font-size:18px}.sub{margin:6px 0 0;color:var(--muted);line-height:1.5}
+.modal{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:4vh 14px;overflow-y:auto}.modal[hidden]{display:none}.mback{position:fixed;inset:0;background:rgba(15,25,35,.55)}.mbox{position:relative;width:100%;max-width:860px;display:flex;flex-direction:column;gap:22px;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.35)}.mx{position:absolute;top:10px;right:14px;font-size:28px;line-height:1;color:var(--muted);text-decoration:none;padding:4px 8px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px}.row{display:flex;flex-wrap:wrap;gap:24px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
 .tile .k{font-size:13px;color:var(--muted)}.tile .v{font-size:18px;font-weight:700;margin-top:6px}.tile .s{font-size:13px;color:var(--muted);margin-top:4px}
@@ -140,13 +141,13 @@ HOLDINGS = """{% extends 'base.html' %}{% block body %}
 {% if err %}<div class="warnbox">{{ t('data_issue') }}: <span class="mono" style="font-size:12px">{{ err }}</span></div>{% endif %}
 {% if rows %}<section class="card tbl"><div class="scroll"><table style="min-width:980px"><thead><tr>
 <th scope="col" style="padding-left:20px">{{ t('stock') }}</th><th class="r" scope="col">{{ t('price') }}</th><th class="r" scope="col">{{ t('today') }}</th><th class="r" scope="col">{{ t('value') }}</th><th class="r" scope="col">{{ t('share') }}</th><th class="r" scope="col">{{ t('gain') }}</th><th scope="col">{{ t('tax_hold') }}</th><th scope="col">{{ t('trend') }}</th><th scope="col">{{ t('next_event') }}</th></tr></thead><tbody>
-{% for r in rows %}<tr style="{{ 'background:#F1F8F7' if sel and sel.symbol == r.symbol else '' }}"><th scope="row" style="padding-left:20px;font-weight:400"><a href="/app/holdings?s={{ r.symbol }}" style="font-weight:600;color:var(--ink)">{{ nm(r.symbol) or r.symbol }}</a>{% if nm(r.symbol) %} <span class="mono" style="font-size:12px;color:var(--muted)">{{ r.symbol }}</span>{% endif %}</th>
+{% for r in rows %}<tr ><th scope="row" style="padding-left:20px;font-weight:400"><a href="/app/holdings?s={{ r.symbol }}" data-m="{{ r.symbol }}" style="font-weight:600;color:var(--ink)">{{ nm(r.symbol) or r.symbol }}</a>{% if nm(r.symbol) %} <span class="mono" style="font-size:12px;color:var(--muted)">{{ r.symbol }}</span>{% endif %}</th>
 <td class="r mono" id="h-{{ r.symbol }}-price">{{ money(r.price) }}</td><td class="r mono {{ 'pos' if r.today >= 0 else 'neg' }}" id="h-{{ r.symbol }}-today">{{ pct(r.today, dec=2) }}</td><td class="r mono" id="h-{{ r.symbol }}-value">{{ money(r.value) }}</td><td class="r mono" id="h-{{ r.symbol }}-share">{{ pct(r.share, sign=False) }}</td><td class="r mono {{ 'pos' if r.gain >= 0 else 'neg' }}" id="h-{{ r.symbol }}-gain" style="font-weight:600">{{ pct(r.gain) }}</td>
 <td style="min-width:150px"><div style="font-size:12px;color:var(--muted)">{{ t('day_of', d=r.day) }}</div><div class="bar" style="margin-top:5px"><div style="width:{{ r.hold_pct }}%;background:#4C6A8A"></div></div></td>
 <td><span class="badge {{ 'b-ok' if r.state == 'healthy' else 'b-warn' }}">{{ t(r.state) }}</span></td><td>{% if r.next %}{{ t('results') }} {{ date(r.next) }}{% else %}—{% endif %}</td></tr>{% endfor %}
 </tbody></table></div></section>
-{% if sel %}<section class="card" style="padding:28px;display:flex;flex-direction:column;gap:22px" aria-labelledby="sc">
-<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px"><div><h2 id="sc" style="font-size:24px">{{ nm(sel.symbol) or sel.symbol }}{% if nm(sel.symbol) %} <span class="mono" style="font-size:15px;color:var(--muted)">{{ sel.symbol }}</span>{% endif %}{% if sel.cluster %} · <span style="font-weight:500">{{ sel.cluster|replace('_', ' ') }}</span>{% endif %}</h2>
+{% for sel in rows %}<div class="modal" id="m-{{ sel.symbol }}" role="dialog" aria-modal="true" aria-labelledby="sc-{{ sel.symbol }}"{{ '' if opened == sel.symbol else ' hidden' }}><a class="mback" href="/app/holdings" data-close="1" aria-label="{{ t('close') }}"></a><section class="card mbox"><a class="mx" href="/app/holdings" data-close="1" aria-label="{{ t('close') }}">×</a>
+<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px"><div><h2 id="sc-{{ sel.symbol }}" style="font-size:24px">{{ nm(sel.symbol) or sel.symbol }}{% if nm(sel.symbol) %} <span class="mono" style="font-size:15px;color:var(--muted)">{{ sel.symbol }}</span>{% endif %}{% if sel.cluster %} · <span style="font-weight:500">{{ sel.cluster|replace('_', ' ') }}</span>{% endif %}</h2>
 <p class="sub">{{ t('started') }} {{ date(sel.since) }}</p></div>
 <div style="display:flex;gap:24px;flex-wrap:wrap"><div><div class="sub" style="margin:0;font-size:13px">{{ t('value') }}</div><div class="mono" id="h-{{ sel.symbol }}-value2" style="font-size:20px;font-weight:600">{{ money(sel.value) }}</div></div>
 <div><div class="sub" style="margin:0;font-size:13px">{{ t('price') }}</div><div class="mono" id="h-{{ sel.symbol }}-price2" style="font-size:20px;font-weight:600">{{ money(sel.price) }}</div></div>
@@ -161,10 +162,16 @@ HOLDINGS = """{% extends 'base.html' %}{% block body %}
 <div class="tile" style="display:flex;justify-content:space-between;padding:12px 14px"><span>{{ t('stop') }}</span><strong>−35% <span style="font-weight:400;color:var(--muted)">({{ t('now') }} <span id="h-{{ sel.symbol }}-now">{{ pct(sel.gain) }}</span>)</span></strong></div>
 <div class="tile" style="display:flex;justify-content:space-between;padding:12px 14px"><span>{{ t('tax_free') }}</span><strong>{{ date(sel.tax_free) }}</strong></div>
 {% if sel.catalysts %}<h2 style="font-size:16px;margin-top:6px">{{ t('coming_up') }}</h2><ul class="list" style="margin:0">{% for c in sel.catalysts %}<li style="padding:8px 0;display:flex;gap:12px"><span class="mono" style="color:var(--muted);min-width:90px">{{ date(c.date) }}</span><span>{{ c.event }}</span></li>{% endfor %}</ul>{% endif %}
-</div></div></section>{% endif %}
+</div></div></section></div>{% endfor %}
 {% else %}<div class="card"><p class="sub" style="margin:0">{{ t('nothing_yet') }}</p></div>{% endif %}
 
-{% if rows %}<script nonce="{{ nonce() }}">(function(){var b=document.getElementById('lv-badge'),fails=0;
+{% if rows %}<script nonce="{{ nonce() }}">(function(){var cur=null;
+function op(sym,push){var m=document.getElementById('m-'+sym);if(!m)return false;if(cur)cur.hidden=true;m.hidden=false;cur=m;document.body.style.overflow='hidden';m.querySelector('.mx').focus();if(push)try{history.replaceState(null,'','/app/holdings?s='+sym)}catch(e){}return true}
+function shut(){if(cur){cur.hidden=true;cur=null}document.body.style.overflow='';try{history.replaceState(null,'','/app/holdings')}catch(e){}}
+document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a');if(!a||e.metaKey||e.ctrlKey||e.shiftKey)return;if(a.dataset.m){if(op(a.dataset.m,true))e.preventDefault()}else if(a.dataset.close){e.preventDefault();shut()}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')shut()});
+var pre=document.querySelector('.modal:not([hidden])');if(pre){cur=pre;document.body.style.overflow='hidden'}
+var b=document.getElementById('lv-badge'),fails=0;
 function cl(e,c){e.classList.remove('pos','neg');e.classList.add(c)}
 function ap(d){var R=d.rows||{};for(var s in R){var r=R[s];for(var f in r){if(f==='cls')continue;var e=document.getElementById('h-'+s+'-'+f);if(e)e.textContent=r[f];if(f==='value'||f==='price'||f==='gain'){var e2=document.getElementById('h-'+s+'-'+f+'2');if(e2)e2.textContent=r[f]}}
 var c=r.cls||{};for(var k in c){[ 'h-'+s+'-'+k,'h-'+s+'-'+k+'2'].forEach(function(id){var x=document.getElementById(id);if(x)cl(x,c[k])})}}
