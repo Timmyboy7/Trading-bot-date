@@ -405,12 +405,21 @@ def perf_series(rng):
                 spy_idx += 1
             spy_px = spy_px or (spy[max(spy_idx - 1, 0)][1])
             pts.append([int(T.timestamp()), round(val, 2), round(units * spy_px, 2), round(putin, 2)])
+        step = {"5Min": 300, "30Min": 1800, "1Hour": 3600, "1Day": 86400}[tf]
+        if pts and first >= win and pts[0][0] - step <= fill_t[0].timestamp() < pts[0][0]:
+            # start at the moment of the first purchase, at purchase prices (value = twin = money put in), so the
+            # move from the fill price to the first bar's close counts, exactly as in the comparison table
+            p0 = pts[0][3]
+            pts.insert(0, [int(fill_t[0].timestamp()), p0, p0, p0])
         try:                                         # newest point = the same live numbers as the headline
             n = live_numbers()
             tw = invested_twin()
-            if n.get("spy_px") and pts and now.timestamp() - pts[-1][0] > 60:
-                pts.append([int(now.timestamp()), round(n["eq"] - n["cash"], 2),
-                            round(tw["units"] * n["spy_px"], 2), round(tw["buys"] - tw["sells"], 2)])
+            if n.get("spy_px") and pts:
+                live = [int(now.timestamp()), round(n["eq"] - n["cash"], 2),
+                        round(tw["units"] * n["spy_px"], 2), round(tw["buys"] - tw["sells"], 2)]
+                while pts and pts[-1][0] > now.timestamp() - 60:      # today's daily bar is stamped at the close
+                    pts.pop()
+                pts.append(live)
         except Exception:  # noqa: BLE001 - the chart then ends at the last bar
             pass
         return {"empty": False, "pts": pts, "tf": tf}
