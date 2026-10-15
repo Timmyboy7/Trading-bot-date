@@ -445,7 +445,9 @@ def overview(me):
                    spy_gain=(sh["spy_value"] - p["paid_in"]) if sh.get("spy_value") else None,
                    spy_gain_pct=sh.get("spy_gain_pct"), spy_asof=sh.get("as_of_close"),
                    cash=float(p["account"]["cash"]), stocks_value=eq - float(p["account"]["cash"]),
-                   chart=D.chart(p["series"]), rows=rows[:5], n_held=len(rows),
+                   rows=rows[:5], n_held=len(rows),
+                   perf_i18n=json.dumps({k: X.t(k, me["lang"]) for k in ("perf_empty", "perf_err", "perf_diff", "ahead", "behind",
+                                                                         "our_stocks", "spy_twin_row", "put_in")}),
                    cash_pct=float(p["account"]["cash"]) / eq * 100 if eq else 0,
                    in_hold=sum(1 for r in rows if r["day"] < 182),
                    first_free=min([r["tax_free"] for r in rows if r["tax_free"]] or [None]))
@@ -509,6 +511,17 @@ def live_json(me):
     except Exception:  # noqa: BLE001 - the page keeps what it shows
         return Response('{"error": 1}', status=503, mimetype="application/json")
     return Response(json.dumps(v), mimetype="application/json")
+
+
+@dashboard_bp.route("/perf.json")
+@need_login
+def perf_json(me):
+    """Points of the performance chart for one range (r=1D|1W|1M|1Y|MAX)."""
+    try:
+        out = D.perf_series(request.args.get("r", "MAX").upper())
+    except Exception:  # noqa: BLE001 - the chart keeps what it shows
+        return Response('{"error": 1}', status=503, mimetype="application/json")
+    return Response(json.dumps(out), mimetype="application/json")
 
 
 @dashboard_bp.route("/holdings-live.json")

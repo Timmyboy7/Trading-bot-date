@@ -293,6 +293,131 @@ def invested_twin():
     return cached("invested_twin", 60, load)
 
 
+PERF_RANGES = ("1D", "1W", "1M", "1Y", "MAX")
+
+
+def _bars_multi(symbols, tf, start):
+    """{symbol: [(datetime UTC, close)]} split-adjusted bars of one timeframe from start (ISO) until now."""
+    out = {}
+    syms = sorted(set(symbols))
+    for i in range(0, len(syms), 100):
+        token = None
+        for _ in range(30):
+            params = {"symbols": ",".join(syms[i:i + 100]), "timeframe": tf, "start": start, "adjustment": "split",
+                      "feed": rb.DATA_FEED, "limit": 10000}
+            if token:
+                params["page_token"] = token
+            r = requests.get(f"{rb.DATA_BASE}/v2/stocks/bars", headers=rb.HEADERS, params=params, timeout=25)
+            if r.status_code != 200:
+                break
+            data = r.json()
+            for sym, bars in (data.get("bars") or {}).items():
+                for b in bars:
+                    t = datetime.datetime.fromisoformat(b["t"].replace("Z", "+00:00"))
+                    if tf == "1Day":
+                        t = t.replace(hour=21, minute=0, second=0)       # a daily bar counts as the close
+                    out.setdefault(sym, []).append((t, float(b["c"])))
+            token = data.get("next_page_token")
+            if not token:
+                break
+    for v in out.values():
+        v.sort(key=lambda x: x[0])
+    return out
+
+
+def perf_series(rng):
+    """The performance chart: [epoch seconds, value of our stocks, same purchases in the S&P 500 (SPY), net money put in]
+    for 1D / 1W / 1M / 1Y / MAX. Positions are rebuilt from the real fills and priced with bars (5 min .. daily);
+    the S&P 500 twin buys SPY with the same dollars at the minute of each fill. Cash is not part of any line."""
+    rng = rng if rng in PERF_RANGES else "MAX"
+
+    def load():
+        p = portfolio()
+        fills = sorted((f for f in (p.get("fills") or []) if f[1] in ("buy", "sell") and f[2] > 0 and f[3]), key=lambda f: f[0])
+        if not fills:
+            return {"empty": True}
+        utc = datetime.timezone.utc
+        now = datetime.datetime.now(utc)
+        first = datetime.datetime.fromisoformat(fills[0][0].replace("Z", "+00:00"))
+        span = now - first
+        if rng == "1D":
+            tf, win = "5Min", now - datetime.timedelta(days=5)
+        elif rng == "1W":
+            tf, win = "30Min", now - datetime.timedelta(days=7)
+        elif rng == "1M":
+            tf, win = "1Hour", now - datetime.timedelta(days=31)
+        elif rng == "1Y":
+            tf, win = "1Day", now - datetime.timedelta(days=366)
+        else:
+            tf = "5Min" if span <= datetime.timedelta(days=1.5) else "30Min" if span <= datetime.timedelta(days=8) \
+                else "1Hour" if span <= datetime.timedelta(days=35) else "1Day"
+            win = first
+        start = max(win, first - datetime.timedelta(days=1))
+        syms = {f[3] for f in fills} | {"SPY"}
+        bars = _bars_multi(syms, tf, start.strftime("%Y-%m-%dT%H:%M:%SZ"))
+        spy = bars.get("SPY") or []
+        grid = [t for t, _ in spy if t >= first.replace(second=0) - datetime.timedelta(minutes=1) and t >= win]
+        if rng == "1D" and grid:
+            day = grid[-1].date()
+            grid = [t for t in grid if t.date() == day]
+        if not grid:
+            return {"empty": False, "pts": [], "tf": tf}
+        spy_daily = dict(p.get("spy_daily") or [])
+        spy_idx = 0
+        fpx = []                                     # per fill: SPY price at that minute
+        for ts, side, amt, sym, qty in fills:
+            px = spy_at(ts[:16] + ":00Z") if len(ts) >= 16 else None
+            px = px or spy_daily.get(ts[:10])
+            if not px:
+                px = next((c for t, c in reversed(spy) if t.isoformat() <= ts.replace("Z", "+00:00")), None)
+            fpx.append(px)
+        ptr = {s: 0 for s in syms}
+        last = {}
+        qty_now, fi, units, putin = {}, 0, 0.0, 0.0
+        pts = []
+        fill_t = [datetime.datetime.fromisoformat(f[0].replace("Z", "+00:00")) for f in fills]
+        for T in grid:
+            while fi < len(fills) and fill_t[fi] <= T:
+                ts, side, amt, sym, q = fills[fi]
+                sign = 1 if side == "buy" else -1
+                qty_now[sym] = qty_now.get(sym, 0.0) + sign * q
+                putin += sign * amt
+                if fpx[fi]:
+                    units += sign * amt / fpx[fi]
+                last.setdefault(sym, amt / q if q else 0.0)
+                fi += 1
+            if fi == 0:
+                continue
+            val = 0.0
+            for sym, q in qty_now.items():
+                if q <= 1e-9:
+                    continue
+                b = bars.get(sym) or []
+                k = ptr[sym]
+                while k < len(b) and b[k][0] <= T:
+                    last[sym] = b[k][1]
+                    k += 1
+                ptr[sym] = k
+                val += q * last.get(sym, 0.0)
+            spy_px = None
+            while spy_idx < len(spy) and spy[spy_idx][0] <= T:
+                spy_px = spy[spy_idx][1]
+                spy_idx += 1
+            spy_px = spy_px or (spy[max(spy_idx - 1, 0)][1])
+            pts.append([int(T.timestamp()), round(val, 2), round(units * spy_px, 2), round(putin, 2)])
+        try:                                         # newest point = the same live numbers as the headline
+            n = live_numbers()
+            tw = invested_twin()
+            if n.get("spy_px") and pts and now.timestamp() - pts[-1][0] > 60:
+                pts.append([int(now.timestamp()), round(n["eq"] - n["cash"], 2),
+                            round(tw["units"] * n["spy_px"], 2), round(tw["buys"] - tw["sells"], 2)])
+        except Exception:  # noqa: BLE001 - the chart then ends at the last bar
+            pass
+        return {"empty": False, "pts": pts, "tf": tf}
+    return cached(f"perf_{rng}", 45, load)
+
+
+
 WAIT_RULES = (("dayDrop", "big drop today"), ("knife", "falling knife"), ("spike", "spike"),
               ("news", "deep dive"), ("news", "earnings"))
 

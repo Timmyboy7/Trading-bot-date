@@ -28,6 +28,7 @@ h1{margin:0;font-size:28px}h2{margin:0;font-size:18px}.sub{margin:6px 0 0;color:
 table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:11px 12px;text-align:left;vertical-align:middle}thead tr{background:#F7F9FB;color:var(--muted)}
 tbody tr{border-top:1px solid var(--soft)}td.r,th.r{text-align:right}.scroll{overflow-x:auto}.tbl{padding:0;overflow:hidden}
 .legend{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:13px;color:#33475B}.legend span{display:flex;align-items:center;gap:8px}
+.gchip{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:44px;padding:8px 14px;border-radius:12px;border:1px solid #CBD3DD;background:#fff;color:var(--ink);cursor:pointer;font:inherit;text-align:left}.gchip .gl{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}.gchip .gl i{width:10px;height:10px;border-radius:2px;display:inline-block}.gchip b{font-size:17px}.gchip:hover{border-color:#8896A8}.rngs{display:flex;gap:6px;margin-top:6px}.rngs button{min-height:40px;min-width:52px;border-radius:999px;border:1px solid #CBD3DD;background:#fff;color:var(--ink2);font:inherit;font-weight:600;font-size:14px;cursor:pointer}.rngs button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}.pftip{position:absolute;top:6px;pointer-events:none;background:#fff;border:1px solid #CBD3DD;border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.5;box-shadow:0 4px 14px rgba(0,0,0,.12);white-space:nowrap;z-index:2}.pftip b{font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:8px}.chips a{min-height:44px;display:inline-flex;align-items:center;padding:0 16px;border-radius:999px;border:1px solid #CBD3DD;background:#fff;color:var(--ink2);text-decoration:none;font-weight:600;font-size:14px}
 .chips a.on{background:var(--ink);border-color:var(--ink);color:#fff}
 .dl{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;padding:16px 0;border-top:1px solid var(--soft)}.dl .d{flex:1 1 380px;min-width:0}
@@ -89,6 +90,12 @@ OVERVIEW = """{% extends 'base.html' %}{% block body %}
 <div><dt style="color:var(--muted)">{{ t('held') }}</dt><dd style="margin:2px 0 0;font-weight:600">{{ n_held }} {{ t('of') }} {{ basket_n }}</dd></div>
 <div><dt style="color:var(--muted)">{{ t('whole_acct') }}</dt><dd style="margin:2px 0 0;font-weight:600"><span id="lv-eq">{{ v.eq }}</span><div style="font-weight:400;font-size:13px"><span id="lv-gain_line" class="{{ v.cls.gain_line }}">{{ v.gain_line }}</span> <span style="color:var(--muted)">{{ t('on') }} {{ money(p.paid_in, dec=0) }} {{ t('paid_in') }}</span></div></dd></div></dl></div>
 <figure style="flex:2 1 520px;margin:0;min-width:0;display:flex;flex-direction:column;gap:12px">
+{% if n_held %}<div id="perf" data-lang="{{ lang }}" data-i18n="{{ perf_i18n }}"><div style="font-weight:600;margin-bottom:8px">{{ t('perf_title') }}</div>
+<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px"><button type="button" class="gchip" id="pf-g1" aria-pressed="false"><span class="gl"><i style="background:#0B6E66"></i>{{ t('our_stocks') }}</span><b class="mono" id="pf-v1">—</b></button><button type="button" class="gchip" id="pf-g2" aria-pressed="false"><span class="gl"><i style="background:#7D8899"></i>{{ t('spy_twin_row') }}</span><b class="mono" id="pf-v2">—</b></button></div>
+<div style="position:relative"><svg id="pf-svg" viewBox="0 0 760 270" style="width:100%;height:auto;display:block;touch-action:pan-y;cursor:crosshair" role="img" aria-label="{{ t('perf_title') }}"></svg><div id="pf-tip" class="pftip" hidden></div><div id="pf-msg" class="sub" style="position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 24px;margin:0">{{ t('perf_loading') }}</div></div>
+<div class="rngs" role="group" aria-label="{{ t('perf_title') }}">{% for k in ['1D','1W','1M','1Y','MAX'] %}<button type="button" data-r="{{ k }}" aria-pressed="false">{{ t('rng_' ~ k) }}</button>{% endfor %}</div>
+<div class="legend" style="margin-top:8px"><span><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke="#0B6E66" stroke-width="3"/></svg>{{ t('our_stocks') }}</span><span><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke="#7D8899" stroke-width="2.5"/></svg>{{ t('spy_twin_row') }}</span><span><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke="#A9B3C1" stroke-width="1.5" stroke-dasharray="4 4"/></svg>{{ t('put_in') }}</span></div>
+<p class="sub" style="font-size:12px;margin:6px 0 0">{{ t('perf_hint') }} {{ t('perf_note') }}</p></div>{% endif %}
 {% if v.has_twin %}<div><div style="font-weight:600;margin-bottom:6px">{{ t('inv_vs_title') }}</div>
 <div class="scroll"><table style="width:100%;font-size:14px;border-collapse:collapse;min-width:420px"><thead><tr style="color:var(--muted);text-align:right"><th scope="col" style="text-align:left;font-weight:500;padding:6px 0"></th><th scope="col" style="font-weight:500;padding:6px 0">{{ t('put_in') }}</th><th scope="col" style="font-weight:500;padding:6px 0">{{ t('worth_now') }}</th><th scope="col" style="font-weight:500;padding:6px 0">{{ t('growth') }}</th></tr></thead><tbody>
 <tr style="text-align:right"><th scope="row" style="text-align:left;font-weight:600;padding:9px 0;border-top:1px solid var(--soft)">{{ t('our_stocks') }}</th><td class="mono" id="lv-put_a">{{ v.put_a }}</td><td class="mono" id="lv-st_worth">{{ v.st_worth }}</td><td id="lv-st_growth" class="mono {{ v.cls.st_growth }}" style="font-weight:600">{{ v.st_growth }}</td></tr>
@@ -96,18 +103,6 @@ OVERVIEW = """{% extends 'base.html' %}{% block body %}
 <div><div style="font-weight:600;margin-bottom:6px">{{ t('split_title') }}</div>
 <div style="display:flex;height:16px;border-radius:4px;overflow:hidden;background:var(--soft)" role="img" aria-label="{{ t('split_title') }}"><div id="lv-w_inv" style="width:{{ v.w_inv }};background:#0B6E66"></div><div id="lv-w_cash" style="width:{{ v.w_cash }};background:#A9B3C1"></div></div>
 <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 18px;margin-top:8px;font-size:14px"><span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#0B6E66;margin-right:6px"></span>{{ t('split_inv') }} <strong class="mono" id="lv-stocks2">{{ v.stocks }}</strong> <span style="color:var(--muted)">(<span id="lv-stocks_pct">{{ v.stocks_pct }}</span>) · {{ n_held }} {{ t('stocks') }}</span></span><span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#A9B3C1;margin-right:6px"></span>{{ t('split_cash') }} <strong class="mono" id="lv-cash2_amt">{{ v.cash2_amt }}</strong> <span style="color:var(--muted)">(<span id="lv-cash2_pct">{{ v.cash2_pct }}</span>)</span></span></div></div>
-<div style="font-weight:600;margin-top:6px">{{ t('since_start') }}</div>
-{% if chart %}<svg viewBox="-8 -12 {{ chart.w + 16 }} {{ chart.h + 30 }}" style="width:100%;height:auto;display:block" role="img" aria-label="{{ t('since_start') }}">
-{% for y, val in chart.grid %}<line x1="0" y1="{{ y }}" x2="{{ chart.w }}" y2="{{ y }}" stroke="#E8ECF1"/><text x="{{ chart.w }}" y="{{ y - 4 }}" text-anchor="end" font-size="11" fill="#4A5568">{{ money(val, dec=0) }}</text>{% endfor %}
-<polyline fill="none" stroke="#A9B3C1" stroke-width="1.5" stroke-dasharray="4 4" points="{{ chart.paid }}"/>
-<polyline fill="none" stroke="#7D8899" stroke-width="2.5" points="{{ chart.spy }}"/>
-<polyline fill="none" stroke="#0B6E66" stroke-width="3" points="{{ chart.basket }}"/>
-<circle cx="{{ chart.end[0] }}" cy="{{ chart.end[1] }}" r="5" fill="#0B6E66"/>
-<text x="0" y="{{ chart.h + 16 }}" font-size="11" fill="#4A5568">{{ date(chart.first) }}</text><text x="{{ chart.w }}" y="{{ chart.h + 16 }}" font-size="11" fill="#4A5568" text-anchor="end">{{ date(chart.last) }}</text></svg>
-<div class="legend"><span><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke="#0B6E66" stroke-width="3"/></svg>{{ t('whole_line') }}</span>
-<span><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke="#7D8899" stroke-width="2.5"/></svg>{{ t('spy_line') }}</span>
-<span><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke="#A9B3C1" stroke-width="1.5" stroke-dasharray="4 4"/></svg>{{ t('paid_in')|capitalize }}</span></div>
-{% else %}<p class="sub">{{ t('chart_wait') if n_held else t('nothing_yet') }}</p>{% endif %}
 {% if v.whole_a %}<p class="sub" style="font-size:13px;margin:0">{{ t('whole_vs', a='<span id="lv-whole_a">' ~ v.whole_a ~ '</span>', b='<span id="lv-whole_b">' ~ v.whole_b ~ '</span>')|safe }}</p>{% endif %}
 </figure>{% endif %}</section>
 {% endif %}
@@ -134,7 +129,84 @@ var c=d.cls||{};for(var k2 in c){var e2=document.getElementById('lv-'+k2);if(e2)
 if(b){b.textContent=d.badge;b.style.color=d.open?'#0B6E66':''}}
 function tick(){if(document.hidden){T=setTimeout(tick,10000);return}
 fetch('/app/live.json',{credentials:'same-origin',headers:{'Accept':'application/json'}}).then(function(r){if(!r.ok||(r.headers.get('content-type')||'').indexOf('json')<0)throw 0;return r.json()}).then(function(d){fails=0;ap(d);T=setTimeout(tick,d.open?10000:60000)}).catch(function(){fails++;T=setTimeout(tick,Math.min(60000,10000*(fails+1)))})}
-T=setTimeout(tick,3000)})();</script>{% endif %}{% endblock %}"""
+T=setTimeout(tick,3000)})();</script>{% endif %}
+{% if n_held %}<script nonce="{{ nonce() }}">(function(){
+var root=document.getElementById('perf');if(!root)return;
+var lang=root.dataset.lang==='de'?'de':'en',L={};try{L=JSON.parse(root.dataset.i18n)}catch(e){}
+var svg=document.getElementById('pf-svg'),tip=document.getElementById('pf-tip'),msg=document.getElementById('pf-msg');
+var NS='http://www.w3.org/2000/svg',W=760,H=270,PL=8,PR=58,PT=14,PB=26;
+var rng='MAX',pct=false,data=null,hist=[],rz=null;window.addEventListener('resize',function(){clearTimeout(rz);rz=setTimeout(function(){if(data)draw()},150)});
+try{var sr=localStorage.getItem('pf-rng');if(sr&&/^(1D|1W|1M|1Y|MAX)$/.test(sr))rng=sr;pct=localStorage.getItem('pf-pct')==='1'}catch(e){}
+var loc=lang==='de'?'de-DE':'en-GB';
+function num(v,d){var s=Math.abs(v).toLocaleString(lang==='de'?'de-DE':'en-US',{minimumFractionDigits:d,maximumFractionDigits:d});return s}
+function usd(v,d,sign){d=d==null?2:d;var pre=v<0?'−':(sign&&v>0?'+':'');var s=num(v,d);return lang==='de'?pre+s+' $':pre+'$'+s}
+function pc(v,sign){var pre=v<0?'−':(sign&&v>0?'+':'');return pre+num(v,2)+' %'}
+function el(n,a,t){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(t!=null)e.textContent=t;return e}
+function ticks(lo,hi,n){var span=(hi-lo)||Math.abs(hi)||1,raw=span/n,mag=Math.pow(10,Math.floor(Math.log10(raw))),st=raw,c=[1,2,2.5,5,10];for(var i=0;i<c.length;i++){if(c[i]*mag>=raw){st=c[i]*mag;break}}
+var out=[],v=Math.floor(lo/st)*st;while(v<hi+st*0.999){out.push(v);v+=st}return out}
+var fT=new Intl.DateTimeFormat(loc,{timeZone:'Europe/Luxembourg',hour:'2-digit',minute:'2-digit'}),
+ fD=new Intl.DateTimeFormat(loc,{timeZone:'Europe/Luxembourg',day:'numeric',month:'short'}),
+ fWD=new Intl.DateTimeFormat(loc,{timeZone:'Europe/Luxembourg',weekday:'short',day:'numeric'}),
+ fM=new Intl.DateTimeFormat(loc,{timeZone:'Europe/Luxembourg',month:'short'}),
+ fMY=new Intl.DateTimeFormat(loc,{timeZone:'Europe/Luxembourg',month:'short',year:'2-digit'}),
+ fFull=new Intl.DateTimeFormat(loc,{timeZone:'Europe/Luxembourg',weekday:'short',day:'numeric',month:'short',year:'numeric'}),
+ fKey=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Luxembourg',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hour12:false});
+function key(ts,mode){var p={};fKey.formatToParts(new Date(ts*1000)).forEach(function(x){p[x.type]=x.value});
+ if(mode==='h')return p.year+p.month+p.day+p.hour;if(mode==='m')return p.year+p.month;return p.year+p.month+p.day}
+function stats(pts){var a=pts[0],b=pts[pts.length-1],put=b[3]-a[3],add=Math.max(put,0);
+ function one(i){var g=(b[i]-a[i])-put,base=a[i]+add;return{g:g,p:base>0?g/base*100:0}}
+ return{s:one(1),t:one(2)}}
+function show(el0,o){el0.textContent=pct?pc(o.p,true):usd(o.g,2,true);el0.className='mono '+(o.g>=0?'pos':'neg')}
+function head(pts){if(!pts||pts.length<2){document.getElementById('pf-v1').textContent='—';document.getElementById('pf-v2').textContent='—';return}
+ var st=stats(pts);show(document.getElementById('pf-v1'),st.s);show(document.getElementById('pf-v2'),st.t)}
+function draw(){while(svg.firstChild)svg.removeChild(svg.firstChild);tip.hidden=true;hist=[];var cw=svg.parentNode.clientWidth||760;W=Math.max(300,Math.round(cw));H=cw<520?300:270;svg.setAttribute('viewBox','0 0 '+W+' '+H);
+ var pts=data&&data.pts||[];head(pts);
+ if(!data||data.empty||pts.length<2){msg.style.display='flex';msg.textContent=data&&data.err?L.perf_err:L.perf_empty;return}
+ msg.style.display='none';
+ var lo=1e18,hi=-1e18;pts.forEach(function(r){for(var i=1;i<4;i++){if(r[i]<lo)lo=r[i];if(r[i]>hi)hi=r[i]}});
+ var tk=ticks(lo,hi,4);lo=tk[0];hi=tk[tk.length-1];
+ var n=pts.length-1,iw=W-PL-PR,ih=H-PT-PB;
+ function X(k){return PL+k*iw/n}function Y(v){return PT+ih-(v-lo)/(hi-lo)*ih}
+ var dec=(hi-lo)>=8?0:2;
+ tk.forEach(function(v){var y=Y(v);svg.appendChild(el('line',{x1:PL,y1:y,x2:W-PR,y2:y,stroke:'#E8ECF1'}));svg.appendChild(el('text',{x:W-PR+6,y:y+4,'font-size':11,fill:'#4A5568'},usd(v,dec)))});
+ var mode=rng==='1D'?'h':((rng==='1Y'||rng==='MAX')&&(pts[n][0]-pts[0][0])>75*86400?'m':'d');
+ var last=null,lastX=-999;
+ pts.forEach(function(r,k){var kk=key(r[0],mode);if(kk!==last){last=kk;var x=X(k);if(x-lastX>=64&&x<=W-PR-20){lastX=x;
+  var d=new Date(r[0]*1000),t=mode==='h'?fT.format(d):mode==='m'?(((pts[n][0]-pts[0][0])>400*86400)?fMY.format(d):fM.format(d)):(rng==='1W'?fWD.format(d):fD.format(d));
+  svg.appendChild(el('text',{x:x,y:H-6,'font-size':11,fill:'#4A5568','text-anchor':k===0?'start':'middle'},t))}}});
+ function path(i,step){var d='';pts.forEach(function(r,k){var x=X(k).toFixed(1),y=Y(r[i]).toFixed(1);d+=(k?(step?'H'+x+'V'+y:'L'+x+' '+y):'M'+x+' '+y)});return d}
+ svg.appendChild(el('path',{d:path(3,true),fill:'none',stroke:'#A9B3C1','stroke-width':1.5,'stroke-dasharray':'4 4'}));
+ svg.appendChild(el('path',{d:path(2),fill:'none',stroke:'#7D8899','stroke-width':2.5,'stroke-linejoin':'round'}));
+ svg.appendChild(el('path',{d:path(1),fill:'none',stroke:'#0B6E66','stroke-width':3,'stroke-linejoin':'round'}));
+ svg.appendChild(el('circle',{cx:X(n),cy:Y(pts[n][1]),r:5,fill:'#0B6E66'}));
+ var rule=el('line',{y1:PT,y2:PT+ih,stroke:'#33475B','stroke-width':1,visibility:'hidden'}),d1=el('circle',{r:4,fill:'#0B6E66',visibility:'hidden'}),d2=el('circle',{r:4,fill:'#7D8899',visibility:'hidden'});
+ svg.appendChild(rule);svg.appendChild(d2);svg.appendChild(d1);
+ hist={pts:pts,X:X,Y:Y,n:n,rule:rule,d1:d1,d2:d2}}
+function hover(ev){if(!hist.pts)return;var r=svg.getBoundingClientRect(),vx=(ev.clientX-r.left)/r.width*W,k=Math.round((vx-PL)/(W-PL-PR)*hist.n);k=Math.max(0,Math.min(hist.n,k));
+ var p=hist.pts[k],x=hist.X(k);hist.rule.setAttribute('x1',x);hist.rule.setAttribute('x2',x);hist.rule.setAttribute('visibility','visible');
+ hist.d1.setAttribute('cx',x);hist.d1.setAttribute('cy',hist.Y(p[1]));hist.d1.setAttribute('visibility','visible');
+ hist.d2.setAttribute('cx',x);hist.d2.setAttribute('cy',hist.Y(p[2]));hist.d2.setAttribute('visibility','visible');
+ var d=new Date(p[0]*1000),when=fFull.format(d)+(rng==='1Y'||(rng==='MAX'&&(hist.pts[hist.n][0]-hist.pts[0][0])>35*86400)?'':', '+fT.format(d));
+ var df=p[1]-p[2],dp=p[2]>0?df/p[2]*100:0;
+ var gs=p[1]-p[3],gp=p[3]>0?gs/p[3]*100:0;
+ tip.textContent='';
+ function line(a,b,c){var dv=document.createElement('div');if(c){dv.style.color=c}dv.appendChild(document.createTextNode(a+' '));var bb=document.createElement('b');bb.textContent=b;dv.appendChild(bb);tip.appendChild(dv)}
+ var h=document.createElement('div');h.style.color='#4A5568';h.textContent=when;tip.appendChild(h);
+ line(L.our_stocks,usd(p[1]),'#0B6E66');line(L.spy_twin_row,usd(p[2]),'#5B6676');line(L.put_in,usd(p[3]),'#7D8899');
+ line((df>=0?L.ahead:L.behind),usd(Math.abs(df))+' ('+pc(Math.abs(dp),false)+')',df>=0?'#0B6E66':'#B4460F');
+ tip.hidden=false;var tw=tip.offsetWidth,cw=svg.clientWidth,px=x/W*cw;tip.style.left=Math.max(0,Math.min(cw-tw,px+14>cw-tw?px-tw-14:px+14))+'px'}
+function leave(){if(!hist.pts)return;tip.hidden=true;['rule','d1','d2'].forEach(function(k){hist[k].setAttribute('visibility','hidden')})}
+svg.addEventListener('pointermove',hover);svg.addEventListener('pointerdown',hover);svg.addEventListener('pointerleave',leave);
+function setBtns(){root.querySelectorAll('.rngs button').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.r===rng?'true':'false')});
+ ['pf-g1','pf-g2'].forEach(function(id){document.getElementById(id).setAttribute('aria-pressed',pct?'true':'false')})}
+var seq=0;
+function load(){var my=++seq;fetch('/app/perf.json?r='+rng,{credentials:'same-origin',headers:{'Accept':'application/json'}}).then(function(r){if(!r.ok||(r.headers.get('content-type')||'').indexOf('json')<0)throw 0;return r.json()}).then(function(d){if(my!==seq)return;data=d;draw()}).catch(function(){if(my!==seq)return;if(!data||!data.pts){data={err:1};draw()}})}
+root.querySelectorAll('.rngs button').forEach(function(b){b.addEventListener('click',function(){rng=b.dataset.r;try{localStorage.setItem('pf-rng',rng)}catch(e){}setBtns();data=null;draw();msg.textContent='…';load()})});
+['pf-g1','pf-g2'].forEach(function(id){document.getElementById(id).addEventListener('click',function(){pct=!pct;try{localStorage.setItem('pf-pct',pct?'1':'0')}catch(e){}setBtns();head(data&&data.pts)})});
+function again(){if(!document.hidden)load();setTimeout(again,60000)}
+setBtns();load();setTimeout(again,60000);
+})();</script>{% endif %}
+{% endblock %}"""
 
 HOLDINGS = """{% extends 'base.html' %}{% block body %}
 <div><h1>{{ t('holdings') }}</h1><p class="sub">{% if p %}{{ rows|length }} {{ t('stocks') }} · {{ t('cash') }} <span id="h-cash">{{ money(p.account.cash|float) }}</span>. {% endif %}{{ t('click_stock') }}{% if p %} · <span id="lv-badge"></span>{% endif %}</p></div>
