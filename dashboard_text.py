@@ -28,6 +28,7 @@ T = {
     "sc_caveat": ("{n} case(s) so far. This only means something after many cases (30+). Information only.", "Bisher {n} Fall/Fälle. Aussagekräftig erst nach vielen Fällen (30+). Nur zur Information."),
     "wr_dayDrop": ("Big one-day drop", "Großer Tagesverlust"), "wr_knife": ("Falling knife", "Fallendes Messer"),
     "wr_spike": ("Price spike", "Kurssprung"), "wr_news": ("News / earnings", "News / Quartalszahlen"),
+    "close": ("Close", "Schließen"),
     "checks_label": ("Checked at purchase", "Geprüft beim Kauf"),
     "price": ("Price", "Kurs"), "today": ("Today", "Heute"),
     "inv_title": ("Invested in stocks", "In Aktien investiert"), "put_into": ("put into stocks", "in Aktien eingesetzt"),

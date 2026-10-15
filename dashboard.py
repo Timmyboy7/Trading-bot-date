@@ -544,8 +544,8 @@ def holdings(me):
     wl, _ = sheet_part(D.watchlist, [])
     rows = holding_rows(p, desk_names(), wl or []) if p else []
     pick = request.args.get("s", "").upper()
-    sel = next((r for r in rows if r["symbol"] == pick), rows[0] if rows else None)
-    return render("holdings.html", me, page="holdings", rows=rows, sel=sel, err=err, p=p)
+    sel = next((r for r in rows if r["symbol"] == pick), None)   # open pop-up only when asked for (?s=SYM)
+    return render("holdings.html", me, page="holdings", rows=rows, sel=sel, opened=sel["symbol"] if sel else "", err=err, p=p)
 
 
 @dashboard_bp.route("/basket")
