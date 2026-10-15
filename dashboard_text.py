@@ -29,6 +29,7 @@ T = {
     "wr_dayDrop": ("Big one-day drop", "Großer Tagesverlust"), "wr_knife": ("Falling knife", "Fallendes Messer"),
     "wr_spike": ("Price spike", "Kurssprung"), "wr_news": ("News / earnings", "News / Quartalszahlen"),
     "close": ("Close", "Schließen"),
+    "gain_abs": ("Gain / loss", "Gewinn / Verlust"),
     "checks_label": ("Checked at purchase", "Geprüft beim Kauf"),
     "price": ("Price", "Kurs"), "today": ("Today", "Heute"),
     "inv_title": ("Invested in stocks", "In Aktien investiert"), "put_into": ("put into stocks", "in Aktien eingesetzt"),
