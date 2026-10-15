@@ -80,7 +80,7 @@ OVERVIEW = """{% extends 'base.html' %}{% block body %}
 <div class="big mono" id="lv-stocks">{{ v.stocks }}</div>
 {% if v.has_twin %}<div style="margin-top:6px"><span id="lv-inv_growth" class="{{ v.cls.inv_growth }}" style="font-weight:600">{{ v.inv_growth }}</span> <span style="color:var(--muted)">{{ t('on') }} <span id="lv-inv_on">{{ v.inv_on }}</span> {{ t('put_into') }}</span></div>{% else %}<div style="margin-top:6px;color:var(--muted)">{{ t('nothing_yet') }}</div>{% endif %}</div>
 {% if v.has_twin %}<div class="note"><div style="font-size:13px;color:var(--teal-ink);font-weight:600;text-transform:uppercase;letter-spacing:.06em">{{ t('vs_spy_same') }}</div>
-<div id="lv-excess" style="font-size:20px;font-weight:700;margin-top:6px">{{ v.excess }}</div>
+<div id="lv-excess" class="{{ v.cls.excess }}" style="font-size:20px;font-weight:700;margin-top:6px">{{ v.excess }}</div>
 <div style="font-size:13px;color:#33475B;margin-top:8px;line-height:1.45">{{ t('twin_note') }}</div></div>{% endif %}
 <div class="tile" style="padding:14px 16px;background:var(--bg)"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="color:var(--muted);font-size:14px">{{ t('cash_side') }}</span><span><strong class="mono" id="lv-cash_amt">{{ v.cash_amt }}</strong> <span style="color:var(--muted);font-size:14px">(<span id="lv-cash_pct">{{ v.cash_pct }}</span>)</span></span></div><div style="font-size:12px;color:var(--muted);margin-top:4px">{{ t('cash_side_note') }}</div></div>
 <dl style="margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;font-size:14px">
