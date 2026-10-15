@@ -1718,7 +1718,7 @@
   "BNY": {
    "cluster": "custody_banks",
    "next_earnings": "2026-10-15",
-   "earnings_confirmed": true,
+   "earnings_confirmed": false,
    "catalysts": [
     {
      "date": "2026-10-14",
@@ -1732,7 +1732,10 @@
    "sources": [
     "https://www.bny.com/corporate/global/en/about-us/newsroom/press-release/bny-announces-conference-calls-to-review-earnings-in-2026-130449.html",
     "https://www.hudson-labs.com/research/bny-q3-2026-earnings-revenue-preview-guidance-key-metrics",
-    "https://tickerleague.com/companies/BNY/estimates"
+    "https://tickerleague.com/companies/BNY/estimates",
+    "https://www.benzinga.com/news/26/10/62391069/full-transcript-bank-new-york-mellon-q3-2026-earnings-call",
+    "https://rallies.ai/news/bny-3q26-diluted-eps-jumps-24-to-234-revenue-rises-12-to-568-billion-5ce857f834162c91",
+    "https://www.investing.com/news/transcripts/earnings-call-transcript-bny-mellon-posts-strong-q3-2026-results-stock-slips-93CH-4952348"
    ],
    "earnings_preview": "Consensus is EPS about $2.25-2.27 on revenue about $5.5B (Q2 was $2.45 on $5.70B; management called Q3 the seasonally slowest quarter against a tough Q3 2025 NII comp). The case weakens if BNY trims 2026 guidance of revenue +10-11%, NII +12-13% or ~400 bps operating leverage, guides expenses above +7% ex-notables, or prints revenue below about $5.4B.",
    "researched_on": "2026-10-13",
@@ -1770,6 +1773,18 @@
      "name": "Client deposit balances",
      "ticker": "",
      "why": "NII funding; management flagged sequential moderation"
+    }
+   ],
+   "earnings_review": {
+    "date": "2026-10-15",
+    "verdict": "intact",
+    "summary": "Q3 2026 reported Oct 15: diluted EPS $2.34 (+24% y/y; $2.37 ex-notables) beat consensus ~$2.25-2.27; revenue $5.68B (+12%) beat ~$5.5B; NII $1.42B (+15% y/y, -2% q/q); expenses $3.49B (+8%); pre-tax margin 39%, ROTCE 29%, ~390 bps operating leverage, 85% payout. FY2026 guidance raised vs consensus/prior: revenue ex-notables ~middle of +12-13% (was +10-11%), NII ~+15% (was +12-13%), operating leverage nearly 500 bps (was ~400). Expense growth guide raised 100 bps to ~middle of +7-8% ex-notables, which formally meets the kill criterion 'expense guidance above +7%' (logged in kill_criteria_hit), but it is revenue-linked and more than offset by the higher revenue/NII guide. Average deposits -1% q/q (seasonal; management says Q4 picking up). Revenue, NII, ROTCE, margin and capital-return criteria not hit; 6-12 month case intact."
+   },
+   "kill_criteria_hit": [
+    {
+     "criterion": "BNY raises 2026 expense growth guidance above +7% ex-notables or cuts the ~400 bps operating leverage target",
+     "date": "2026-10-15",
+     "source": "https://www.benzinga.com/news/26/10/62391069/full-transcript-bank-new-york-mellon-q3-2026-earnings-call"
     }
    ]
   },
