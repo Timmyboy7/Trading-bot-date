@@ -487,7 +487,7 @@ def money_strings(n, lang, n_held=0):
                  inv_growth=f"{m(g, sign=True)} ({pc(g / tw['buys'] * 100, dec=2)})", inv_on=m(net_in),
                  excess=f"{X.t('ahead' if ex >= 0 else 'behind', lang)} {m(abs(ex), dec=2)}")
         v["cls"].update(st_growth="pos" if g >= 0 else "neg", tw_growth="pos" if tg >= 0 else "neg",
-                        inv_growth="pos" if g >= 0 else "neg")
+                        inv_growth="pos" if g >= 0 else "neg", excess="pos" if ex >= 0 else "neg")
     sv = n.get("spy_value")
     if sv:
         v.update(whole_a=m(eq), whole_b=m(sv))
