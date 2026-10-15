@@ -447,7 +447,8 @@ def overview(me):
                    cash=float(p["account"]["cash"]), stocks_value=eq - float(p["account"]["cash"]),
                    rows=rows[:5], n_held=len(rows),
                    perf_i18n=json.dumps({k: X.t(k, me["lang"]) for k in ("perf_empty", "perf_err", "perf_diff", "ahead", "behind",
-                                                                         "our_stocks", "spy_twin_row", "put_in")}),
+                                                                         "our_stocks", "spy_twin_row", "put_in", "per_1D", "per_1W", "per_1M",
+                                                                         "per_1Y", "per_MAX")}),
                    cash_pct=float(p["account"]["cash"]) / eq * 100 if eq else 0,
                    in_hold=sum(1 for r in rows if r["day"] < 182),
                    first_free=min([r["tax_free"] for r in rows if r["tax_free"]] or [None]))
