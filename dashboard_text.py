@@ -37,6 +37,8 @@ T = {
     "perf_err": ("The chart could not be loaded just now. It tries again by itself.", "Das Diagramm konnte gerade nicht geladen werden. Es versucht es von selbst erneut."),
     "perf_note": ("Same method as the comparison below: every dollar we put into stocks would have gone into the S&P 500 at that very moment. Cash is not part of it. Percent is on the money at work in the period.", "Gleiche Methode wie im Vergleich unten: Jeder in Aktien eingesetzte Dollar wäre in diesem Moment in den S&P 500 geflossen. Cash zählt nicht mit. Prozent bezieht sich auf das im Zeitraum eingesetzte Geld."),
     "rng_1D": ("1D", "1T"), "rng_1W": ("1W", "1W"), "rng_1M": ("1M", "1M"), "rng_1Y": ("1Y", "1J"), "rng_MAX": ("Max", "Max"),
+    "per_1D": ("Latest trading day", "Letzter Handelstag"), "per_1W": ("Past week", "Letzte Woche"),
+    "per_1M": ("Past month", "Letzter Monat"), "per_1Y": ("Past year", "Letztes Jahr"), "per_MAX": ("Since the first purchase", "Seit dem ersten Kauf"),
     "perf_diff": ("Difference", "Unterschied"),
     "checks_label": ("Checked at purchase", "Geprüft beim Kauf"),
     "price": ("Price", "Kurs"), "today": ("Today", "Heute"),
