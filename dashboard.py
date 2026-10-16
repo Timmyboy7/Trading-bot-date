@@ -171,7 +171,10 @@ def holding_rows(p, desk_names, wl):
         above = bool(i and i["sma"] and i["close"] >= i["sma"])
         state = "healthy" if above and (dd is None or dd > -15) else ("near_rule" if dd is not None and dd <= -20 and not above else "watch")
         n = desk_names.get(s) or {}
-        rows.append({"symbol": s, "value": float(x["market_value"]), "share": float(x["market_value"]) / eq * 100,
+        sma = i["sma"] if i and i.get("sma") else None
+        vs_sma = (i["close"] / sma - 1) * 100 if sma else None
+        rows.append({"sma": sma, "close": i["close"] if i else None, "vs_sma": vs_sma,
+                     "trend_rank": {"healthy": 0, "watch": 1, "near_rule": 2}[state], "symbol": s, "value": float(x["market_value"]), "share": float(x["market_value"]) / eq * 100,
                      "gain": float(x.get("unrealized_plpc") or 0) * 100, "gain_abs": float(x.get("unrealized_pl") or 0), "since": since, "day": min(day, 182),
                      "price": float(x.get("current_price") or 0), "today": float(x.get("change_today") or 0) * 100,
                      "hold_pct": min(100, round(day / 182 * 100)), "state": state, "above": above, "dd": dd,
