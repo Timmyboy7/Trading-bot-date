@@ -676,7 +676,7 @@
     "Dedicated truck count declines year over year despite the 'all-time high' pipeline management cited"
    ],
    "next_earnings": "2026-10-15",
-   "earnings_confirmed": true,
+   "earnings_confirmed": false,
    "catalysts": [
     {
      "date": "2026-10-15",
@@ -699,7 +699,10 @@
     "https://www.ajot.com/news/jb-hunt-reports-second-quarter-2026-results",
     "https://railmarket.com/news/business/57579-us-surface-transportation-board-accepts-union-pacific-norfolk-southern-merger-application",
     "https://finviz.com/news/395167/union-pacific-corporation-announces-third-quarter-2026-earnings-release-date",
-    "https://finviz.com/news/397825/knight-swift-transportation-holdings-inc-announces-timing-of-third-quarter-2026-earnings-release-and-related-conference-call"
+    "https://finviz.com/news/397825/knight-swift-transportation-holdings-inc-announces-timing-of-third-quarter-2026-earnings-release-and-related-conference-call",
+    "https://www.fool.com/earnings/call-transcripts/2026/10/16/jb-hunt-jbht-q3-2026-earnings-call-transcript/",
+    "https://finance.yahoo.com/markets/stocks/articles/jb-hunt-jbht-reports-q3-210003543.html",
+    "https://rallies.ai/news/jb-hunt-q3-revenue-3680-million-vs-ibes-estimate-3567-million-8fd7db1712954a66"
    ],
    "key_dependencies": [
     {
@@ -728,7 +731,12 @@
      "why": "fuel (surcharge recovery lags about 1 week) and driver costs (about $25M extra in Q3) caused the Q3 profit warning"
     }
    ],
-   "earnings_preview": "Consensus for Q3 (Oct 15) is EPS $1.81 on revenue $3.59B (18 analysts). Management's September signal of a 5-10% drop from Q2's $1.91 implies about $1.72-1.81. EPS below $1.72, or a Q4 outlook showing further decline, would weaken the case. So would no rate gains in the intermodal bid season (about 10% of contracts renew in Q4) or a year-over-year drop in intermodal loads."
+   "earnings_preview": "Consensus for Q3 (Oct 15) is EPS $1.81 on revenue $3.59B (18 analysts). Management's September signal of a 5-10% drop from Q2's $1.91 implies about $1.72-1.81. EPS below $1.72, or a Q4 outlook showing further decline, would weaken the case. So would no rate gains in the intermodal bid season (about 10% of contracts renew in Q4) or a year-over-year drop in intermodal loads.",
+   "earnings_review": {
+    "date": "2026-10-15",
+    "verdict": "intact",
+    "summary": "Q3 2026 reported Oct 15 after close: diluted EPS $1.82 (+3% y/y) vs consensus ~$1.81 (Zacks; some trackers cite $1.89, so in line to slight miss) and well above the ~$1.72 low end of the September signal; revenue $3.68B (+20%) beat ~$3.56-3.57B. Intermodal loads 585,582 (+8% y/y; East +18%, transcon +1%); intermodal revenue per load ex-fuel +2% y/y; 2026 bid season gave low single-digit rate increases and management says it is pushing 2027 pricing higher. No formal Q4 guidance; Q3 operating income landed at the better end of prior guidance. Management called driver/fuel cost pressure 'more cyclical or unpredictable than structural' but said some costs persist into Q4 and 2027 and must be recouped through pricing (watch item, not a stated 2027 guidance headwind). Margins narrowed; shares slipped after hours. No UP-NS/BNSF news on the call; dedicated truck count y/y not found. No kill criterion hit as stated fact; 6-12 month case intact. Next report (Q4, typically mid-January) date not yet announced."
+   }
   },
   "EXPD": {
    "cluster": "freight_forwarding",
